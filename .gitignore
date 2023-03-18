@@ -224,7 +224,8 @@ _minted*
 *.pyg
 
 # morewrites
-*.mw
+# Also, Maple Worksheet files. I want those
+# *.mw
 
 # nomencl
 *.nlg

@@ -1,0 +1,137 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry} 
+\usepackage{color}               		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or epsÂ§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb}
+\usepackage{setspace}
+
+\usepackage[title]{appendix}   % Start an appendices environment, then treat each separate appendix as an ordinary section
+								% [title] changes labels to, e.g., "Appendix A...". Omit to label as "A...".
+
+\usepackage{authblk}
+
+\usepackage{mathrsfs}	% For \mathcal{}, a script font in math mode
+
+\usepackage[semicolon]{natbib}
+\usepackage{verbatim}
+\usepackage{soul}	% Highlighting
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\def\UrlBreaks{\do\/\do-}
+
+
+\usepackage{multirow}
+
+\usepackage{esdiff} %Shorter syntax for derivatives. Use \diff{f}{x} or \diffp{f}{t}
+\usepackage{amsmath}
+
+
+% \usepackage[ruled]{algorithm2e} % For writing algorithms
+
+\usepackage{algpseudocode}
+\usepackage{algorithm} % For writing algorithms
+
+\newcommand{\lt}{LTHC}
+\newcommand{\llt}{\ell(\theta)}
+
+
+\newcommand{\bF}{\mathbb{F}}
+\newcommand{\bG}{\mathbb{G}}
+\newcommand{\bP}{\mathbb{P}}
+\newcommand{\bQ}{\mathbb{Q}}
+\newcommand{\bV}{\mathbb{V}}
+\newcommand{\bE}{\mathbb{E}}
+\newcommand{\bR}{\mathbb{R}}
+
+\newcommand{\iid}{\overset{\mathrm{iid}}{\sim}}
+
+
+%SetFonts
+
+%SetFonts
+
+
+\title{\SARS\ Transmission in University Classes}
+\author[1]{William Ruth}
+\author[2]{Richard Lockhart}
+\affil[1]{Corresponding Author - Department of Statistics and Actuarial Science \\ Simon Fraser University \\ Burnaby, BC  Canada \\ wruth@sfu.ca}
+\affil[2]{Department of Statistics and Actuarial Science \\ Simon Fraser University \\ Burnaby, BC  Canada}
+%\affil{Department of Statistics and Actuarial Science \\ Simon Fraser University \\ Burnaby, BC  Canada \\ lockhart@sfu.ca}
+%\date{\today}							% Activate to display a given date or no date
+\date{}
+
+\begin{document}
+%\maketitle
+
+\doublespacing
+
+\begin{abstract}
+    We survey the EM algorithm and its Monte Carlo-based extensions.
+\end{abstract}
+
+\section{The EM Algorithm}
+
+The EM algorithm is a method for analyzing incomplete data which was formalized by \citet{Dem77}. We begin by discussing a probabilistic framework within which the EM algorithm is often applied. We then present the EM algorithm in detail. Finally, we discuss some limitations of this method. Throughout, we illustrate our presentation with a toy problem based on linear regression with unobserved covariates.
+
+\subsection{Example: Linear Regression with an Unobserved Covariate}
+\label{sec:eg-lin_reg}
+
+Consider the scenario where a measured quantity is known to depend linearly on another unobserved, but nevertheless well understood, quantity. For example, \hl{something, something, census data}. We first present a model for such a scenario, then show how to directly analyze the observed data. Throughout the rest of this document, we will return to this example to illustrate how to perform an analysis when increasing portions of the calculations cannot be performed analytically (\hl{awk}).
+
+Let $X \sim \mathrm{M}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\varepsilon \sim \mathrm{N}(0, \sigma^2)$ for some $\sigma>0$, and $Y = X \beta + \varepsilon$ where $\beta \in \bR$. We observe an iid sample of $Y$s, but not their corresponding $X$s. We do however, treat $\mu$ and $\tau$ as known. Our goal is to estimate $\beta$ and $\sigma$ from this incomplete data. 
+
+
+\begin{appendices}
+    \section{Likelihood for Linear Regression with Unobserved Covariates}
+
+    In this appendix, we present details for the analysis of our linear regression example with unobserved covariates. See Section \ref{sec:eg-lin_reg} for formulation of the model and definition of notation.
+
+    \subsection{Observed Data Likelihood, Score and Information}
+
+    The complete data distribution for our model can be written as follows.
+    %
+    \begin{align}
+        \begin{pmatrix} Y \\ X \end{pmatrix} 
+        \sim \mathrm{MVN}\left( \begin{pmatrix}
+            \mu \beta\\
+            \mu
+        \end{pmatrix}, \begin{bmatrix}
+            \sigma^2 + \tau^2 \beta^2 & \tau^2 \beta\\
+            \tau^2 \beta & \tau^2
+        \end{bmatrix} \right) \label{eq:comp_dist}
+    \end{align}
+    %
+    Since our observed data, $Y$, is a marginal of the complete data, we can read off the distribution of $Y$ from Expression (\ref{eq:comp_dist}). That is, $Y \sim \mathrm{N}(\mu \beta, \sigma^2 + \tau^2 \beta^2)$.
+
+    Based on a sample of observed data, $y_1,\ldots, y_n$, our log-likelihood is as follows. For conciseness, let $\theta = (\beta, \sigma)$ be the vector of unknown parameters, and $\eta^2 = \sigma^2 + \tau^2 \beta^2$ be the marginal variance of $Y$. \hl{In previous work, I used $\eta$ for $\bV Y$. Make sure I adjust any discussion and \textbf{CODE(!!!)} accordingly}.
+    %
+    \begin{align}
+        \ell(\theta; y) &= - \frac{n}{2} \log (2 \pi) - n \log (\eta) - \sum_{i=1}^n \frac{(y_i - \mu \beta)^2}{2 \eta^2}\\
+        &\equiv -n \log (\eta) - \sum_{i=1}^n \frac{(y_i - \mu \beta)^2}{2 \eta^2}
+    \end{align}
+    %
+    Where $\equiv$ denotes equality up to additive constants which do not depend on $\theta$.
+
+    The score vector is given by
+    %
+    \begin{align}
+        S(\theta; y) &= 
+    \end{align}
+
+
+    As an aside, I did explore the above model with multiple covariates. Unfortunately, marginalizing out $X$ consists of replacing each observed covariate vector with its mean, $\mu$. This results in linearly dependent observations, so the model is overparameterized. I could probably incorporate an intercept term without introducing the overparameterization problem, but I don't think it's worth the effort. I'm not going to be able to sell anyone on the applicability of my model, and adding a third parameter won't really increase the pedagogical value.
+
+\end{appendices}
+
+\textbf{Check for ``Citation Needed'' before publishing.}
+
+\bibliographystyle{plainnat}
+\bibliography{mybib}
+
+\end{document}  
+
