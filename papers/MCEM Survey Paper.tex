@@ -29,6 +29,11 @@
 
 \usepackage{esdiff} %Shorter syntax for derivatives. Use \diff{f}{x} or \diffp{f}{t}
 \usepackage{amsmath}
+\usepackage{amsthm}
+
+\usepackage{etoolbox}   % Prerequisite for imakeidx
+\usepackage{imakeidx}   % For making an index
+\makeindex              % Initialize the index (this command must be included!)
 
 
 % \usepackage[ruled]{algorithm2e} % For writing algorithms
@@ -49,6 +54,11 @@
 \newcommand{\bR}{\mathbb{R}}
 
 \newcommand{\iid}{\overset{\mathrm{iid}}{\sim}}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+
+
+\newtheorem{proposition}{Proposition}[section]
 
 
 %SetFonts
@@ -76,7 +86,74 @@
 
 \section{The EM Algorithm}
 
-The EM algorithm is a method for analyzing incomplete data which was formalized by \citet{Dem77}. We begin by discussing a probabilistic framework within which the EM algorithm is often applied. We then present the EM algorithm in detail. Finally, we discuss some limitations of this method. Throughout, we illustrate our presentation with a toy problem based on linear regression with unobserved covariates.
+%todo - Define observed, complete and missing data distributions
+%todo - Define parameter space.
+
+The EM algorithm is a method for analyzing incomplete data which was formalized by \citet{Dem77}. See \citet{McL08} for an excellent book-length overview of the EM algorithm. We begin by discussing a probabilistic framework within which the EM algorithm is often applied. We then present the EM algorithm in detail. Finally, we discuss some limitations of this method. Throughout, we illustrate our presentation with a toy problem based on linear regression with a single, unobserved, covariate.
+
+The EM algorithm consists of iterating two steps. First is the expectation, or ``E'', step, in which an objective function is constructed from the complete data likelihood. Second is the maximization, or ``M'', step, in which the previously computed objective function is maximized. These two steps are then alternated until some convergence criterion is met. Whatever value of $\theta$ the algorithm converges to is used as our parameter estimate. We now go into more detail on each of the two steps.
+
+The E-step of the EM algorithm is where we construct the objective function which will be used to update our parameter estimate. This objective function is the conditional expectation of the complete data likelihood, given the observed data. If our complete data can be partitioned into an observed component, $Y$, and a missing component, $X$, then our objective function at iteration $k+1$ is given by
+%
+\begin{align}
+    Q(\theta|\theta_k) & = \bE_{\theta_k}[\ell_c(\theta; y, X) | Y=y]
+\end{align}
+%
+Where $\ell_c$ is the log-likelihood of the complete data model. Note that the conditional expectation uses our parameter estimate from the previous iteration.
+
+The M-step of the EM algorithm consists of maximizing the objective function constructed in the previous E-step. That is, we define $\theta_{k+1} = \argmax\limits_\theta Q(\theta|\theta_k)$. Typically, this optimization must be performed numerically via, e.g., gradient ascent or Newton's method. See \citet{Noc06} for details and other optimization algorithms. 
+
+We can combine the E- and M-steps of the EM algorithm into a single ``update function''. We write $M(\theta_k) = \argmax\limits_\theta Q(\theta|\theta_k)$. The EM algorithm can thus be viewed as the iterative application of this update function, $M$.
+
+\subsection{Properties}
+
+\textbf{Section intro...}
+
+\subsubsection{Ascent Property and Generalized EM}
+
+An important feature of the EM algorithm is its so-called ``ascent property''. This property says that an iteration of the EM algorithm (\hl{have I explicitly defined ``EM iteration''? Do I need to?}) never decreases the observed data likelihood. This is somewhat surprising, since EM updates are computed without ever evaluating the observed data likelihood. 
+
+\begin{proposition}[Ascent Property of EM]
+    Let $\theta \in \Theta$, and $\theta' = M(\theta)$ be the EM update from $\theta$. Then $\ell(\theta') \geq \ell(\theta)$.
+\end{proposition}
+
+\begin{proof}
+    We begin by noting that the following decomposition holds for any value of $x$:
+    %
+    \begin{align}
+        \ell(\theta; y) &= \ell_c(\theta; y, x) - \ell_m(\theta; y, x)
+    \end{align}
+    %
+    Subtracting the values of both sides at $\theta$ from their values at $\theta'$ and taking conditional expectations, we get
+    %
+    \begin{align}
+        \ell(\theta'; y) - \ell(\theta; y) &= Q(\theta'|\theta) - Q(\theta|\theta) + \bE_{\theta}[\ell_m(\theta; y, x) - \ell_m(\theta'; y, x)]\\
+        &= Q(\theta'|\theta) - Q(\theta|\theta) + \mathrm{KL}(\theta || \theta') \label{eq:asc_KL}
+    \end{align}
+    %
+    Where the last term in line \ref{eq:asc_KL} is the Kullback-Leibler (KL) divergence from the missing data distribution with $\theta = \theta$ to the same distribution with $\theta = \theta'$. Note that KL divergences are always non-negative, so we get
+    %
+    \begin{align}
+    \ell(\theta'; y) - \ell(\theta; y) &\geq Q(\theta'|\theta) - Q(\theta|\theta)    
+    \end{align}
+    %
+    Finally, since $\theta'$ maximizes $Q(\cdot|\theta)$, we have $\ell(\theta'; y) - \ell(\theta; y) \geq 0$.
+\end{proof}
+
+In our proof of the ascent property, we only required that $Q(\theta'|\theta) \geq Q(\theta|\theta)$, not that $\theta'$ maximize $Q(\cdot|\theta)$. This observation leads to the definition of the ``Generalized EM Algorithm''\index{Generalized EM Algorithm}, which replaces the M-step with setting $\theta_{k+1}$ to any point in $\Theta$ such that $Q(\theta_{k+1}|\theta_k) \geq Q(\theta_k|\theta_k)$.
+
+
+% In fact, the ascent property of EM only requires that $\theta_{k+1}$ improve $Q$ relative to the previous parameter estimate. This leads us to define the Generalized EM Algorithm, where instead of defining $\theta_{k+1}$ as the maximizer of $Q(\cdot|\theta_k)$ in the M-step, we instead define $\theta_{k+1}$ to be any value of $\theta$ such that $Q(\theta_{k+1}|\theta_k) \geq Q(\theta_k | \theta_k)$. \hl{Note: }It is not obvious to me that we should use $\geq$ instead of $>$ in our definition. \citet{McL08} use $\geq$, but I would like to confirm what \citet{Dem77} do. It can clearly be seen that the Generalized EM Algorithm retains the ascent property of ordinary EM, while making the M-step at each iteration easier to carry out.
+
+\subsubsection{Recovering Observed Data Likelihood Quantities}
+
+Under regularity conditions, it is possible to compute both the score vector and the observed information matrix of the observed data likelihood using complete data quantities. These regularity conditions consist of being able to interchange the order of differentiation and integration for various functions (\hl{awk? I wasn't feeling well when I wrote this.}). 
+
+\begin{proposition}
+    Let $f$ and $\ell$ be the density and log-likelihood of the observed data distribution. Let $f_c$, $\ell_c$ and $f_m$, $\ell_m$ be the corresponding quantities for the complete data and missing data distributions respectively.
+\end{proposition}
+
+We start with the observed data score vector. Let $f$ and $f_c$ be densities for the observed and complete data distributions respectively.
 
 \subsection{Example: Linear Regression with an Unobserved Covariate}
 \label{sec:eg-lin_reg}
@@ -120,7 +197,29 @@ Let $X \sim \mathrm{M}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\
     The score vector is given by
     %
     \begin{align}
-        S(\theta; y) &= 
+        S(\theta; y) &= \frac{1}{\eta^4}\begin{pmatrix}
+            - n \beta^3 \tau^4 - \beta^2 \mu \tau^2 \sum y_i + \beta [\tau^2 \sum y_i^2 - n \sigma^2 (\tau^2 + \sigma^2)] + \mu \sigma^2 \sum y_i\\
+            \sigma[n \beta^2 (\mu^2 - \tau^2)  - 2 \beta \mu \sum y_i + \sum y_i^2 - n \sigma^2]
+        \end{pmatrix}
+    \end{align}
+
+    The observed information matrix is given by
+    %
+    \begin{align}
+        I(\theta; y) &= \frac{1}{\eta^6} \begin{bmatrix}
+            I^{(1,1)} & I^{(1,2)}\\
+            I^{(1,2)} & I^{(2,2)}
+        \end{bmatrix}
+    \end{align}
+    %
+    where
+    \begin{align}
+        I^{(1,1)} & = - n \beta^4 \tau^6 - 2 \beta^3 \mu \tau^4 \sum y_i + 3 \beta^2 \tau^2 (3 \tau^2 \sum y_i^2 - n \sigma^2 \mu^2) \\
+        & + 6 \beta \sigma^2 \tau^2 \mu \sum y_i + \sigma^2 [n \sigma^2 (\tau^2 + \mu^2) - \tau^2 \sum y_i] \nonumber \\
+        I^{(1,2)} &= 2 n \beta^3 \sigma \tau^2 (\mu^2 - \tau^2) - 6 \beta^2 \sigma \mu \tau^2 \sum y_i + 2 \beta \sigma [2 \tau^2 \sum y_i^2 - n \sigma^2 (\mu^2 + \tau^2)] \\
+        & + 2 \mu \sigma^3 \sum y_i \nonumber \\
+        I^{(2,2)} &= n \beta^4 \tau^2 (\tau^2 - \mu^2) + 2 \beta^3 \mu \tau^2 \sum y_i + \beta^2 (3 n \mu^2 \sigma^2 - \tau^2 \sum y_i^2) \\
+        & - 6 \beta \mu \tau^2 \sum y_i + \sigma^2 (3 \sum y_i^2 - n \sigma^2) \nonumber
     \end{align}
 
 
@@ -130,8 +229,10 @@ Let $X \sim \mathrm{M}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\
 
 \textbf{Check for ``Citation Needed'' before publishing.}
 
+
 \bibliographystyle{plainnat}
 \bibliography{mybib}
 
+\printindex
 \end{document}  
 

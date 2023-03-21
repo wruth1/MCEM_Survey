@@ -3,3 +3,8 @@ iid
 Transmissibility
 covariates
 Covariates
+overparameterization
+overparameterized
+covariate
+Covariate
+Kullback-Leibler
