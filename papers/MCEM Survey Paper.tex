@@ -31,6 +31,8 @@
 \usepackage{amsmath}
 \usepackage{amsthm}
 
+\usepackage{enumitem}   % For more customizable lists
+
 \usepackage{etoolbox}   % Prerequisite for imakeidx
 \usepackage{imakeidx}   % For making an index
 \makeindex              % Initialize the index (this command must be included!)
@@ -57,6 +59,9 @@
 \DeclareMathOperator*{\argmax}{argmax}
 \DeclareMathOperator*{\argmin}{argmin}
 
+\newcommand{\cd}{f_c(y, x; \theta)}
+\newcommand{\od}{f(y; \theta)}
+
 
 \newtheorem{proposition}{Proposition}[section]
 
@@ -78,7 +83,7 @@
 \begin{document}
 %\maketitle
 
-\doublespacing
+% \doublespacing
 
 \begin{abstract}
     We survey the EM algorithm and its Monte Carlo-based extensions.
@@ -143,17 +148,75 @@ An important feature of the EM algorithm is its so-called ``ascent property''. T
 In our proof of the ascent property, we only required that $Q(\theta'|\theta) \geq Q(\theta|\theta)$, not that $\theta'$ maximize $Q(\cdot|\theta)$. This observation leads to the definition of the ``Generalized EM Algorithm''\index{Generalized EM Algorithm}, which replaces the M-step with setting $\theta_{k+1}$ to any point in $\Theta$ such that $Q(\theta_{k+1}|\theta_k) \geq Q(\theta_k|\theta_k)$.
 
 
-% In fact, the ascent property of EM only requires that $\theta_{k+1}$ improve $Q$ relative to the previous parameter estimate. This leads us to define the Generalized EM Algorithm, where instead of defining $\theta_{k+1}$ as the maximizer of $Q(\cdot|\theta_k)$ in the M-step, we instead define $\theta_{k+1}$ to be any value of $\theta$ such that $Q(\theta_{k+1}|\theta_k) \geq Q(\theta_k | \theta_k)$. \hl{Note: }It is not obvious to me that we should use $\geq$ instead of $>$ in our definition. \citet{McL08} use $\geq$, but I would like to confirm what \citet{Dem77} do. It can clearly be seen that the Generalized EM Algorithm retains the ascent property of ordinary EM, while making the M-step at each iteration easier to carry out.
 
 \subsubsection{Recovering Observed Data Likelihood Quantities}
 
-Under regularity conditions, it is possible to compute both the score vector and the observed information matrix of the observed data likelihood using complete data quantities. These regularity conditions consist of being able to interchange the order of differentiation and integration for various functions (\hl{awk? I wasn't feeling well when I wrote this.}). 
+Under regularity conditions, it is possible to compute both the score vector and the observed information matrix of the observed data likelihood using complete data quantities. These regularity conditions consist of being able to interchange the order of differentiation and integration for various functions (\hl{awk? I wasn't feeling well when I wrote this.}). \hl{Define $\mathcal{I}_c$ and $\mathcal{I}_m$.}
 
 \begin{proposition}
-    Let $f$ and $\ell$ be the density and log-likelihood of the observed data distribution. Let $f_c$, $\ell_c$ and $f_m$, $\ell_m$ be the corresponding quantities for the complete data and missing data distributions respectively.
+    \label{thm:EM_decomp}
+    The following identities hold (\hl{regularity conditions!}):
+    \begin{enumerate}[label=(\roman*)]
+        \item $S(\theta; y) = \bE_\theta [S_c(\theta; y, X)|Y=y]$ \label{eq:obs_score_identity}
+        \item $I(\theta) = \mathcal{I}_c(\theta) - \mathcal{I}_m(\theta)$ \label{eq:obs_info_identity}
+    \end{enumerate}
 \end{proposition}
 
-We start with the observed data score vector. Let $f$ and $f_c$ be densities for the observed and complete data distributions respectively.
+\begin{proof}
+    We start with expression \ref{eq:obs_score_identity}. Let $\Omega$ be the complete data sample space. Let $\mathcal{Y}$ and $\mathcal{X}$ be the observed and missing data sample spaces respectively. For every $y \in \mathcal{Y}$, let $\mathcal{X}(y) = \{ x \in \mathcal{X}: (y,x) \in \Omega\}$. Note that $f(y; \theta) = \int_{\mathcal{X}(y)} f_c(y, x; \theta) dx$.
+    %
+    \begin{align}
+        \bE_\theta [S_c(\theta; y, X)|Y=y] &= \int_{\mathcal{X}(y)} \nabla \ell_c(\theta; y) f_m(y, x; \theta) dx \nonumber\\
+        &= \int_{\mathcal{X}(y)} \frac{f_m(y, x; \theta)}{f_c(y, x; \theta)} \nabla f_c(\theta; y) \nonumber\\
+        &= \int_{\mathcal{X}(y)} \frac{1}{f(y; \theta)} \nabla f_c(\theta; y)\nonumber\\
+        &= \frac{1}{f(y; \theta)} \int_{\mathcal{X}(y)} \nabla f_c(\theta; y)\nonumber\\
+        &= \frac{1}{f(y; \theta)} \nabla \int_{\mathcal{X}(y)} f_c(\theta; y) \nonumber\\
+        &= \frac{1}{f(y; \theta)} \nabla f(y; \theta)\nonumber\\
+        &= S(\theta; y) \nonumber
+    \end{align}
+
+    Proceeding now to \ref{eq:obs_info_identity}, we decompose the observed data log-likelihood as
+    %
+    \begin{align*}
+        \ell(\theta; y) &= \ell_c(\theta; y, x) - \ell_m(\theta; y, x)
+    \end{align*}
+    %
+    Differentiating twice and taking conditional expectations of both sides yields the required result.
+\end{proof}
+
+An alternative to Proposition \ref{thm:EM_decomp} part \ref{eq:obs_info_identity} which involves only conditional expectations of complete data quantities is given in the following proposition.
+
+\begin{proposition}
+    \label{thm:info_decomp}
+    Let $\hat{\theta}$ be a stationary point of the observed data log-likelihood. \hl{Assuming regularity conditions,} we can write the observed information of the observed data distribution at $\hat{\theta}$ as
+    %
+    \begin{align}
+        I(\hat{\theta}) = \mathcal{I}_c(\hat{\theta})  - \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta}) | Y=y]
+    \end{align}
+\end{proposition}
+
+\begin{proof}
+    We follow the derivation of \citet{Lou82}. For brevity, we write $f(\theta)$ and $f_c(\theta)$ for $f(y; \theta)$ and $f(y, x; \theta)$ respectively. Consider the following two Hessians:
+    %
+    \begin{align}
+        \nabla^2 \ell(\theta) &= \nabla \left[ \int_{\mathcal{X}(y)} \frac{\nabla f_c(\theta) dx}{f(\theta)} \right]\\
+        &= \int_{\mathcal{X}(y)} \frac{\nabla^2 f_c(\theta)}{f(\theta)} dx - \frac{1}{f(\theta)^2}\left( \int_{\mathcal{X}(y)} \nabla f_c(\theta) dx \right) \left( \int_{\mathcal{X}(y)} \nabla f_c(\theta) dx \right)^T\\
+        &= \bE_\theta \left[ \left. \frac{\nabla^2 f_c(\theta)}{f_c(\theta)} \right| Y=y \right] - \bE_\theta \left[ \left. \frac{\nabla f_c(\theta)}{f_c(\theta)} \right| Y=y \right] \bE_\theta \left[ \left. \frac{\nabla f_c(\theta)}{f_c(\theta)} \right| Y=y \right]^T\\
+        &= \bE_\theta \left[ \left. \frac{\nabla^2 f_c(\theta)}{f_c(\theta)} \right| Y=y \right] - S(\theta; y) S(\theta; y)^T \label{eq:hess_obs_lik}\\
+        \nabla^2 \ell_c(\theta) &= \nabla \left( \frac{\nabla f_c(\theta)}{f_c(\theta)} \right)\\
+        &= \frac{\nabla^2 f_c(\theta)}{f_c(\theta)} - S_c(\theta) S_c(\theta)^T \label{eq:hess_comp_lik}
+    \end{align}
+    %
+    Combining lines \ref{eq:hess_obs_lik} and \ref{eq:hess_comp_lik}, we get
+    %
+    \begin{align}
+        \nabla^2 \ell(\theta) &= \bE_\theta [ \nabla^2 \ell_c(\theta) | Y=y] + \bE_\theta [ S_c(\theta) S_c(\theta)^T | Y=y] - S(\theta; y) S(\theta; y)^T \label{eq:hess_obs_lik2}
+    \end{align}
+    %
+    Finally, evaluating this last line at $\theta = \hat{\theta}$ makes the rightmost term vanish, thereby yielding the required expression.
+\end{proof}
+
+Proposition \ref{thm:info_decomp} is known as Louis' standard error formula. Other decompositions for the observed information matrix of the observed data likelihood do exist; see, e.g., \citet{Oak99,McL08}. However, the one due to Louis will be most useful to us later.
 
 \subsection{Example: Linear Regression with an Unobserved Covariate}
 \label{sec:eg-lin_reg}
@@ -163,10 +226,28 @@ Consider the scenario where a measured quantity is known to depend linearly on a
 Let $X \sim \mathrm{M}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\varepsilon \sim \mathrm{N}(0, \sigma^2)$ for some $\sigma>0$, and $Y = X \beta + \varepsilon$ where $\beta \in \bR$. We observe an iid sample of $Y$s, but not their corresponding $X$s. We do however, treat $\mu$ and $\tau$ as known. Our goal is to estimate $\beta$ and $\sigma$ from this incomplete data. 
 
 
-\begin{appendices}
-    \section{Likelihood for Linear Regression with Unobserved Covariates}
+\section{The Monte Carlo EM Algorithm}
 
-    In this appendix, we present details for the analysis of our linear regression example with unobserved covariates. See Section \ref{sec:eg-lin_reg} for formulation of the model and definition of notation.
+The Monte Carlo EM, or MCEM, algorithm was first proposed by \citet{Wei90}, and replaces the conditional expectation in the E-step of the EM algorithm with a Monte Carlo average. That is, at each iteration we generate observations from the conditional distribution of the missing data given the observed data, and average the complete data likelihood over this Monte Carlo sample. This does alleviate the challenge of computing a potentially intractable conditional expectation, but does introduce a number of other difficulties. In the rest of this section, we outline some of these difficulties and methods which have been proposed to address them. We focus particularly on the practical aspects of implementing the MCEM algorithm. For an excellent survey of the theoretical considerations for the MCEM algorithm, see \citet{Nea13}.
+
+\subsection{Quantifying Monte Carlo Uncertainty}
+
+In their seminal work, \citet{Wei90} highlight two important challenges with implementing this method: choosing the Monte Carlo sample size at each iteration, and deciding when to terminate the algorithm. It turns out that solutions to these two problems are often connected via their link to the uncertainty in our Monte Carlo conditional expectations. The recommendations given by \citeauthor{Wei90} on how to solve these problems are mostly informal, but much of the later work on the MCEM algorithm centers around developing more precise solutions \hl{(too strong of a statement?)}.
+
+\citet{Cha95} present an alternative method for choosing the Monte Carlo sample size based on starting with a pilot study and using information near the optimal parameter estimate\footnotemark to choose a Monte Carlo size for the rest of the analysis. In contrast to \citet{Wei90}, \citeauthor{Cha95} use a fixed Monte Carlo size for their analysis.
+
+\footnotetext{\citet{Cha95} present an identity which expresses the observed data log-likelihood ratio as the conditional expectation of the corresponding complete data log-likelihood ratio. Replacing the conditional expectation with a Monte Carlo average gives a natural estimate of the observed data log-likelihood ratio. This approach closely resembles the Monte Carlo Maximum Likelihood method of \citet{Gey94}. See \hl{Section ???}.}
+
+The method of \citet{Boo99} centers on treating each iteration of the MCEM algorithm as an M-estimation problem targeting the deterministic EM update. This framework is quite natural, as an iteration of the MCEM algorithm consists of maximizing a Monte Carlo approximation to the EM objective function. Provided that certain regularity conditions are satisfied (see, e.g., \citealp{van98}), we can estimate the asymptotic standard error of the MCEM update as an estimate of the EM update with the same starting value, with the sampling variability induced by Monte Carlo simulation. \citeauthor{Boo99} then recommend constructing an asymptotic confidence set for the EM update, and increasing the Monte Carlo size if this confidence set contains the previous iteration's parameter estimate\footnotemark.
+
+\footnotetext{For myself: As far as I can tell, in their paper, \citeauthor{Boo99} don't suggest that you check whether augmenting the Monte Carlo size produces a confidence set which does not contain the previous iteration's estimate. I think they're just suggesting you increase M and proceed with the next iteration. This differs from \citet{Caf05} who require that we keep checking and augmenting M until the condition is satisfied. \hl{I don't think this needs to go in the paper, but it's of some interest if you want to implement the method of} \citeauthor{Boo99}}
+
+\newpage
+
+\begin{appendices}
+    \section{Likelihood for Linear Regression with an Unobserved Covariate}
+
+    In this appendix, we present details for the analysis of our linear regression example with a single, unobserved, covariate. See Section \ref{sec:eg-lin_reg} for formulation of the model and definition of notation.
 
     \subsection{Observed Data Likelihood, Score and Information}
 
@@ -185,7 +266,7 @@ Let $X \sim \mathrm{M}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\
     %
     Since our observed data, $Y$, is a marginal of the complete data, we can read off the distribution of $Y$ from Expression (\ref{eq:comp_dist}). That is, $Y \sim \mathrm{N}(\mu \beta, \sigma^2 + \tau^2 \beta^2)$.
 
-    Based on a sample of observed data, $y_1,\ldots, y_n$, our log-likelihood is as follows. For conciseness, let $\theta = (\beta, \sigma)$ be the vector of unknown parameters, and $\eta^2 = \sigma^2 + \tau^2 \beta^2$ be the marginal variance of $Y$. \hl{In previous work, I used $\eta$ for $\bV Y$. Make sure I adjust any discussion and \textbf{CODE(!!!)} accordingly}.
+    Based on a sample of observed data, $y_1,\ldots, y_n$, our log-likelihood is as follows. Write $\theta = (\beta, \sigma)$ for the vector of unknown parameters, and $\eta^2 = \sigma^2 + \tau^2 \beta^2$ for the marginal variance of $Y$. \hl{In previous work, I used $\eta$ for $\bV Y$. Make sure I adjust any discussion and \textbf{CODE(!!!)} accordingly}.
     %
     \begin{align}
         \ell(\theta; y) &= - \frac{n}{2} \log (2 \pi) - n \log (\eta) - \sum_{i=1}^n \frac{(y_i - \mu \beta)^2}{2 \eta^2}\\
