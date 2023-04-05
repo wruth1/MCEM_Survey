@@ -62,6 +62,8 @@
 \newcommand{\cd}{f_c(y, x; \theta)}
 \newcommand{\od}{f(y; \theta)}
 
+\newcommand{\hq}{\hat{Q}}
+
 
 \newtheorem{proposition}{Proposition}[section]
 
@@ -88,6 +90,12 @@
 \begin{abstract}
     We survey the EM algorithm and its Monte Carlo-based extensions.
 \end{abstract}
+
+\begin{itemize}
+    \color{red}
+    \item Replace ``conditional distribution of the missing data given the observed data'' with ``missing data distribution''
+    \item \citet{Caf05} use $M_k$ for the Monte Carlo size at iteration $k$. This is a useful definition for discussing other papers too.
+\end{itemize}
 
 \section{The EM Algorithm}
 
@@ -151,14 +159,15 @@ In our proof of the ascent property, we only required that $Q(\theta'|\theta) \g
 
 \subsubsection{Recovering Observed Data Likelihood Quantities}
 
-Under regularity conditions, it is possible to compute both the score vector and the observed information matrix of the observed data likelihood using complete data quantities. These regularity conditions consist of being able to interchange the order of differentiation and integration for various functions (\hl{awk? I wasn't feeling well when I wrote this.}). \hl{Define $\mathcal{I}_c$ and $\mathcal{I}_m$.}
+Under regularity conditions, it is possible to compute both the score vector and the observed information matrix of the observed data likelihood using complete data quantities. These regularity conditions consist of being able to interchange the order of differentiation and integration for various functions (\hl{awk? I wasn't feeling well when I wrote this.}). \hl{Does it make sense to define $\mathcal{I}_c$ and $\mathcal{I}_m$ in the following proposition?}
 
 \begin{proposition}
     \label{thm:EM_decomp}
     The following identities hold (\hl{regularity conditions!}):
     \begin{enumerate}[label=(\roman*)]
         \item $S(\theta; y) = \bE_\theta [S_c(\theta; y, X)|Y=y]$ \label{eq:obs_score_identity}
-        \item $I(\theta) = \mathcal{I}_c(\theta) - \mathcal{I}_m(\theta)$ \label{eq:obs_info_identity}
+        \item $I(\theta) = \mathcal{I}_c(\theta) - \mathcal{I}_m(\theta)$ \label{eq:obs_info_identity}\\
+        Where $\mathcal{I}_c(\theta) := - \bE_\theta \left[ \nabla^2 \ell_c(\theta; y, X) | Y=y \right]$ and $\mathcal{I}_m(\theta) := - \bE_\theta \left[ \nabla^2 \ell_m(\theta; y, X) | Y=y \right]$
     \end{enumerate}
 \end{proposition}
 
@@ -189,6 +198,12 @@ An alternative to Proposition \ref{thm:EM_decomp} part \ref{eq:obs_info_identity
 \begin{proposition}
     \label{thm:info_decomp}
     Let $\hat{\theta}$ be a stationary point of the observed data log-likelihood. \hl{Assuming regularity conditions,} we can write the observed information of the observed data distribution at $\hat{\theta}$ as
+    %
+    \begin{align}
+        I(\theta) = \mathcal{I}_c(\theta) - \bE_{\theta} [ S_c(\theta) S_c(\theta) | Y=y] + S(\theta) S(\theta)^T
+    \end{align}
+    %
+    In particular, if $\hat{\theta}$ is a stationary point of the observed data log-likelihood, then
     %
     \begin{align}
         I(\hat{\theta}) = \mathcal{I}_c(\hat{\theta})  - \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta}) | Y=y]
@@ -228,10 +243,95 @@ Let $X \sim \mathrm{M}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\
 
 \section{The Monte Carlo EM Algorithm}
 
-The Monte Carlo EM, or MCEM, algorithm was first proposed by \citet{Wei90}. This method proceeds by replacing the conditional expectation in the E-step of the EM algorithm with a Monte Carlo average. More precisely, at each iteration we generate observations from the conditional distribution of the missing data given the observed data, and average the complete data likelihood over this Monte Carlo sample. The MCEM algorithm circumvents the challenge of computing potentially intractable conditional expectations in the EM algorithm. However, this analytical simplification does come at the cost of introducing some new computational problems. In this section, we outline the main problems faced by the MCEM algorithm and present various solutions which have been proposed in the literature. We focus primarily on practical aspects of the MCEM algorithm; see \citet{Nea13} for a survey of theoretical considerations.
+The Monte Carlo EM, or MCEM, algorithm was first proposed by \citet{Wei90}. This method proceeds by replacing the conditional expectation in the E-step of the EM algorithm with a Monte Carlo average. More precisely, at each iteration we generate observations from the conditional distribution of the missing data given the observed data, and average the complete data likelihood over this Monte Carlo sample. Formally, at a given iteration of the MCEM algorithm, let $X_1,\ldots, X_M$ be a Monte Carlo sample from the law of $X|Y=y$ with $\theta$ set to the value from the previous iteration, say $\theta_0$. Write
+%
+\begin{align}
+    \hat{Q}(\theta|\theta_0) &= \sum_{i=1}^M w_i \ell_c(\theta; y, X_i)\\
+    &:= \hat{\bE} \ell_c (\theta; y, X)
+\end{align}
+%
+Where the $w_i$ are sampling weights. \hl{Confirm that this operator notation isn't contradicted elsewhere.} Under iid sampling we simply get $w_i = M^{-1}$ for every $i$, but more involved sampling schemes may have more complicated weights. The estimate of $\theta$ is then the maximizer of the MCEM objective function: $\hat{\theta} = \argmax_\theta \hat{Q}(\theta|\theta_0)$. Write $\hat{\theta}_k$ for the $k$th MCEM estimate. 
 
-Two problems which have received considerable attention in the literature are how to choose the Monte Carlo sample size at each iteration, and how to decide when to terminate the MCEM algorithm. These were identified as early as \citet{Wei90}, but did not receive systematic treatment until later. We here give a brief overview of different authors' approaches to solving these two problems, and spend the rest of this section going into more detail on each method individually. \citet{Wei90} suggest examining a plot of the parameter estimates across iterations, and either terminating or increasing the Monte Carlo size when the plot appears to stabilize.
+Provided that a valid sampling scheme is available for the missing data distribution, we can use Proposition \ref{thm:info_decomp} to estimate the observed data information matrix. 
 
+\begin{proposition}
+    Under the conditions of Proposition \ref{thm:info_decomp}, \hl{as well as any required for the sampler,} we get
+    %
+    \begin{align}
+        - \hat{\bE}_{\hat{\theta}} \nabla^2 \ell_c(\hat{\theta}) - \hat{\bE}_{\hat{\theta}} S_c(\hat{\theta}) S_c(\hat{\theta})^T \rightarrow I(\theta)
+    \end{align}
+    %
+    \hl{Under stronger conditions,} we also get asymptotic normality with variance obtained from importance sampling analysis.
+\end{proposition}
+
+The MCEM algorithm has the advantage of circumventing the challenge of computing potentially intractable conditional expectations for the EM algorithm. However, this analytical simplification does come at the cost of introducing some new computational problems. In this section, we outline the main problems faced by the MCEM algorithm and present various solutions which have been proposed in the literature. We focus primarily on practical aspects of the MCEM algorithm; see \citet{Nea13} for a survey of theoretical considerations.
+
+Two problems which have received considerable attention in the literature are how to choose the Monte Carlo sample size at each iteration, and how to decide when to terminate the MCEM algorithm. These were identified as early as \citet{Wei90}, but did not receive systematic treatment until later. We here give a brief overview of different authors' approaches to solving these two problems, and spend the rest of this section going into more detail on each method individually. \citet{Wei90} suggest examining a plot of the parameter estimates across iterations, and either terminating or increasing the Monte Carlo size when the plot appears to stabilize. \citet{Cha95} use a pilot study to choose the Monte Carlo sample size, and terminate when a confidence interval for the improvement of the observed data log-likelihood between successive iterations contains zero. \citet{Boo99} frame each MCEM iteration as an M-estimation problem targeting the deterministic EM update. They increase the Monte Carlo size if an asymptotic confidence interval for the EM update contains the previous iteration's parameter estimate, and terminate when multiple successive iterations' estimates have sufficiently small relative error. \citet{Caf05} build confidence bounds for the increment in the EM objective function at each iteration of the MCEM algorithm. They increase the Monte Carlo size until the lower bound is positive and terminate when the upper bound is sufficiently small.
+
+In the rest of this section, we give more detail on each of the implementations introduced above.
+
+\subsection{Early Work (\citealp{Wei90})}
+
+In their seminal work, \citet{Wei90} propose the MCEM algorithm and present a simple implementation. They illustrate that the complete data gradient and Hessian are easily obtained at each iteration from the Monte Carlo sample and, following \citet{Lou82}, give an estimator for the observed data information matrix. Regarding convergence, \citeauthor{Wei90} recommend plotting the parameter estimates across iterations and stopping when the estimates appear to stabilize around some constant. When this stabilization is detected, one can either declare convergence and stop, or increase the Monte Carlo size and continue iterating until the estimate trajectory again stabilizes.
+
+\subsection{Running a Pilot Study}
+
+
+
+\subsection{Uncertainty Quantification for the Parameter Estimate (\citealp{Boo99})}
+
+Building on the ideas of \citeauthor{Wei90}, \citet{Boo99} seek to start the MCEM algorithm with a small Monte Carlo size, and add more observations only when the parameter estimates are no longer changing discernibly across iterations. To this end, they recommend building a confidence interval for the EM update based on the Monte Carlo variability of the MCEM update at each iteration. If this interval contains the previous iteration's parameter estimate, then the parameter updates are too small relative to the amount of Monte Carlo variability and more samples are required. Similarly, \citeauthor{Boo99} recommend assessing convergence by checking for small relative error in the parameter updates. To account for the possibility of Monte Carlo variability leading to two consecutive estimates being similar before the algorithm has `converged', the authors suggest waiting until the relative error is small for three consecutive iterations.
+
+The confidence interval used to quantify Monte Carlo uncertainty within an iteration is obtained by framing the parameter update as the solution of an M-estimation problem. This allows us to inherit the desirable properties of M-estimators; specifically, asymptotic normality. See, e.g. \citet{van98}. Following the usual M-estimator construction and assuming that the relevant regularity conditions hold, we are able to estimate the asymptotic variance of the MCEM parameter estimator at each iteration. Note that this standard error is based on the Monte Carlo variability within an iteration; it does not measure sampling variability due to the observed data. 
+
+More formally, write $\tilde{\theta}_{k+1}$ for the EM update based on $\hat{\theta}_k$. Note that $\hat{\theta}_k$ is held fixed here and in the next subsection. \hl{Analysis of a single MCEM iteration is done conditional on the previous iteration (awk?).} Unless stated otherwise, all expectations are taken with $\theta = \hat{\theta}_k$. Assuming sufficient smoothness and moment conditions, we get the following expression for the MCEM update:
+%
+\begin{align}
+    \sqrt{M}(\hat{\theta}_{k+1} - \tilde{\theta}_{k+1}) &= - \sqrt{M} \left[ \nabla^2 Q(\tilde{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1} \left[\nabla \hq(\tilde{\theta}_{k+1}|\hat{\theta}_k) \right] + o_p(1) \label{eq:th_as_dist}
+\end{align}
+%
+Where $M$ is the Monte Carlo size and $\nabla$ denotes differentiation with respect to the left argument of $Q$ or $\hat{Q}$. Note that the first expression on the right-hand side is the inverse Hessian of the EM objective function (fixed) while the second is the gradient of the MCEM objective function (an average). Thus, $\hat{\theta}_{k+1}$ is asymptotically normal with asymptotic variance
+%
+\begin{align}
+    &\left[ \nabla^2 Q(\tilde{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1} \bV \left[ S_c (\tilde{\theta}_{k+1}) | Y=y \right] \left[ \nabla^2 Q(\tilde{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1}\\
+    &\approx \left[ \nabla^2 \hat{Q}(\hat{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1} \hat{\bE} \left[ S_c(\hat{\theta}_{k+1}) S_c(\hat{\theta}_{k+1})^T | Y=y \right] \left[ \nabla^2 \hat{Q}(\hat{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1} 
+\end{align}
+%
+Where $S_c$ is the complete data score vector, and $\hat{\bE}$ is the Monte Carlo average over the missing data, with $\hat{\theta}_{k+1}$ held fixed \hl{(remove comma?)}. Note that there is no first moment term in the conditional variance of $S_c$ because $\hat{\theta}_{k+1}$ is a maximizer of $\hat{\bE} [\ell_c |Y=y]$.
+
+Based on the above discussion, we can build an asymptotic confidence interval for $\tilde{\theta}_{k+1}$, the EM update based on the MCEM estimate from iteration $k$. \citeauthor{Boo99} recommend checking whether this interval contains $\hat{\theta}_k$ and, if so, increasing $M$ for the next iteration. Specifically, they suggest starting the next iteration with $M/k$ more points, with $k = 3,4$ or $5$ working well in their examples \hl{(this whole discussion is pretty awkward)}.
+
+To assess convergence of the MCEM algorithm, \citeauthor{Boo99} present two criteria. The first is a familiar measure of relative error in parameter estimates between consecutive iterations:
+%
+\begin{align}
+    \max_j \left( \frac{\left| \hat{\theta}_{k+1, j} - \hat{\theta}_{k,j} \right|}{\left| \hat{\theta}_{k,j} \right| + \delta_1} \right) < \delta_2 \label{eq:Boo99_tol}
+\end{align}
+%
+Where $\delta_1$ and $\delta_2$ are small positive constants. \citeauthor{Boo99} suggest using $\delta_1 = 10^{-3}$ and $\delta_2$ between $2 \cdot 10^{-3}$ and $5 \cdot 10^{-3}$. See \citep{need} (probably \citealp{Sea06}, p.\ 436, or \citealp{Mar63}) for why condition (\ref{eq:Boo99_tol}) has this particular form.
+
+Alternatively, since \citeauthor{Boo99} apply their method to the analysis of generalized linear mixed models, where pathologies may arise due to parameter estimates being too close to a boundary, they propose a second stopping rule:
+%
+\begin{align}
+    \max_j \left( \frac{\left| \hat{\theta}_{k+1, j} - \hat{\theta}_{k,j} \right|}{\sqrt{\bV \hat{\theta}_{k,j}} + \delta'_1} \right) < \delta'_2 \label{eq:Boo99_tol2}
+\end{align}
+
+\hl{How do we estimate the variance here?} The purpose of condition (\ref{eq:Boo99_tol2}) is to detect when estimated variance components are very close to zero and the numerical precision needed to satisfy condition (\ref{eq:Boo99_tol}) requires a prohibitive amount of computation.
+
+\subsection{Uncertainty Quantification for the Objective Function \citep{Caf05}}
+
+The approach of \citet{Caf05} is similar in spirit to that of \citet{Boo99}. The goal here is to quantify Monte Carlo uncertainty in the MCEM algorithm as an approximation to the EM algorithm. The difference is that where \citeauthor{Boo99} measure uncertainty in the parameter estimate, \citeauthor{Caf05} focus on uncertainty in the objective function. Specifically, \citeauthor{Caf05} base their analysis asymptotic normality of the MCEM increment:
+%
+\begin{proposition}
+    Let $\Delta \hat{Q}(\theta_{k+1}|\theta_k) = \hat{Q}(\theta_{k+1}|\theta_k) - \hat{Q}(\theta_{k+1}|\theta_k)$. Define $\Delta Q(\theta_{k+1}|\theta_k)$ similarly. Let $M_k$ be the Monte Carlo size at iteration $k$. Then
+    %
+    \begin{align}
+        \sqrt{M_k} \left[ \Delta \hat{Q}(\theta_{k+1}|\theta_k) - \Delta Q(\theta_{k+1}|\theta_k) \right] \rightsquigarrow N(0, \Sigma_k)
+    \end{align}
+\end{proposition}
+%
+
+
+\begin{comment}
 \subsection{Quantifying Monte Carlo Uncertainty}
 
 In their seminal work, \citet{Wei90} highlight two important challenges with implementing this method: choosing the Monte Carlo sample size at each iteration, and deciding when to terminate the algorithm. It turns out that solutions to these two problems are often connected via their link to the uncertainty in our Monte Carlo conditional expectations. The recommendations given by \citeauthor{Wei90} on how to solve these problems are mostly informal, but much of the later work on the MCEM algorithm centers around developing more precise solutions \hl{(too strong of a statement?)}.
@@ -243,6 +343,15 @@ In their seminal work, \citet{Wei90} highlight two important challenges with imp
 The method of \citet{Boo99} centers on treating each iteration of the MCEM algorithm as an M-estimation problem targeting the deterministic EM update. This framework is quite natural, as an iteration of the MCEM algorithm consists of maximizing a Monte Carlo approximation to the EM objective function. Provided that certain regularity conditions are satisfied (see, e.g., \citealp{van98}), we can estimate the asymptotic standard error of the MCEM update as an estimate of the EM update with the same starting value, with the sampling variability induced by Monte Carlo simulation. \citeauthor{Boo99} then recommend constructing an asymptotic confidence set for the EM update, and increasing the Monte Carlo size if this confidence set contains the previous iteration's parameter estimate\footnotemark.
 
 \footnotetext{For myself: As far as I can tell, in their paper, \citeauthor{Boo99} don't suggest that you check whether augmenting the Monte Carlo size produces a confidence set which does not contain the previous iteration's estimate. I think they're just suggesting you increase M and proceed with the next iteration. This differs from \citet{Caf05} who require that we keep checking and augmenting M until the condition is satisfied. \hl{I don't think this needs to go in the paper, but it's of some interest if you want to implement the method of} \citeauthor{Boo99}}
+\end{comment}
+
+\section{Simulation}
+
+A further obstacle to implementing the MCEM algorithm which was not addressed in the previous section, is how to generate the Monte Carlo sample. It is in general a hard problem to generate from arbitrary conditional distributions. In fact, much of the work in the Bayesian Computation literature centers on this problem (see, e.g., \citealp{Gel13}). In this section, we discuss several methods for simulating the necessary observations at each step of the MCEM algorithm.
+
+\section{Alternatives to the MCEM Algorithm}
+
+In this section, we outline a few alternatives to the MCEM algorithm for maximizing the likelihood of an incomplete dataset. Examples include the Monte Carlo Maximum Likelihood method of \citet{Gey94}, and Variational Inference \citep{Ble17, Tsi08}.
 
 \newpage
 
