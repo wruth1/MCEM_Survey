@@ -95,6 +95,7 @@
     \color{red}
     \item Replace ``conditional distribution of the missing data given the observed data'' with ``missing data distribution''
     \item \citet{Caf05} use $M_k$ for the Monte Carlo size at iteration $k$. This is a useful definition for discussing other papers too.
+    \item I have changed my iteration labels. $\hat{\theta}_{k-1}$ is now the maximizer of the current MCEM objective function, and $\hat{\theta}_{k-1}$ was used to construct that objective function. Watch for this when editing.
 \end{itemize}
 
 \section{The EM Algorithm}
@@ -106,17 +107,17 @@ The EM algorithm is a method for analyzing incomplete data which was formalized 
 
 The EM algorithm consists of iterating two steps. First is the expectation, or ``E'', step, in which an objective function is constructed from the complete data likelihood. Second is the maximization, or ``M'', step, in which the previously computed objective function is maximized. These two steps are then alternated until some convergence criterion is met. Whatever value of $\theta$ the algorithm converges to is used as our parameter estimate. We now go into more detail on each of the two steps.
 
-The E-step of the EM algorithm is where we construct the objective function which will be used to update our parameter estimate. This objective function is the conditional expectation of the complete data likelihood, given the observed data. If our complete data can be partitioned into an observed component, $Y$, and a missing component, $X$, then our objective function at iteration $k+1$ is given by
+The E-step of the EM algorithm is where we construct the objective function which will be used to update our parameter estimate. This objective function is the conditional expectation of the complete data likelihood, given the observed data. If our complete data can be partitioned into an observed component, $Y$, and a missing component, $X$, then our objective function at iteration $k$ is given by
 %
 \begin{align}
-    Q(\theta|\theta_k) & = \bE_{\theta_k}[\ell_c(\theta; y, X) | Y=y]
+    Q(\theta|\theta_{k-1}) & = \bE_{\theta_{k-1}}[\ell_c(\theta; y, X) | Y=y]
 \end{align}
 %
 Where $\ell_c$ is the log-likelihood of the complete data model. Note that the conditional expectation uses our parameter estimate from the previous iteration.
 
-The M-step of the EM algorithm consists of maximizing the objective function constructed in the previous E-step. That is, we define $\theta_{k+1} = \argmax\limits_\theta Q(\theta|\theta_k)$. Typically, this optimization must be performed numerically via, e.g., gradient ascent or Newton's method. See \citet{Noc06} for details and other optimization algorithms. 
+The M-step of the EM algorithm consists of maximizing the objective function constructed in the previous E-step. That is, we define $\theta_k = \argmax\limits_\theta Q(\theta|\theta_{k-1})$. Typically, this optimization must be performed numerically via, e.g., gradient ascent or Newton's method. See \citet{Noc06} for details and other optimization algorithms. 
 
-We can combine the E- and M-steps of the EM algorithm into a single ``update function''. We write $M(\theta_k) = \argmax\limits_\theta Q(\theta|\theta_k)$. The EM algorithm can thus be viewed as the iterative application of this update function, $M$.
+We can combine the E- and M-steps of the EM algorithm into a single ``update function''. We write $M(\theta_{k-1}) = \argmax\limits_\theta Q(\theta|\theta_{k-1})$. The EM algorithm can thus be viewed as the iterative application of this update function, $M$.
 
 \subsection{Properties}
 
@@ -153,7 +154,7 @@ An important feature of the EM algorithm is its so-called ``ascent property''. T
     Finally, since $\theta'$ maximizes $Q(\cdot|\theta)$, we have $\ell(\theta'; y) - \ell(\theta; y) \geq 0$.
 \end{proof}
 
-In our proof of the ascent property, we only required that $Q(\theta'|\theta) \geq Q(\theta|\theta)$, not that $\theta'$ maximize $Q(\cdot|\theta)$. This observation leads to the definition of the ``Generalized EM Algorithm''\index{Generalized EM Algorithm}, which replaces the M-step with setting $\theta_{k+1}$ to any point in $\Theta$ such that $Q(\theta_{k+1}|\theta_k) \geq Q(\theta_k|\theta_k)$.
+In our proof of the ascent property, we only required that $Q(\theta'|\theta) \geq Q(\theta|\theta)$, not that $\theta'$ maximize $Q(\cdot|\theta)$. This observation leads to the definition of the ``Generalized EM Algorithm''\index{Generalized EM Algorithm}, which replaces the M-step with setting $\theta_k$ to any point in $\Theta$ such that $Q(\theta_k|\theta_{k-1}) \geq Q(\theta_{k-1}|\theta_{k-1})$.
 
 
 
@@ -250,7 +251,7 @@ The Monte Carlo EM, or MCEM, algorithm was first proposed by \citet{Wei90}. This
     &:= \hat{\bE} \ell_c (\theta; y, X)
 \end{align}
 %
-Where the $w_i$ are sampling weights. \hl{Confirm that this operator notation isn't contradicted elsewhere.} Under iid sampling we simply get $w_i = M^{-1}$ for every $i$, but more involved sampling schemes may have more complicated weights. The estimate of $\theta$ is then the maximizer of the MCEM objective function: $\hat{\theta} = \argmax_\theta \hat{Q}(\theta|\theta_0)$. Write $\hat{\theta}_k$ for the $k$th MCEM estimate. 
+Where the $w_i$ are sampling weights. \hl{Confirm that this operator notation isn't contradicted elsewhere.} Under iid sampling we simply get $w_i = M^{-1}$ for every $i$, but more involved sampling schemes may have more complicated weights. The estimate of $\theta$ is then the maximizer of the MCEM objective function: $\hat{\theta} = \argmax_\theta \hat{Q}(\theta|\theta_0)$. Write $\hat{\theta}_{k-1}$ for the $k$th MCEM estimate. 
 
 Provided that a valid sampling scheme is available for the missing data distribution, we can use Proposition \ref{thm:info_decomp} to estimate the observed data information matrix. 
 
@@ -284,35 +285,35 @@ Building on the ideas of \citeauthor{Wei90}, \citet{Boo99} seek to start the MCE
 
 The confidence interval used to quantify Monte Carlo uncertainty within an iteration is obtained by framing the parameter update as the solution of an M-estimation problem. This allows us to inherit the desirable properties of M-estimators; specifically, asymptotic normality. See, e.g. \citet{van98}. Following the usual M-estimator construction and assuming that the relevant regularity conditions hold, we are able to estimate the asymptotic variance of the MCEM parameter estimator at each iteration. Note that this standard error is based on the Monte Carlo variability within an iteration; it does not measure sampling variability due to the observed data. 
 
-More formally, write $\tilde{\theta}_{k+1}$ for the EM update based on $\hat{\theta}_k$. Note that $\hat{\theta}_k$ is held fixed here and in the next subsection. \hl{Analysis of a single MCEM iteration is done conditional on the previous iteration (awk?).} Unless stated otherwise, all expectations are taken with $\theta = \hat{\theta}_k$. Assuming sufficient smoothness and moment conditions, we get the following expression for the MCEM update:
+More formally, write $\tilde{\theta}_k$ for the EM update based on $\hat{\theta}_{k-1}$. Note that $\hat{\theta}_{k-1}$ is held fixed here and in the next subsection. \hl{Analysis of a single MCEM iteration is done conditional on the previous iteration (awk?).} Unless stated otherwise, all expectations are taken with $\theta = \hat{\theta}_{k-1}$. Assuming sufficient smoothness and moment conditions, we get the following expression for the MCEM update:
 %
 \begin{align}
-    \sqrt{M}(\hat{\theta}_{k+1} - \tilde{\theta}_{k+1}) &= - \sqrt{M} \left[ \nabla^2 Q(\tilde{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1} \left[\nabla \hq(\tilde{\theta}_{k+1}|\hat{\theta}_k) \right] + o_p(1) \label{eq:th_as_dist}
+    \sqrt{M}(\hat{\theta}_k - \tilde{\theta}_k) &= - \sqrt{M} \left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \left[\nabla \hq(\tilde{\theta}_k|\hat{\theta}_{k-1}) \right] + o_p(1) \label{eq:th_as_dist}
 \end{align}
 %
-Where $M$ is the Monte Carlo size and $\nabla$ denotes differentiation with respect to the left argument of $Q$ or $\hat{Q}$. Note that the first expression on the right-hand side is the inverse Hessian of the EM objective function (fixed) while the second is the gradient of the MCEM objective function (an average). Thus, $\hat{\theta}_{k+1}$ is asymptotically normal with asymptotic variance
+Where $M$ is the Monte Carlo size and $\nabla$ denotes differentiation with respect to the left argument of $Q$ or $\hat{Q}$. Note that the first expression on the right-hand side is the inverse Hessian of the EM objective function (fixed) while the second is the gradient of the MCEM objective function (an average). Thus, $\hat{\theta}_k$ is asymptotically normal with asymptotic variance
 %
 \begin{align}
-    &\left[ \nabla^2 Q(\tilde{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1} \bV \left[ S_c (\tilde{\theta}_{k+1}) | Y=y \right] \left[ \nabla^2 Q(\tilde{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1}\\
-    &\approx \left[ \nabla^2 \hat{Q}(\hat{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1} \hat{\bE} \left[ S_c(\hat{\theta}_{k+1}) S_c(\hat{\theta}_{k+1})^T | Y=y \right] \left[ \nabla^2 \hat{Q}(\hat{\theta}_{k+1}|\hat{\theta}_k)\right]^{-1} 
+    &\left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \bV \left[ S_c (\tilde{\theta}_k) | Y=y \right] \left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1}\\
+    &\approx \left[ \nabla^2 \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \hat{\bE} \left[ S_c(\hat{\theta}_k) S_c(\hat{\theta}_k)^T | Y=y \right] \left[ \nabla^2 \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} 
 \end{align}
 %
-Where $S_c$ is the complete data score vector, and $\hat{\bE}$ is the Monte Carlo average over the missing data, with $\hat{\theta}_{k+1}$ held fixed \hl{(remove comma?)}. Note that there is no first moment term in the conditional variance of $S_c$ because $\hat{\theta}_{k+1}$ is a maximizer of $\hat{\bE} [\ell_c |Y=y]$.
+Where $S_c$ is the complete data score vector, and $\hat{\bE}$ is the Monte Carlo average over the missing data, with $\hat{\theta}_k$ held fixed \hl{(remove comma?)}. Note that there is no first moment term in the conditional variance of $S_c$ because $\hat{\theta}_k$ is a maximizer of $\hat{\bE} [\ell_c |Y=y]$.
 
-Based on the above discussion, we can build an asymptotic confidence interval for $\tilde{\theta}_{k+1}$, the EM update based on the MCEM estimate from iteration $k$. \citeauthor{Boo99} recommend checking whether this interval contains $\hat{\theta}_k$ and, if so, increasing $M$ for the next iteration. Specifically, they suggest starting the next iteration with $M/k$ more points, with $k = 3,4$ or $5$ working well in their examples \hl{(this whole discussion is pretty awkward)}.
+Based on the above discussion, we can build an asymptotic confidence interval for $\tilde{\theta}_k$, the EM update based on the MCEM estimate from iteration $k$. \citeauthor{Boo99} recommend checking whether this interval contains $\hat{\theta}_{k-1}$ and, if so, increasing $M$ for the next iteration. Specifically, they suggest starting the next iteration with $M/r$ more points, with $r = 3,4$ or $5$ working well in their examples \hl{(this whole discussion is pretty awkward)}.
 
 To assess convergence of the MCEM algorithm, \citeauthor{Boo99} present two criteria. The first is a familiar measure of relative error in parameter estimates between consecutive iterations:
 %
 \begin{align}
-    \max_j \left( \frac{\left| \hat{\theta}_{k+1, j} - \hat{\theta}_{k,j} \right|}{\left| \hat{\theta}_{k,j} \right| + \delta_1} \right) < \delta_2 \label{eq:Boo99_tol}
+    \max_j \left( \frac{\left| \hat{\theta}_{k, j} - \hat{\theta}_{k-1,j} \right|}{\left| \hat{\theta}_{k-1,j} \right| + \delta_1} \right) < \delta_2 \label{eq:Boo99_tol}
 \end{align}
 %
-Where $\delta_1$ and $\delta_2$ are small positive constants. \citeauthor{Boo99} suggest using $\delta_1 = 10^{-3}$ and $\delta_2$ between $2 \cdot 10^{-3}$ and $5 \cdot 10^{-3}$. See \citep{need} (probably \citealp{Sea06}, p.\ 436, or \citealp{Mar63}) for why condition (\ref{eq:Boo99_tol}) has this particular form.
+Where $\delta_1$ and $\delta_2$ are small positive constants, and the subscript $j$ ranges over components of $\theta$. \citeauthor{Boo99} suggest using $\delta_1 = 10^{-3}$ and $\delta_2$ between $2 \cdot 10^{-3}$ and $5 \cdot 10^{-3}$. See \citep{need} (probably \citealp{Sea06}, p.\ 436, or \citealp{Mar63}) for why condition (\ref{eq:Boo99_tol}) has this particular form.
 
 Alternatively, since \citeauthor{Boo99} apply their method to the analysis of generalized linear mixed models, where pathologies may arise due to parameter estimates being too close to a boundary, they propose a second stopping rule:
 %
 \begin{align}
-    \max_j \left( \frac{\left| \hat{\theta}_{k+1, j} - \hat{\theta}_{k,j} \right|}{\sqrt{\bV \hat{\theta}_{k,j}} + \delta'_1} \right) < \delta'_2 \label{eq:Boo99_tol2}
+    \max_j \left( \frac{\left| \hat{\theta}_{k, j} - \hat{\theta}_{k-1,j} \right|}{\sqrt{\bV \hat{\theta}_{k-1,j}} + \delta'_1} \right) < \delta'_2 \label{eq:Boo99_tol2}
 \end{align}
 
 \hl{How do we estimate the variance here?} The purpose of condition (\ref{eq:Boo99_tol2}) is to detect when estimated variance components are very close to zero and the numerical precision needed to satisfy condition (\ref{eq:Boo99_tol}) requires a prohibitive amount of computation.
@@ -322,10 +323,10 @@ Alternatively, since \citeauthor{Boo99} apply their method to the analysis of ge
 The approach of \citet{Caf05} is similar in spirit to that of \citet{Boo99}. The goal here is to quantify Monte Carlo uncertainty in the MCEM algorithm as an approximation to the EM algorithm. The difference is that where \citeauthor{Boo99} measure uncertainty in the parameter estimate, \citeauthor{Caf05} focus on uncertainty in the objective function. Specifically, \citeauthor{Caf05} base their analysis asymptotic normality of the MCEM increment:
 %
 \begin{proposition}
-    Let $\Delta \hat{Q}(\theta_{k+1}|\theta_k) = \hat{Q}(\theta_{k+1}|\theta_k) - \hat{Q}(\theta_{k+1}|\theta_k)$. Define $\Delta Q(\theta_{k+1}|\theta_k)$ similarly. Let $M_k$ be the Monte Carlo size at iteration $k$. Then
+    Let $\Delta \hat{Q}(\theta_k|\theta_{k-1}) = \hat{Q}(\theta_k|\theta_{k-1}) - \hat{Q}(\theta_k|\theta_{k-1})$. Define $\Delta Q(\theta_k|\theta_{k-1})$ similarly. Let $M_k$ be the Monte Carlo size at iteration $k$. Then
     %
     \begin{align}
-        \sqrt{M_k} \left[ \Delta \hat{Q}(\theta_{k+1}|\theta_k) - \Delta Q(\theta_{k+1}|\theta_k) \right] \rightsquigarrow N(0, \Sigma_k)
+        \sqrt{M_k} \left[ \Delta \hat{Q}(\theta_k|\theta_{k-1}) - \Delta Q(\theta_k|\theta_{k-1}) \right] \rightsquigarrow N(0, \Sigma_k)
     \end{align}
 \end{proposition}
 %
