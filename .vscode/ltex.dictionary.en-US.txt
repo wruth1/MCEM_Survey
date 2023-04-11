@@ -9,3 +9,4 @@ covariate
 Covariate
 Kullback-Leibler
 decompositions
+un-normalized

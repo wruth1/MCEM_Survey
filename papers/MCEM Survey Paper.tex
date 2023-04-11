@@ -43,6 +43,8 @@
 \usepackage{algpseudocode}
 \usepackage{algorithm} % For writing algorithms
 
+
+
 \newcommand{\lt}{LTHC}
 \newcommand{\llt}{\ell(\theta)}
 
@@ -96,6 +98,8 @@
     \item Replace ``conditional distribution of the missing data given the observed data'' with ``missing data distribution''
     \item \citet{Caf05} use $M_k$ for the Monte Carlo size at iteration $k$. This is a useful definition for discussing other papers too.
     \item I have changed my iteration labels. $\hat{\theta}_{k-1}$ is now the maximizer of the current MCEM objective function, and $\hat{\theta}_{k-1}$ was used to construct that objective function. Watch for this when editing.
+    \item Parameter space has not yet been defined.
+    \item Is the "a" in EM algorithm capitalized or not?
 \end{itemize}
 
 \section{The EM Algorithm}
@@ -124,6 +128,7 @@ We can combine the E- and M-steps of the EM algorithm into a single ``update fun
 \textbf{Section intro...}
 
 \subsubsection{Ascent Property and Generalized EM}
+\label{sec:GEM}
 
 An important feature of the EM algorithm is its so-called ``ascent property''. This property says that an iteration of the EM algorithm (\hl{have I explicitly defined ``EM iteration''? Do I need to?}) never decreases the observed data likelihood. This is somewhat surprising, since EM updates are computed without ever evaluating the observed data likelihood. 
 
@@ -320,17 +325,41 @@ Alternatively, since \citeauthor{Boo99} apply their method to the analysis of ge
 
 \subsection{Uncertainty Quantification for the Objective Function \citep{Caf05}}
 
-The approach of \citet{Caf05} is similar in spirit to that of \citet{Boo99}. The goal here is to quantify Monte Carlo uncertainty in the MCEM algorithm as an approximation to the EM algorithm. The difference is that where \citeauthor{Boo99} measure uncertainty in the parameter estimate, \citeauthor{Caf05} focus on uncertainty in the objective function. Specifically, \citeauthor{Caf05} base their analysis asymptotic normality of the MCEM increment:
+The approach of \citet{Caf05} is similar in spirit to that of \citet{Boo99}. Both sets of authors seek to quantify Monte Carlo uncertainty in the MCEM algorithm as an approximation to the EM algorithm. The difference is that where \citeauthor{Boo99} measure uncertainty in the parameter estimate, \citeauthor{Caf05} focus on uncertainty in the objective function. Specifically, \citeauthor{Caf05} base their analysis on asymptotic normality of the MCEM increment:
 %
 \begin{proposition}
-    Let $\Delta \hat{Q}(\theta_k|\theta_{k-1}) = \hat{Q}(\theta_k|\theta_{k-1}) - \hat{Q}(\theta_k|\theta_{k-1})$. Define $\Delta Q(\theta_k|\theta_{k-1})$ similarly. Let $M_k$ be the Monte Carlo size at iteration $k$. Then
+    \label{thm:Caf_normality}
+    Let $\Delta \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1}) = \hat{Q}(\hat{\theta}_{k-1}|\hat{\theta}_{k-1}) - \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1})$. Define $\Delta Q(\hat{\theta}_k|\hat{\theta}_{k-1})$ similarly. Let $M_k$ be the Monte Carlo size at iteration $k$. Then, \hl{assuming some regularity conditions},
     %
     \begin{align}
-        \sqrt{M_k} \left[ \Delta \hat{Q}(\theta_k|\theta_{k-1}) - \Delta Q(\theta_k|\theta_{k-1}) \right] \rightsquigarrow N(0, \Sigma_k)
+        \sqrt{M_k} \left[ \Delta \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1}) - \Delta Q(\hat{\theta}_k|\hat{\theta}_{k-1}) \right] \rightsquigarrow N(0, \Sigma_k)
     \end{align}
+    %
+    As $M_k \rightarrow \infty$, where $\Sigma_k$ is an asymptotic covariance matrix.
 \end{proposition}
-%
 
+\begin{proof}
+    Following \citet{Caf05}, we write
+    %
+    \begin{align}
+        \sqrt{M_k} \left[ \Delta \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1}) - \Delta Q(\hat{\theta}_k|\hat{\theta}_{k-1}) \right] &= \sqrt{M_k} \left[ \Delta \hat{Q}(\theta_k|\hat{\theta}_{k-1}) - \Delta Q(\theta_k|\hat{\theta}_{k-1}) \right] \nonumber \\
+        & + \sqrt{M_k} \left[ \Delta \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1}) - \Delta Q(\theta_k|\hat{\theta}_{k-1}) \right]\\
+        & + \sqrt{M_k} \left[ \Delta \hat{Q}(\theta_k|\hat{\theta}_{k-1}) - \Delta Q(\hat{\theta}_k|\hat{\theta}_{k-1}) \right]\\
+        &=: A_k + B_k + C_k
+    \end{align}
+    %
+    First, note that $A_k$ depends on the current Monte Carlo sample only through $\hat{Q}$, and is thus asymptotically normal by the ordinary Central Limit Theorem. However, $B_k$ and $C_k$ require a more careful analysis.
+
+    \textbf{Use Taylor's Theorem when you're more awake.}
+\end{proof}
+
+Provided that we are able to estimate $\Sigma_k$, Proposition \ref{thm:Caf_normality} allows us to build asymptotic confidence intervals for the EM increment, $\Delta Q$. Recall that in Section \ref{sec:GEM}, we defined the Generalized EM algorithm by requiring that $\Delta Q \geq 0$, and showed that this requirement guarantees the ascent property. While the stochastic nature of the MCEM algorithm makes it impossible to guarantee that the EM increment is positive, we are able to use Proposition \ref{thm:Caf_normality} to construct asymptotic confidence bounds for $\Delta Q$. Provided that we can estimate $\Sigma_k$, we can then \hl{be reasonably confident that $\Delta Q > 0$ (awk)}.
+
+Estimating the asymptotic variance under iid or importance sampling is fairly straightforward. Importance sampling however, is somewhat more complicated; particularly when a normalizing constant must be estimated. \citeauthor{Caf05} give a formula for importance sampling based on the Delta Method. They also give some guidance for calculating standard errors based on MCMC sampling, \hl{which we do not go into here. See Section XX for some details}. 
+
+We now return to the key MCEM problems of choosing the Monte Carlo size and when to terminate. For the former, \citeauthor{Caf05} advise constructing a lower confidence limit for the EM increment, $\Delta Q$. If this limit is positive, then we proceed to the next iteration. If not, then we augment the Monte Carlo sample at the current iteration (with, say, $M_k/r$, with $r$ some small positive integer as in \citealp{Boo99}), and compute a new confidence bound. At the next iteration, \citeauthor{Caf05} advise using a starting Monte Carlo sample which is at least as large as the final sample from the previous iteration. \hl{In fact, a larger sample may be required based on extrapolating the MC variability from the previous iteration (clarify; I don't fully understand what they're doing here).}
+
+\citeauthor{Caf05} base their termination criterion on stopping when there is evidence that the algorithm is no longer yielding sufficient improvement in the EM objective function. Specifically, they start by choosing a tolerance, $\tau>0$, then calculate an upper confidence limit for the EM increment at each iteration. If this upper confidence limit is below $\tau$, then we declare that there is little room for improvement left in the EM objective, and terminate our algorithm.
 
 \begin{comment}
 \subsection{Quantifying Monte Carlo Uncertainty}
@@ -348,11 +377,82 @@ The method of \citet{Boo99} centers on treating each iteration of the MCEM algor
 
 \section{Simulation}
 
-A further obstacle to implementing the MCEM algorithm which was not addressed in the previous section, is how to generate the Monte Carlo sample. It is in general a hard problem to generate from arbitrary conditional distributions. In fact, much of the work in the Bayesian Computation literature centers on this problem (see, e.g., \citealp{Gel13}). In this section, we discuss several methods for simulating the necessary observations at each step of the MCEM algorithm.
+A further obstacle to implementing the MCEM algorithm which was not addressed in the previous section, is how to generate the Monte Carlo sample. It is in general a hard problem to simulate from arbitrary conditional distributions. In fact, much of the Bayesian Computation literature centers around this problem (see, e.g., \citealp{Gel13}). In this section, we discuss several methods for simulating the necessary observations at each step of the MCEM algorithm.
+
+\subsection{Importance Sampling}
+
+\hl{The beginning of this section is pretty rambly. It will need to be tightened-up.}
+
+Importance sampling is a general framework for approximating expectations under an intractable distribution. The key idea is to replace the $d \bF$ integral of a function, $\phi$, with the $d \bG$ integral of $\phi \cdot (d \bF / d\bG)$. We call $\bF$ the target distribution and $\bG$ the proposal distribution. For ease of exposition, we assume that both $\bF$ and $\bG$ have densities with respect to a common base measure; call these densities $f$ and $g$ respectively.
+
+The importance sampling literature is vast, and we cannot hope to summarize it here in its entirety. A classic reference on importance sampling and other Monte Carlo methods is the book by \citet{Rob04}; particularly Chapters 3 and 4. Chapter 8 of the book by \citet{Cho20} gives a more current overview of importance sampling, with a focus on its application to Sequential Monte Carlo. \citet{Aga17} give a survey paper level treatment of some more theoretical considerations of importance sampling.
+
+\hl{Re-write intro after writing body}. In this section, we focus on the problem of choosing a proposal distribution, $\bG$. We begin with a more formal description of the importance sampling estimator some theory which helps inform the choice of $\bG$, then give some practical guidance. 
+
+When doing importance sampling, we seek to estimate $\phi = \int h f $, for some test function, $h$. To do so, we observe that we can re-write $\phi = \int h (f/g) g$, for any proposal density $g$, such that the integral is finite. Typically, we choose $g$ so that it is easy to sample from; let $X_1,\ldots,X_M$ be such a sample. We estimate $\phi$ by $\hat{\phi} = (1/M) \sum_{i=1}^M w_i h(X_i)$, where $w_i = f(X_i)/g(X_i)$ is referred to as the importance weight for observation $i$. Clearly, $\hat{\phi}$ is an unbiased estimator of $\phi$. The variance of $\hat{\phi}$ is $\bG w^2 h^2/M$. 
+
+It is often the case that we only know the target density, $f$, up to a proportionality constant, $\alpha_f$. The same may also be true of the proposal density, $g$, where we may have a desirable proposal distribution in mind but may only be able to compute its density up to a proportionality constant, $\alpha_g$. Write $\tilde{f}$ and $\tilde{g}$ for the un-normalized densities. Paralleling our previous development, we write $\tilde{w} = \tilde{f} / \tilde{g}$ for the ratio of the un-normalized densities. Note that $\tilde{w}$ differs from the true likelihood ratio by a third proportionality constant, $\alpha = \alpha_f / \alpha_g$. In order to estimate $\phi$, we must also estimate the constant $\alpha$. To this end, note the following two identities:
+%
+\begin{align}
+    \bG h \tilde{w} &= \frac{\phi}{\alpha}\\
+    \bG \tilde{w} &= \frac{1}{\alpha}
+\end{align}
+%
+This suggests using a ratio estimator for $\phi$:
+%
+\begin{align}
+    \tilde{\phi} &:= \frac{\hat{\bG} h \tilde{w}}{\hat{\bG} \tilde{w}} \label{eq:SNIS}
+\end{align}
+%
+The estimator in (\ref{eq:SNIS}) is referred to as the self-normalized importance sampling (SNIS) estimator of $\tilde{\phi}$. Although the numerator and denominator of (\ref{eq:SNIS}) are perfectly well-behaved objects, the full SNIS estimator is best studied in general terms using asymptotic methods. Specifically, noting that $\tilde{\phi}$ is a ratio of averages, a routine analysis using the CLT, LLN and Slutsky's Theorem \citep[p.91]{Cho20} gives (under the usual regularity conditions\footnotemark):
+%
+\begin{align}
+    \sqrt{M} (\tilde{\phi} - \phi) \rightsquigarrow N(0, \sigma^2_{SNIS})
+\end{align}
+%
+Where $\sigma^2_{SNIS} = \alpha^2 \bG ((h - \phi)^2 w^2)$. 
+
+\footnotetext{\textbf{Finite second moment assumptions à la CLT.}}
+
+\subsection{Particle Methods}
+
+\subsection{Markov Chain Monte Carlo}
 
 \section{Alternatives to the MCEM Algorithm}
 
 In this section, we outline a few alternatives to the MCEM algorithm for maximizing the likelihood of an incomplete dataset. Examples include the Monte Carlo Maximum Likelihood method of \citet{Gey94}, and Variational Inference \citep{Ble17, Tsi08}.
+
+\subsection{Monte Carlo Maximum Likelihood}
+
+
+
+\subsection{Stochastic Approximation}
+
+\subsection{Variational Methods}
+
+\textbf{This section was written by memory (i.e. without looking anything up). The idea is to more efficiently get words on the page, then I can fix things later.}
+
+Variational inference is a set of methods for approximating intractable densities \citep{need}. The literature on variational inference is vast. See \citet{Ble17} for a recent survey paper. \citet[Section 13.7]{Gel13} give a textbook-level overview focusing on applications to Bayesian inference. Numerous authors have discussed the connection between variational inference and the EM algorithm; see, e.g., \citet{Nea98,Tsi08}.
+
+The central idea of variational inference is to frame the target density as the exact solution of a functional optimization problem, where the decision variable typically ranges over densities. The domain of functions is then restricted to some set which is easier to work with. Finally, optimization is performed over this restricted class of functions. The result of this optimization is then our approximation to the target density. \hl{This discussion doesn't make it clear whether our estimator is the optimizer or the optimal objective function.} 
+
+More generally, the optimization problem described above may be just one in a sequence of problems which may form part of an iterative algorithm. Herein lies the connection to the EM algorithm. In the M-step of EM, we compute expectations with respect to a particular conditional distribution. To embed this procedure in the variational inference framework, we define an optimization problem whose solution is the same conditional distribution.
+
+We now give some details. First, let $q$ be some density function. We can write the observed data log-likelihood as:
+%
+\begin{align}
+    \ell(\theta) &= \log f_c(\theta) - \log f_m(\theta)\\
+    &= \log \left[ \frac{f_c(\theta)}{q} \right] - \log \left[ \frac{f_m(\theta)}{q} \right]\\
+    &= \bQ \log \left[ \frac{f_c(\theta)}{q} \right] - \bQ \log \left[ \frac{f_m(\theta)}{q} \right] \label{eq:variational_expectation}\\
+    &=: F(q, \theta) + \mathrm{KL}(q \rightarrow f_m(\theta)) \label{eq:variational_decomp}\\
+    & \geq F(q, \theta)
+\end{align}
+%
+Where line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $q$, and the last line follows from non-negativity of KL divergence. The first term in line (\ref{eq:variational_decomp}) is called the ``evidence lower-bound'', or ELBO, as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood is equivalent to the ``evidence'' if we take the data as observed and the parameters as missing. 
+
+The EM algorithm can be re-framed as consisting of alternately maximizing $F$ with respect to $q$ and $\theta$. To see why, 
+
+
 
 \newpage
 
