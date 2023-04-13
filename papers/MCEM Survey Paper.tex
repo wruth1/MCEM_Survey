@@ -99,7 +99,7 @@
     \item \citet{Caf05} use $M_k$ for the Monte Carlo size at iteration $k$. This is a useful definition for discussing other papers too.
     \item I have changed my iteration labels. $\hat{\theta}_{k-1}$ is now the maximizer of the current MCEM objective function, and $\hat{\theta}_{k-1}$ was used to construct that objective function. Watch for this when editing.
     \item Parameter space has not yet been defined.
-    \item Is the "a" in EM algorithm capitalized or not?
+    \item Is the ``a'' in EM algorithm capitalized or not?
 \end{itemize}
 
 \section{The EM Algorithm}
@@ -438,19 +438,19 @@ The central idea of variational inference is to frame the target density as the 
 
 More generally, the optimization problem described above may be just one in a sequence of problems which may form part of an iterative algorithm. Herein lies the connection to the EM algorithm. In the M-step of EM, we compute expectations with respect to a particular conditional distribution. To embed this procedure in the variational inference framework, we define an optimization problem whose solution is the same conditional distribution.
 
-We now give some details. First, let $q$ be some density function. We can write the observed data log-likelihood as:
+We now give some details. First, let $q$ be some probability density for the missing data, $X$. We can write the observed data log-likelihood as:
 %
 \begin{align}
-    \ell(\theta) &= \log f_c(\theta) - \log f_m(\theta)\\
-    &= \log \left[ \frac{f_c(\theta)}{q} \right] - \log \left[ \frac{f_m(\theta)}{q} \right]\\
-    &= \bQ \log \left[ \frac{f_c(\theta)}{q} \right] - \bQ \log \left[ \frac{f_m(\theta)}{q} \right] \label{eq:variational_expectation}\\
+    \ell(\theta; y) &= \log f_c(y, x; \theta) - \log f_m(y, x; \theta)\\
+    &= \log \left[ \frac{f_c(y, x; \theta)}{q(x)} \right] - \log \left[ \frac{f_m(y, x; \theta)}{q(x)} \right]\\
+    &= \bQ \log \left[ \frac{f_c(y, X; \theta)}{q(X)} \right] - \bQ \log \left[ \frac{f_m(y, X; \theta)}{q(X)} \right] \label{eq:variational_expectation}\\
     &=: F(q, \theta) + \mathrm{KL}(q \rightarrow f_m(\theta)) \label{eq:variational_decomp}\\
     & \geq F(q, \theta)
 \end{align}
 %
-Where line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $q$, and the last line follows from non-negativity of KL divergence. The first term in line (\ref{eq:variational_decomp}) is called the ``evidence lower-bound'', or ELBO, as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood is equivalent to the ``evidence'' if we take the data as observed and the parameters as missing. 
+Where line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $q$, and the last line follows from non-negativity of the KL divergence. The first term in line (\ref{eq:variational_decomp}) is called the ``evidence lower-bound'' (ELBO), as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood is equivalent to the evidence if we take $Y$ to be the data and $X$ to be the parameters. 
 
-The EM algorithm can be re-framed as consisting of alternately maximizing $F$ with respect to $q$ and $\theta$. To see why, 
+The EM algorithm can be re-framed as consisting of alternately maximizing $F$ with respect to $q$ and $\theta$. To see why, first recall that the KL divergence between two distributions is non-negative, and is zero if and only if the two distributions are equal. Starting at a particular value of $\theta$, maximizing $F$ with respect to $q$ is accomplished by set
 
 
 
