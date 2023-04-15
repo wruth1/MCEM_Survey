@@ -448,10 +448,21 @@ We now give some details. First, let $q$ be some probability density for the mis
     & \geq F(q, \theta)
 \end{align}
 %
-Where line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $q$, and the last line follows from non-negativity of the KL divergence. The first term in line (\ref{eq:variational_decomp}) is called the ``evidence lower-bound'' (ELBO), as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood is equivalent to the evidence if we take $Y$ to be the data and $X$ to be the parameters. 
+Where line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $q$, and the last line follows from non-negativity of the KL divergence. The first term in line (\ref{eq:variational_decomp}) is called the ``evidence lower-bound'' (ELBO), as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood can be seen as an evidence if we take $Y$ to be the data and $X$ to be the parameters. 
 
-The EM algorithm can be re-framed as consisting of alternately maximizing $F$ with respect to $q$ and $\theta$. To see why, first recall that the KL divergence between two distributions is non-negative, and is zero if and only if the two distributions are equal. Starting at a particular value of $\theta$, maximizing $F$ with respect to $q$ is accomplished by set
+The EM algorithm can be re-framed as alternately maximizing $F$ with respect to $q$ and $\theta$. To see why, first recall that the KL divergence between two distributions is non-negative, and is zero if and only if the two distributions are equal. Starting at a fixed parameter value, $\theta_0$, maximizing $F$ with respect to $q$ is accomplished by setting $q(x) = f_m(y, x; \theta_0)$, as this minimizes the KL divergence in (\ref{eq:variational_decomp}) and the left-hand side is constant in $q$. The resulting ELBO is equal to $Q(\theta|\theta_0) + \xi$, where $Q$ is the EM objective function and $\xi$ is constant in $\theta$. Maximizing the ELBO in $\theta$ is therefore equivalent to maximizing the EM objective function. This maximization gives a new parameter value, which is used as input to the next iteration. See Theorem 1 of \citet{Nea98} for a more formal proof.
 
+While the EM algorithm is obtained by maximizing $q$ over an unrestricted class of densities, other procedures can be formulated by restricting this class. One popular example is the ``mean-field'' approximation, which involves optimizing over the class of densities which factor over their arguments. That is, the class of functions $\mathcal{Q}_{MF}:=\{ \mathrm{Densities\ } q: q(X_1, \ldots, X_p) = \prod_{j=1}^p q_j(X_j) \}$. 
+
+A major advantage of the mean-field approximation is that an iterative algorithm exists for finding the density, $q$, which maximizes the ELBO. This algorithm performs coordinate ascent, and the coordinate updates are closely related to computation of the full conditional distributions in Gibbs sampling \citep{need}. Write $q^{(k)} = \prod q_j^{(k)}$ for the current value of $q$, and $\bQ^{(k)}_{-j}$ for expectation with respect to all the missing variables except $j$, with distributions from $q^{(k)}$ (\hl{awk?}). The update formula is
+%
+\begin{align}
+    q_j^{(k+1)} &\propto \exp \left[ \bQ^{(k)}_{-j} \ell_c(y, x_j, X_{-j}) \right] \label{eq:var_inf_update}
+\end{align}
+%
+Where $X_{-j}$ is all the missing variables other than $X_j$. See Section 2.4 of \citet{Ble17} for a derivation of (\ref{eq:var_inf_update}). The overall algorithm consists of repeatedly cycling through updating each coordinate's distribution until some convergence criterion is met (\hl{how is convergence assessed?}).
+
+Note that, so far, our discussion of how to compute the mean-field approximate density for $X$ has not addressed $\theta$. To apply mean-field variational inference to EM-type problems, we substitute the mean-field density into the ELBO and maximize over $\theta$. This new value of $\theta$ is fed back into ($\ref{eq:var_inf_update}$), giving us a different complete data likelihood function and, hence, a new optimal density.
 
 
 \newpage
@@ -520,8 +531,9 @@ The EM algorithm can be re-framed as consisting of alternately maximizing $F$ wi
 
 \end{appendices}
 
-\textbf{Check for ``Citation Needed'' before publishing.}
+\newpage
 
+\textbf{Check for ``Citation Needed'' before publishing.}
 
 \bibliographystyle{plainnat}
 \bibliography{mybib}
