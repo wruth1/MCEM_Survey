@@ -2,7 +2,7 @@
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "2ddcfd53fa0a3eb266b8f6d02d3b0482f608e143"
+project_hash = "593dc7d71bf4a17cf04849c693a99bf47a1379bd"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra", "Requires"]
@@ -127,23 +127,11 @@ deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 version = "1.6.0"
 
-[[deps.DrWatson]]
-deps = ["Dates", "FileIO", "JLD2", "LibGit2", "MacroTools", "Pkg", "Random", "Requires", "Scratch", "UnPack"]
-git-tree-sha1 = "856bd680393b74b05517f8b7b9283fe8c8fd3284"
-uuid = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
-version = "2.12.4"
-
 [[deps.DualNumbers]]
 deps = ["Calculus", "NaNMath", "SpecialFunctions"]
 git-tree-sha1 = "5837a837389fccf076445fce071c8ddaea35a566"
 uuid = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 version = "0.6.8"
-
-[[deps.FileIO]]
-deps = ["Pkg", "Requires", "UUIDs"]
-git-tree-sha1 = "7be5f99f7d15578798f338f5433b6c432ea8037b"
-uuid = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
-version = "1.16.0"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
@@ -190,12 +178,6 @@ version = "0.1.8"
 git-tree-sha1 = "630b497eafcc20001bba38a4651b327dcfc491d2"
 uuid = "92d709cd-6900-40b7-9082-c6be49f344b6"
 version = "0.2.2"
-
-[[deps.JLD2]]
-deps = ["FileIO", "MacroTools", "Mmap", "OrderedCollections", "Pkg", "Printf", "Reexport", "Requires", "TranscodingStreams", "UUIDs"]
-git-tree-sha1 = "42c17b18ced77ff0be65957a591d34f4ed57c631"
-uuid = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
-version = "0.4.31"
 
 [[deps.JLLWrappers]]
 deps = ["Preferences"]
@@ -276,9 +258,6 @@ deps = ["DataAPI"]
 git-tree-sha1 = "f66bdc5de519e8f8ae43bdc598782d35a25b1272"
 uuid = "e1d29d7a-bbdc-5cf2-9ac0-f12de2c33e28"
 version = "1.1.0"
-
-[[deps.Mmap]]
-uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
@@ -413,12 +392,6 @@ version = "0.4.0+0"
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
-[[deps.Scratch]]
-deps = ["Dates"]
-git-tree-sha1 = "30449ee12237627992a99d5e30ae63e4d78cd24a"
-uuid = "6c6a2e73-6563-6170-7368-637461726353"
-version = "1.2.0"
-
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
@@ -503,12 +476,6 @@ version = "1.10.1"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[[deps.TranscodingStreams]]
-deps = ["Random", "Test"]
-git-tree-sha1 = "0b829474fed270a4b0ab07117dce9b9a2fa7581a"
-uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.9.12"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]

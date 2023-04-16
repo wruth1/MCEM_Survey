@@ -1,3 +1,4 @@
+
 export Q_EM_term, Q_EM, Q_EM_increment
 export EM_update_beta, EM_update_sigma, EM_update, run_EM
 export conditional_info1, conditional_info2, conditional_info3, complete_data_conditional_information

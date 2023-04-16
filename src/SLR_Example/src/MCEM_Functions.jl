@@ -2,7 +2,6 @@
 
 export one_raw_imp_weight_term, one_log_raw_imp_weight, get_all_log_raw_imp_weights, normalize_weights, get_all_imp_weights
 export propose_one_X, propose_X, get_importance_sample
-export sample_one_X_given_Y, sample_X_given_Y
 export estimate_sigma2, MCEM_update
 export complete_data_log_lik_increment, Q_MCEM, Q_MCEM_with_sample, Q_MCEM_increment
 export MC_complete_cond_info, MC_expect_sq_score,  MCEM_obs_data_info_formula
@@ -137,31 +136,6 @@ function get_importance_sample(theta, Y, theta_fixed, M; raw_weights=false)
     return all_Xs, all_weights
 end
 
-#! Start Here
-# todo: Replace sample_X_given_Y with get_importance_sample throughout the project. This will require updating any functions which use this sample to incorporate weights as well.
-
-
-# ------------------ For comparison, include direct samplers ----------------- #
-
-"""
-Generate a single sample directly from the conditional distribution of X given Y (of length equal to length(Y)). I.e. No proposal distribution.
-"""
-function sample_one_X_given_Y(theta, Y, theta_fixed)
-    all_means = [mu_X_given_Y(theta, y, theta_fixed) for y in Y]
-    var = var_X_given_Y(theta, theta_fixed)
-
-    this_X = rand.(Normal.(all_means, sqrt(var)))
-    return this_X
-end
-
-
-"""
-Sample directly from the conditional distribution of X given Y (of length equal to length(Y)). I.e. No proposal distribution.
-"""
-function sample_X_given_Y(theta, Y, theta_fixed, n)
-    output = [sample_one_X_given_Y(theta, Y, theta_fixed) for i in 1:n]
-    return output
-end
 
 
 

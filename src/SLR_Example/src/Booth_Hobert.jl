@@ -1,40 +1,89 @@
-export get_ASE, check_ascent, check_for_termination, get_next_MC_size
-export ascent_MCEM_update, full_ascent_MCEM_iteration
-export Ascent_MCEM_Control
-export run_ascent_MCEM, run_many_ascent_MCEMs
 
 
 # ---------------------------------------------------------------------------- #
 #                 Asymptotic SE of increment in MCEM objective                 #
 # ---------------------------------------------------------------------------- #
 
-
+M = 10000
+theta_hat, all_Xs, all_weights = MCEM_update(theta4, Y, theta_fixed, M; return_X=true)
+theta_new = theta_hat
 
 """
-Estimate the asymptotic standard error of the increment in MCEM objective function.
+Expected squared complete data score (i.e. outer product with itself)
 """
-function get_ASE(theta_new, theta_old, Y, all_Xs, all_weights, theta_fixed)
-    M = length(all_Xs)
-
-    all_lik_increments = [complete_data_log_lik_increment(theta_new, theta_old, Y, X, theta_fixed) for X in all_Xs]
-
-    A = dot(all_weights, all_lik_increments)^2 
-    
-    B1 = dot(all_weights.^2, all_lik_increments.^2)
-    B2 = dot(all_weights, all_lik_increments)^2
-    B = B1 / B2
-
-    C1 = dot(all_weights.^2, all_lik_increments)
-    C2 = dot(all_weights, all_lik_increments)
-    C = 2 * C1 / C2
-
-    D = sum(all_weights.^2)
-
-    ASE2 = A * (B - C + D)
-
-    ASE = sqrt(ASE2)
-    return ASE
+function theta_ASE_middle_term(theta_new, Y, all_Xs, all_weights, theta_fixed)
+    all_scores = [complete_data_score(theta_new, Y, X, theta_fixed) for X in all_Xs]
+    all_score_prods = [score * score' for score in all_scores]    # Outer product of each score vector with itself
+    mean_score_prod = sum(all_weights .* all_score_prods)
+    return mean_score_prod
 end
+
+"""
+Complete data Hessian. 
+"""
+function theta_ASE_outer_term(theta_new, Y, all_Xs, all_weights, theta_fixed)
+    all_hessians = [complete_data_Hessian(theta_new, Y, X, theta_fixed) for X in all_Xs]
+    mean_hessian = sum(all_weights .* all_hessians)
+
+    # At a maximizer, the off-diagonal Hessian entries are zero
+    mean_hessian[1,2] = 0.0
+    mean_hessian[2,1] = 0.0
+
+    return mean_hessian^-1
+end
+
+
+"""
+Estimate the asymptotic covariance of the MCEM update around the EM update
+"""
+function theta_asymp_cov(theta_new, Y, all_Xs, all_weights, theta_fixed)
+    A = theta_ASE_middle_term(theta_new, Y, all_Xs, all_weights, theta_fixed)
+    B = theta_ASE_outer_term(theta_new, Y, all_Xs, all_weights, theta_fixed)
+
+    # Apply Hermitian() to the output to fix roundoff error
+    return Hermitian(B * A * B)
+end
+
+
+"""
+Estimate the covariance matrix of theta hat (adjusting for sample size)
+"""
+function theta_cov_mat(theta_new, Y, all_Xs, all_weights, theta_fixed)
+    Sigma_asymp = theta_asymp_cov(theta_new, Y, all_Xs, all_weights, theta_fixed)
+    Sigma = Sigma_asymp / get_ESS(all_weights)
+    return Sigma
+end
+
+"""
+Empirically determine the covariance matrix of theta hat
+"""
+function empirical_theta_cov_mat(theta_old, Y, M, B, theta_fixed)
+    all_theta_hats = []
+    all_ESSs = []
+    prog = Progress(B, desc="Computing theta updates")
+    Threads.@threads for _ in 1:B
+    # for _ in 1:B
+        theta_hat, _, this_weights = MCEM_update(theta_old, Y, theta_fixed, M; return_X=true)
+        this_ESS = get_ESS(this_weights)
+        push!(all_theta_hats, theta_hat)
+        push!(all_ESSs, this_ESS)
+        next!(prog)
+    end
+    return [cov(all_theta_hats), all_ESSs]
+end
+
+###! START HERE
+#! The analytical and theoretical standard errors for a single theta hat update are not matching
+#! I adjusted the analytical formula to use ESS instead of M. I'm not sure if there's a justification for doing so, but the matrices are much closer this way
+#! I should check whether the mean of the MCEM updates match the EM update************************************************
+
+q, all_ESSs = empirical_theta_cov_mat(theta4, Y, M, 10, theta_fixed)
+q
+w = theta_cov_mat(theta_hat, Y, all_Xs, all_weights, theta_fixed)
+q2 = sqrt(q)
+w2 = sqrt(w)
+
+all_ESSs
 
 
 """
@@ -56,7 +105,7 @@ end
 
 # Random.seed!(1)
 
-# all_Xs_iid = sample_X_given_Y(theta1, Y, theta_fixed, M)
+# all_Xs_iid, _ = get_importance_sample(theta1, Y, theta_fixed, M)
 # all_weights_iid = ones(M) / M
 # theta_new = MCEM_update(Y, all_Xs_iid, all_weights_iid)
 # theta_old = theta1
@@ -124,17 +173,17 @@ end
 Construct an upper confidence bound for the EM increment. If smaller than the specified absolute tolerance, return true.
 Optionally returns the computed upper confidence bound.
 """
-function check_for_termination(theta_new, theta_old, Y, all_Xs, all_weights, theta_fixed, alpha, atol; return_ucl = false)
+function check_for_termination(theta_new, theta_old, Y, all_Xs, all_weights, theta_fixed, alpha, atol; diagnostics = false)
     Q_increment = Q_MCEM_increment(theta_new, theta_old, Y, all_Xs, all_weights, theta_fixed)
     ASE = get_ASE(theta_new, theta_old, Y, all_Xs, all_weights, theta_fixed)
     multiplier = quantile(Normal(), 1 - alpha)
 
     ucl = Q_increment + multiplier*ASE
 
-    if !return_ucl
+    if !diagnostics
         return ucl < atol
     else
-        return ucl < atol, ucl
+        return ucl < atol, ucl, ASE
     end
 end
 
@@ -226,7 +275,7 @@ function ascent_MCEM_update(theta_old, Y, theta_fixed, M, alpha, k; return_MC_si
         this_lcl = lcl
         Q_increment = Q_MCEM_increment(theta_new, theta_old, Y, all_Xs, all_weights, theta_fixed)
         this_ESS = round(get_ESS(all_weights), sigdigits=4)
-        println("Iteration number: $iter_count, M = $this_samp_size, ESS = $this_ESS, Q Increment = $Q_increment, lcl = $this_lcl")
+        println("Inner Iteration: $iter_count, M = $this_samp_size, ESS = $this_ESS, Q Increment = $(round(Q_increment, sigdigits=2)), lcl = $(round(this_lcl, sigdigits=2)), Beta Hat: $(round(theta_new[1], sigdigits=3)), Sigma Hat: $(round(theta_new[2], sigdigits=3))")
         # println("Augmenting MC sample size...")
         new_Xs, new_raw_weights = get_importance_sample(theta_old, Y, theta_fixed, ceil(M/k), raw_weights=true)
         all_Xs = vcat(all_Xs, new_Xs)
@@ -301,19 +350,23 @@ Note:   alpha1 - confidence level for checking whether to augment MC sample size
         k - when augmenting MC sample, add M/k new points
         atol - absolute tolerance for checking whether to terminate MCEM
 """
-function full_ascent_MCEM_iteration(theta_old, Y, theta_fixed, M, alpha1, alpha2, alpha3, k, atol; return_X=false)
+function full_ascent_MCEM_iteration(theta_old, Y, theta_fixed, M, alpha1, alpha2, alpha3, k, atol; return_X=false, diagnostics=false)
 
     theta_hat, all_Xs, all_weights = ascent_MCEM_update(theta_old, Y, theta_fixed, M, alpha1, k; return_X=true)
     M_end = size(all_Xs, 1)
 
     M_next = get_next_MC_size(theta_hat, theta_old, Y, all_Xs, all_weights, theta_fixed, M_end, alpha1, alpha2)
 
-    ready_to_terminate = check_for_termination(theta_hat, theta_old, Y, all_Xs, all_weights, theta_fixed, alpha3, atol)
+    ready_to_terminate, ucl, ASE = check_for_termination(theta_hat, theta_old, Y, all_Xs, all_weights, theta_fixed, alpha3, atol; diagnostics=true)
 
-    if !return_X
+    if !return_X && !diagnostics
         return theta_hat, M_next, ready_to_terminate
+    elseif return_X && !diagnostics
+        return theta_hat, M_next, ready_to_terminate, all_Xs, all_weights
+    elseif !return_X && diagnostics
+        return theta_hat, M_next, ready_to_terminate, ucl, ASE
     else
-        return theta_hat, M_next, ready_to_terminate, all_Xs
+        return theta_hat, M_next, ready_to_terminate, all_Xs, all_weights, ucl, ASE
     end
 end
 
@@ -330,7 +383,7 @@ Note:   alpha1 - confidence level for checking whether to augment MC sample size
         k - when augmenting MC sample, add M/k new points
         atol - absolute tolerance for checking whether to terminate MCEM
 """
-function full_ascent_MCEM_iteration(theta_old, Y, theta_fixed, M, MCEM_control; return_X=false)
+function full_ascent_MCEM_iteration(theta_old, Y, theta_fixed, M, MCEM_control; return_X=false, diagnostics = false)
 
     # Unpack ascent-based MCEM parameters
     alpha1 = MCEM_control.alpha1
@@ -339,18 +392,7 @@ function full_ascent_MCEM_iteration(theta_old, Y, theta_fixed, M, MCEM_control; 
     k = MCEM_control.k
     atol = MCEM_control.atol
 
-    theta_hat, all_Xs, all_weights = ascent_MCEM_update(theta_old, Y, theta_fixed, M, alpha1, k; return_X=true)
-    M_end = size(all_Xs, 1)
-
-    M_next = get_next_MC_size(theta_hat, theta_old, Y, all_Xs, all_weights, theta_fixed, M_end, alpha1, alpha2)
-
-    ready_to_terminate = check_for_termination(theta_hat, theta_old, Y, all_Xs, all_weights, theta_fixed, alpha3, atol)
-
-    if !return_X
-        return theta_hat, M_next, ready_to_terminate
-    else
-        return theta_hat, M_next, ready_to_terminate, all_Xs, all_weights
-    end
+    return full_ascent_MCEM_iteration(theta_old, Y, theta_fixed, M, alpha1, alpha2, alpha3, k, atol; return_X=return_X, diagnostics=diagnostics)
 end
 
 
@@ -376,11 +418,12 @@ function run_ascent_MCEM(theta_init, Y, theta_fixed, M_init, ascent_MCEM_control
 
     # Run MCEM
     while !ready_to_terminate
-        theta_hat, M, ready_to_terminate = full_ascent_MCEM_iteration(theta_hat, Y, theta_fixed, M, ascent_MCEM_control)
+        theta_hat, M, ready_to_terminate, ucl, ASE = full_ascent_MCEM_iteration(theta_hat, Y, theta_fixed, M, ascent_MCEM_control; diagnostics=true)
         iteration_count += 1
         # println(iteration_count)
-        println("Iteration: $iteration_count, MC size: $M")
+        println("Outer Iteration: $iteration_count, MC size: $M, UCL = $(round(ucl, sigdigits=2)), ASE = $(round(ASE, sigdigits=2)), Beta Hat: $(round(theta_hat[1], sigdigits=3)), Sigma Hat: $(round(theta_hat[2], sigdigits=3))")
     end
+
 
 
 
