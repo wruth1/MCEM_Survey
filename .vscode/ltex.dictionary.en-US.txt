@@ -10,3 +10,5 @@ Covariate
 Kullback-Leibler
 decompositions
 un-normalized
+integrands
+integrability

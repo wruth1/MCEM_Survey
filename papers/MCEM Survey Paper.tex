@@ -66,6 +66,8 @@
 
 \newcommand{\hq}{\hat{Q}}
 
+\newcommand{\wcirc}{\mathring{w}}
+
 
 \newtheorem{proposition}{Proposition}[section]
 
@@ -389,7 +391,7 @@ The importance sampling literature is vast, and we cannot hope to summarize it h
 
 \hl{Re-write intro after writing body}. In this section, we focus on the problem of choosing a proposal distribution, $\bG$. We begin with a more formal description of the importance sampling estimator some theory which helps inform the choice of $\bG$, then give some practical guidance. 
 
-When doing importance sampling, we seek to estimate $\phi = \int h f $, for some test function, $h$. To do so, we observe that we can re-write $\phi = \int h (f/g) g$, for any proposal density $g$, such that the integral is finite. Typically, we choose $g$ so that it is easy to sample from; let $X_1,\ldots,X_M$ be such a sample. We estimate $\phi$ by $\hat{\phi} = (1/M) \sum_{i=1}^M w_i h(X_i)$, where $w_i = f(X_i)/g(X_i)$ is referred to as the importance weight for observation $i$. Clearly, $\hat{\phi}$ is an unbiased estimator of $\phi$. The variance of $\hat{\phi}$ is $\bG w^2 h^2/M$. 
+When doing importance sampling, we seek to estimate $\phi = \int h f $, for some test function, $h$. To do so, observe that we can re-write $\phi = \int h (f/g) g$, for any proposal density $g$, such that the integral is finite. Typically, we choose $g$ so that it is easy to sample from; let $X_1,\ldots,X_M$ be such a sample. We estimate $\phi$ by $\hat{\phi} = \hat{\bG} h := (1/M) \sum_{i=1}^M w_i h(X_i)$, where $w_i = f(X_i)/g(X_i)$ is referred to as the importance weight for observation $i$. Note that $\bG \hat{\phi} = \int (f/g) h g = \phi$, so  $\hat{\phi}$ is unbiased. It is similarly straightforward to show that the variance of $\hat{\phi}$ is $M^{-1} \bG w^2 h^2$. 
 
 It is often the case that we only know the target density, $f$, up to a proportionality constant, $\alpha_f$. The same may also be true of the proposal density, $g$, where we may have a desirable proposal distribution in mind but may only be able to compute its density up to a proportionality constant, $\alpha_g$. Write $\tilde{f}$ and $\tilde{g}$ for the un-normalized densities. Paralleling our previous development, we write $\tilde{w} = \tilde{f} / \tilde{g}$ for the ratio of the un-normalized densities. Note that $\tilde{w}$ differs from the true likelihood ratio by a third proportionality constant, $\alpha = \alpha_f / \alpha_g$. In order to estimate $\phi$, we must also estimate the constant $\alpha$. To this end, note the following two identities:
 %
@@ -404,15 +406,23 @@ This suggests using a ratio estimator for $\phi$:
     \tilde{\phi} &:= \frac{\hat{\bG} h \tilde{w}}{\hat{\bG} \tilde{w}} \label{eq:SNIS}
 \end{align}
 %
-The estimator in (\ref{eq:SNIS}) is referred to as the self-normalized importance sampling (SNIS) estimator of $\tilde{\phi}$. Although the numerator and denominator of (\ref{eq:SNIS}) are perfectly well-behaved objects, the full SNIS estimator is best studied in general terms using asymptotic methods. Specifically, noting that $\tilde{\phi}$ is a ratio of averages, a routine analysis using the CLT, LLN and Slutsky's Theorem \citep[p.91]{Cho20} gives (under the usual regularity conditions\footnotemark):
+The estimator in (\ref{eq:SNIS}) is referred to as the self-normalized importance sampling (SNIS)\index{Self-Normalized Importance Sampling} estimator of $\tilde{\phi}$. Although the numerator and denominator of (\ref{eq:SNIS}) are perfectly well-behaved objects, the full SNIS estimator is best studied in general terms using asymptotic methods. Specifically, noting that $\tilde{\phi}$ is a ratio of averages, a routine analysis using the CLT, LLN and Slutsky's Theorem \citep[p.91]{Cho20} gives (under the usual regularity conditions\footnotemark):
 %
 \begin{align}
     \sqrt{M} (\tilde{\phi} - \phi) \rightsquigarrow N(0, \sigma^2_{SNIS})
 \end{align}
 %
-Where $\sigma^2_{SNIS} = \alpha^2 \bG ((h - \phi)^2 w^2)$. 
+Where $\sigma^2_{SNIS} = \bG ((h - \phi)^2 \tilde{w}^2) / (\bG \tilde{w})^2 =\alpha^2 \bG ((h - \phi)^2 \tilde{w}^2)$. It is common to define the normalized weights as $\tilde{w}_i / \hat{\bG} \tilde{w}$\index{Normalized Importance Weights}, which I denote (non-standardly) by $\mathring{w}_i$. Thus, we can define $\tilde{\bG} h := \tilde{\phi} = \sum \mathring{w}_i h(X_i)$.
 
 \footnotetext{\textbf{Finite second moment assumptions à la CLT.}}
+
+One way to assess the performance of an importance sample is by computing the so-called ``effective sample size''\index{Effective Sample Size}. This quantity is defined as $\mathrm{ESS} := (\sum \wcirc_i^{2})^{-1}$.
+
+\subsection{Choosing a Proposal Distribution}
+
+When designing an importance sampling scheme to solve a particular problem, it is important to choose an appropriate proposal distribution. The sense in which a proposal distribution should be appropriate can be understood in a few different ways. If multiple test functions must be integrated using the same proposal distribution, or even the same sample, it makes sense to consider a worst-case error analysis over some class of test functions and to choose a proposal for which the bound is not too large. In contrast, if the goal is to estimate the expectation of a single test function, the proposal can be chosen to better facilitate estimation of the particular integrand. In the former case, we choose our proposal distribution based on its relationship with the target distribution alone, while in the latter case we make our choice based on the target distribution and the test function.
+
+\citet{Aga17} give a very readable overview of some bounds for the worst-case error of an importance sampling scheme. The bounds are simpler if we restrict attention only to bounded test functions, although bounds also exist for unbounded test functions, provided that certain integrability criteria are met.
 
 \subsection{Particle-Based Methods}
 
