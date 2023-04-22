@@ -43,6 +43,9 @@
 \usepackage{algpseudocode}
 \usepackage{algorithm} % For writing algorithms
 
+\usepackage{glossaries}
+\makeglossaries
+
 
 
 \newcommand{\lt}{LTHC}
@@ -72,9 +75,12 @@
 \newtheorem{proposition}{Proposition}[section]
 
 
-%SetFonts
 
-%SetFonts
+\newglossaryentry{densities} %! This doesn't actually work. Inline glossary entries are like citations, they print the name of the entry. I could instead separate each density into its own glossary entry, but this will lead to a large, poorly organized glossary.
+{
+    name={$f, f_c, f_m$},
+    description={Observed data, complete data, missing data densities (or PMFs)}
+}
 
 
 \title{\SARS\ Transmission in University Classes}
@@ -109,6 +115,8 @@
 %todo - Define observed, complete and missing data distributions
 %todo - Define parameter space.
 
+We define three distributions which will be central to our study of missing data problems. Let $Y$ be the observed data and $X$ be the missing data. Note that $X$ need not correspond to any actual real-world process, but may instead be a conceptual device which facilitates analysis of the data which were actually observed. We refer to the distribution of $Y$ as the ``observed data distribution''\index{Observed Data Distribution}, and write $f$ for its density (or mass function). We refer to the joint distribution of $Y$ and $X$ as the ``complete data distribution''\index{Complete Data Distribution}, and write $f_c$ for its density. We refer to the conditional distribution of $X$ given $Y$ as the ``missing data distribution''\index{Missing Data Distribution}, and write $f_m$ for its density. Note that the missing data distribution is not the marginal distribution of the missing data, but rather its conditional distribution given the observed data.
+
 The EM algorithm is a method for analyzing incomplete data which was formalized by \citet{Dem77}. See \citet{McL08} for an excellent book-length overview of the EM algorithm. We begin by discussing a probabilistic framework within which the EM algorithm is often applied. We then present the EM algorithm in detail. Finally, we discuss some limitations of this method. Throughout, we illustrate our presentation with a toy problem based on linear regression with a single, unobserved, covariate.
 
 The EM algorithm consists of iterating two steps. First is the expectation, or ``E'', step, in which an objective function is constructed from the complete data likelihood. Second is the maximization, or ``M'', step, in which the previously computed objective function is maximized. These two steps are then alternated until some convergence criterion is met. Whatever value of $\theta$ the algorithm converges to is used as our parameter estimate. We now go into more detail on each of the two steps.
@@ -119,7 +127,7 @@ The E-step of the EM algorithm is where we construct the objective function whic
     Q(\theta|\theta_{k-1}) & = \bE_{\theta_{k-1}}[\ell_c(\theta; y, X) | Y=y]
 \end{align}
 %
-Where $\ell_c$ is the log-likelihood of the complete data model. Note that the conditional expectation uses our parameter estimate from the previous iteration.
+where $\ell_c$ is the log-likelihood of the complete data model. Note that the conditional expectation uses our parameter estimate from the previous iteration.
 
 The M-step of the EM algorithm consists of maximizing the objective function constructed in the previous E-step. That is, we define $\theta_k = \argmax\limits_\theta Q(\theta|\theta_{k-1})$. Typically, this optimization must be performed numerically via, e.g., gradient ascent or Newton's method. See \citet{Noc06} for details and other optimization algorithms. 
 
@@ -152,7 +160,7 @@ An important feature of the EM algorithm is its so-called ``ascent property''. T
         &= Q(\theta'|\theta) - Q(\theta|\theta) + \mathrm{KL}(\theta || \theta') \label{eq:asc_KL}
     \end{align}
     %
-    Where the last term in line \ref{eq:asc_KL} is the Kullback-Leibler (KL) divergence from the missing data distribution with $\theta = \theta$ to the same distribution with $\theta = \theta'$. Note that KL divergences are always non-negative, so we get
+    where the last term in line \ref{eq:asc_KL} is the Kullback-Leibler (KL) divergence from the missing data distribution with $\theta = \theta$ to the same distribution with $\theta = \theta'$. Note that KL divergences are always non-negative, so we get
     %
     \begin{align}
     \ell(\theta'; y) - \ell(\theta; y) &\geq Q(\theta'|\theta) - Q(\theta|\theta)    
@@ -175,7 +183,7 @@ Under regularity conditions, it is possible to compute both the score vector and
     \begin{enumerate}[label=(\roman*)]
         \item $S(\theta; y) = \bE_\theta [S_c(\theta; y, X)|Y=y]$ \label{eq:obs_score_identity}
         \item $I(\theta) = \mathcal{I}_c(\theta) - \mathcal{I}_m(\theta)$ \label{eq:obs_info_identity}\\
-        Where $\mathcal{I}_c(\theta) := - \bE_\theta \left[ \nabla^2 \ell_c(\theta; y, X) | Y=y \right]$ and $\mathcal{I}_m(\theta) := - \bE_\theta \left[ \nabla^2 \ell_m(\theta; y, X) | Y=y \right]$
+        where $\mathcal{I}_c(\theta) := - \bE_\theta \left[ \nabla^2 \ell_c(\theta; y, X) | Y=y \right]$ and $\mathcal{I}_m(\theta) := - \bE_\theta \left[ \nabla^2 \ell_m(\theta; y, X) | Y=y \right]$
     \end{enumerate}
 \end{proposition}
 
@@ -183,11 +191,11 @@ Under regularity conditions, it is possible to compute both the score vector and
     We start with expression \ref{eq:obs_score_identity}. Let $\Omega$ be the complete data sample space. Let $\mathcal{Y}$ and $\mathcal{X}$ be the observed and missing data sample spaces respectively. For every $y \in \mathcal{Y}$, let $\mathcal{X}(y) = \{ x \in \mathcal{X}: (y,x) \in \Omega\}$. Note that $f(y; \theta) = \int_{\mathcal{X}(y)} f_c(y, x; \theta) dx$.
     %
     \begin{align}
-        \bE_\theta [S_c(\theta; y, X)|Y=y] &= \int_{\mathcal{X}(y)} \nabla \ell_c(\theta; y) f_m(y, x; \theta) dx \nonumber\\
-        &= \int_{\mathcal{X}(y)} \frac{f_m(y, x; \theta)}{f_c(y, x; \theta)} \nabla f_c(\theta; y) \nonumber\\
-        &= \int_{\mathcal{X}(y)} \frac{1}{f(y; \theta)} \nabla f_c(\theta; y)\nonumber\\
-        &= \frac{1}{f(y; \theta)} \int_{\mathcal{X}(y)} \nabla f_c(\theta; y)\nonumber\\
-        &= \frac{1}{f(y; \theta)} \nabla \int_{\mathcal{X}(y)} f_c(\theta; y) \nonumber\\
+        \bE_\theta [S_c(\theta; y, X)|Y=y] &= \int_{\mathcal{X}(y)} \nabla \ell_c(\theta; y, x) f_m(y, x; \theta) dx \nonumber\\
+        &= \int_{\mathcal{X}(y)} \frac{f_m(y, x; \theta)}{f_c(y, x; \theta)} \nabla f_c(\theta; y, x) dx \nonumber\\
+        &= \int_{\mathcal{X}(y)} \frac{1}{f(y; \theta)} \nabla f_c(\theta; y, x) dx\nonumber\\
+        &= \frac{1}{f(y; \theta)} \int_{\mathcal{X}(y)} \nabla f_c(\theta; y, x) dx\nonumber\\
+        &= \frac{1}{f(y; \theta)} \nabla \int_{\mathcal{X}(y)} f_c(\theta; y, x) dx \nonumber\\
         &= \frac{1}{f(y; \theta)} \nabla f(y; \theta)\nonumber\\
         &= S(\theta; y) \nonumber
     \end{align}
@@ -208,13 +216,13 @@ An alternative to Proposition \ref{thm:EM_decomp} part \ref{eq:obs_info_identity
     Let $\hat{\theta}$ be a stationary point of the observed data log-likelihood. \hl{Assuming regularity conditions,} we can write the observed information of the observed data distribution at $\hat{\theta}$ as
     %
     \begin{align}
-        I(\theta) = \mathcal{I}_c(\theta) - \bE_{\theta} [ S_c(\theta) S_c(\theta) | Y=y] + S(\theta) S(\theta)^T
+        I(\theta) = \mathcal{I}_c(\theta) - \bE_{\theta} [ S_c(\theta) S_c(\theta)^T | Y=y] + S(\theta) S(\theta)^T
     \end{align}
     %
     In particular, if $\hat{\theta}$ is a stationary point of the observed data log-likelihood, then
     %
     \begin{align}
-        I(\hat{\theta}) = \mathcal{I}_c(\hat{\theta})  - \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta}) | Y=y]
+        I(\hat{\theta}) = \mathcal{I}_c(\hat{\theta})  - \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta})^T | Y=y]
     \end{align}
 \end{proposition}
 
@@ -236,7 +244,7 @@ An alternative to Proposition \ref{thm:EM_decomp} part \ref{eq:obs_info_identity
         \nabla^2 \ell(\theta) &= \bE_\theta [ \nabla^2 \ell_c(\theta) | Y=y] + \bE_\theta [ S_c(\theta) S_c(\theta)^T | Y=y] - S(\theta; y) S(\theta; y)^T \label{eq:hess_obs_lik2}
     \end{align}
     %
-    Finally, evaluating this last line at $\theta = \hat{\theta}$ makes the rightmost term vanish, thereby yielding the required expression.
+    Finally, evaluating line \ref{eq:hess_obs_lik2} at $\theta = \hat{\theta}$ makes the rightmost term vanish, thereby yielding the required expression.
 \end{proof}
 
 Proposition \ref{thm:info_decomp} is known as Louis' standard error formula. Other decompositions for the observed information matrix of the observed data likelihood do exist; see, e.g., \citet{Oak99,McL08}. However, the one due to Louis will be most useful to us later.
@@ -246,7 +254,7 @@ Proposition \ref{thm:info_decomp} is known as Louis' standard error formula. Oth
 
 Consider the scenario where a measured quantity is known to depend linearly on another unobserved, but nevertheless well understood, quantity. For example, \hl{something, something, census data}. We first present a model for such a scenario, then show how to directly analyze the observed data. Throughout the rest of this document, we will return to this example to illustrate how to perform an analysis when increasing portions of the calculations cannot be performed analytically (\hl{awk}).
 
-Let $X \sim \mathrm{M}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\varepsilon \sim \mathrm{N}(0, \sigma^2)$ for some $\sigma>0$, and $Y = X \beta + \varepsilon$ where $\beta \in \bR$. We observe an iid sample of $Y$s, but not their corresponding $X$s. We do however, treat $\mu$ and $\tau$ as known. Our goal is to estimate $\beta$ and $\sigma$ from this incomplete data. 
+Let $X \sim \mathrm{N}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\varepsilon \sim \mathrm{N}(0, \sigma^2)$ for some $\sigma>0$, and $Y = X \beta + \varepsilon$ where $\beta \in \bR$. We observe an iid sample of $Y$s, but not their corresponding $X$s. We do however, treat $\mu$ and $\tau$ as known. Our goal is to estimate $\beta$ and $\sigma$ from this incomplete data. 
 
 
 \section{The Monte Carlo EM Algorithm}
@@ -258,7 +266,7 @@ The Monte Carlo EM, or MCEM, algorithm was first proposed by \citet{Wei90}. This
     &:= \hat{\bE} \ell_c (\theta; y, X)
 \end{align}
 %
-Where the $w_i$ are sampling weights. \hl{Confirm that this operator notation isn't contradicted elsewhere.} Under iid sampling we simply get $w_i = M^{-1}$ for every $i$, but more involved sampling schemes may have more complicated weights. The estimate of $\theta$ is then the maximizer of the MCEM objective function: $\hat{\theta} = \argmax_\theta \hat{Q}(\theta|\theta_0)$. Write $\hat{\theta}_{k-1}$ for the $k$th MCEM estimate. 
+where the $w_i$ are sampling weights. \hl{Confirm that this operator notation isn't contradicted elsewhere.} Under iid sampling we simply get $w_i = M^{-1}$ for every $i$, but more intricate sampling schemes may have more complicated weights. The estimate of $\theta$ is then the maximizer of the MCEM objective function: $\hat{\theta} = \argmax_\theta \hat{Q}(\theta|\theta_0)$. Write $\hat{\theta}_{k-1}$ for the $k$th MCEM estimate. 
 
 Provided that a valid sampling scheme is available for the missing data distribution, we can use Proposition \ref{thm:info_decomp} to estimate the observed data information matrix. 
 
@@ -298,14 +306,14 @@ More formally, write $\tilde{\theta}_k$ for the EM update based on $\hat{\theta}
     \sqrt{M}(\hat{\theta}_k - \tilde{\theta}_k) &= - \sqrt{M} \left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \left[\nabla \hq(\tilde{\theta}_k|\hat{\theta}_{k-1}) \right] + o_p(1) \label{eq:th_as_dist}
 \end{align}
 %
-Where $M$ is the Monte Carlo size and $\nabla$ denotes differentiation with respect to the left argument of $Q$ or $\hat{Q}$. Note that the first expression on the right-hand side is the inverse Hessian of the EM objective function (fixed) while the second is the gradient of the MCEM objective function (an average). Thus, $\hat{\theta}_k$ is asymptotically normal with asymptotic variance
+where $M$ is the Monte Carlo size and $\nabla$ denotes differentiation with respect to the left argument of $Q$ or $\hat{Q}$. Note that the first expression on the right-hand side is the inverse Hessian of the EM objective function (fixed) while the second is the gradient of the MCEM objective function (an average). Thus, $\hat{\theta}_k$ is asymptotically normal with asymptotic variance
 %
 \begin{align}
     &\left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \bV \left[ S_c (\tilde{\theta}_k) | Y=y \right] \left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1}\\
     &\approx \left[ \nabla^2 \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \hat{\bE} \left[ S_c(\hat{\theta}_k) S_c(\hat{\theta}_k)^T | Y=y \right] \left[ \nabla^2 \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} 
 \end{align}
 %
-Where $S_c$ is the complete data score vector, and $\hat{\bE}$ is the Monte Carlo average over the missing data, with $\hat{\theta}_k$ held fixed \hl{(remove comma?)}. Note that there is no first moment term in the conditional variance of $S_c$ because $\hat{\theta}_k$ is a maximizer of $\hat{\bE} [\ell_c |Y=y]$.
+where $S_c$ is the complete data score vector, and $\hat{\bE}$ is the Monte Carlo average over the missing data, with $\hat{\theta}_k$ held fixed \hl{(remove comma?)}. Note that there is no first moment term in the conditional variance of $S_c$ because $\hat{\theta}_k$ is a maximizer of $\hat{\bE} [\ell_c |Y=y]$.
 
 Based on the above discussion, we can build an asymptotic confidence interval for $\tilde{\theta}_k$, the EM update based on the MCEM estimate from iteration $k$. \citeauthor{Boo99} recommend checking whether this interval contains $\hat{\theta}_{k-1}$ and, if so, increasing $M$ for the next iteration. Specifically, they suggest starting the next iteration with $M/r$ more points, with $r = 3,4$ or $5$ working well in their examples \hl{(this whole discussion is pretty awkward)}.
 
@@ -315,7 +323,7 @@ To assess convergence of the MCEM algorithm, \citeauthor{Boo99} present two crit
     \max_j \left( \frac{\left| \hat{\theta}_{k, j} - \hat{\theta}_{k-1,j} \right|}{\left| \hat{\theta}_{k-1,j} \right| + \delta_1} \right) < \delta_2 \label{eq:Boo99_tol}
 \end{align}
 %
-Where $\delta_1$ and $\delta_2$ are small positive constants, and the subscript $j$ ranges over components of $\theta$. \citeauthor{Boo99} suggest using $\delta_1 = 10^{-3}$ and $\delta_2$ between $2 \cdot 10^{-3}$ and $5 \cdot 10^{-3}$. See \citep{need} (probably \citealp{Sea06}, p.\ 436, or \citealp{Mar63}) for why condition (\ref{eq:Boo99_tol}) has this particular form.
+where $\delta_1$ and $\delta_2$ are small positive constants, and the subscript $j$ ranges over components of $\theta$. \citeauthor{Boo99} suggest using $\delta_1 = 10^{-3}$ and $\delta_2$ between $2 \cdot 10^{-3}$ and $5 \cdot 10^{-3}$. See \citep{need} (probably \citealp{Sea06}, p.\ 436, or \citealp{Mar63}) for why condition (\ref{eq:Boo99_tol}) has this particular form.
 
 Alternatively, since \citeauthor{Boo99} apply their method to the analysis of generalized linear mixed models, where pathologies may arise due to parameter estimates being too close to a boundary, they propose a second stopping rule:
 %
@@ -412,7 +420,7 @@ The estimator in (\ref{eq:SNIS}) is referred to as the self-normalized importanc
     \sqrt{M} (\tilde{\phi} - \phi) \rightsquigarrow N(0, \sigma^2_{SNIS})
 \end{align}
 %
-Where $\sigma^2_{SNIS} = \bG ((h - \phi)^2 \tilde{w}^2) / (\bG \tilde{w})^2 =\alpha^2 \bG ((h - \phi)^2 \tilde{w}^2)$. It is common to define the normalized weights as $\tilde{w}_i / \hat{\bG} \tilde{w}$\index{Normalized Importance Weights}, which I denote (non-standardly) by $\mathring{w}_i$. Thus, we can define $\tilde{\bG} h := \tilde{\phi} = \sum \mathring{w}_i h(X_i)$.
+where $\sigma^2_{SNIS} = \bG ((h - \phi)^2 \tilde{w}^2) / (\bG \tilde{w})^2 =\alpha^2 \bG ((h - \phi)^2 \tilde{w}^2)$. It is common to define the normalized weights as $\tilde{w}_i / \hat{\bG} \tilde{w}$\index{Normalized Importance Weights}, which I denote (non-standardly) by $\mathring{w}_i$. Thus, we can define $\tilde{\bG} h := \tilde{\phi} = \sum \mathring{w}_i h(X_i)$.
 
 \footnotetext{\textbf{Finite second moment assumptions à la CLT.}}
 
@@ -458,7 +466,7 @@ We now give some details. First, let $q$ be some probability density for the mis
     & \geq F(q, \theta)
 \end{align}
 %
-Where line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $q$, and the last line follows from non-negativity of the KL divergence. The first term in line (\ref{eq:variational_decomp}) is called the ``evidence lower-bound'' (ELBO), as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood can be seen as an evidence if we take $Y$ to be the data and $X$ to be the parameters. 
+where line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $x$, and the last line follows from non-negativity of the KL divergence. The first term in line (\ref{eq:variational_decomp}) is called the ``evidence lower-bound'' (ELBO), as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood can be seen as an evidence if we take $Y$ to be the data and $X$ to be the parameters. 
 
 The EM algorithm can be re-framed as alternately maximizing $F$ with respect to $q$ and $\theta$. To see why, first recall that the KL divergence between two distributions is non-negative, and is zero if and only if the two distributions are equal. Starting at a fixed parameter value, $\theta_0$, maximizing $F$ with respect to $q$ is accomplished by setting $q(x) = f_m(y, x; \theta_0)$, as this minimizes the KL divergence in (\ref{eq:variational_decomp}) and the left-hand side is constant in $q$. The resulting ELBO is equal to $Q(\theta|\theta_0) + \xi$, where $Q$ is the EM objective function and $\xi$ is constant in $\theta$. Maximizing the ELBO in $\theta$ is therefore equivalent to maximizing the EM objective function. This maximization gives a new parameter value, which is used as input to the next iteration. See Theorem 1 of \citet{Nea98} for a more formal proof.
 
@@ -470,7 +478,7 @@ A major advantage of the mean-field approximation is that an iterative algorithm
     q_j^{(k+1)} &\propto \exp \left[ \bQ^{(k)}_{-j} \ell_c(y, x_j, X_{-j}) \right] \label{eq:var_inf_update}
 \end{align}
 %
-Where $X_{-j}$ is all the missing variables other than $X_j$. See Section 2.4 of \citet{Ble17} for a derivation of (\ref{eq:var_inf_update}). The overall algorithm consists of repeatedly cycling through updating each coordinate's distribution until some convergence criterion is met (\hl{how is convergence assessed?}).
+where $X_{-j}$ is all the missing variables other than $X_j$. See Section 2.4 of \citet{Ble17} for a derivation of (\ref{eq:var_inf_update}). The overall algorithm consists of repeatedly cycling through updating each coordinate's distribution until some convergence criterion is met (\hl{how is convergence assessed?}).
 
 Note that, so far, our discussion of how to compute the mean-field approximate density for $X$ has not addressed $\theta$. To apply mean-field variational inference to EM-type problems, we substitute the mean-field density into the ELBO and maximize over $\theta$. This new value of $\theta$ is fed back into ($\ref{eq:var_inf_update}$), giving us a different complete data likelihood function and, hence, a new optimal density.
 
@@ -506,7 +514,7 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
         &\equiv -n \log (\eta) - \sum_{i=1}^n \frac{(y_i - \mu \beta)^2}{2 \eta^2}
     \end{align}
     %
-    Where $\equiv$ denotes equality up to additive constants which do not depend on $\theta$.
+    where $\equiv$ denotes equality up to additive constants which do not depend on $\theta$.
 
     The score vector is given by
     %
@@ -517,7 +525,7 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
         \end{pmatrix}
     \end{align}
 
-    The observed information matrix is given by
+    The information matrix is given by
     %
     \begin{align}
         I(\theta; y) &= \frac{1}{\eta^6} \begin{bmatrix}
@@ -538,6 +546,55 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
 
 
     As an aside, I did explore the above model with multiple covariates. Unfortunately, marginalizing out $X$ consists of replacing each observed covariate vector with its mean, $\mu$. This results in linearly dependent observations, so the model is overparameterized. I could probably incorporate an intercept term without introducing the overparameterization problem, but I don't think it's worth the effort. I'm not going to be able to sell anyone on the applicability of my model, and adding a third parameter won't really increase the pedagogical value.
+
+    \subsection{EM Algorithm}
+
+    In order to apply the EM algorithm, we must construct and optimize the EM objective function. That is, we must compute $Q(\theta|\theta_0) = \bE_{\theta_0} \left[ \ell_c(\theta; y, X) | Y=y \right]$. The conditional distribution of $X$ given $Y=y$ is $N(\mu_y, \tau^2_y)$, with $\mu_y$ and $\tau^2_y$ given by the following expressions:
+    %
+	\begin{align}
+		\mu_y & := \bE (X | Y=y)\\
+		&= \mu + \frac{\tau^2 \beta}{\eta} (y - \mu \beta)\\
+		&= \rho^2 \frac{y}{\beta} + (1-\rho^2) \mu\\
+		\tau^2_y &:= \bV (X | Y=y)\\
+		&= \tau^2 - \frac{\tau^4 \beta^2}{\eta}\\
+		&= \tau^2 (1 - \rho^2)
+	\end{align}
+	%
+    where $\rho^2 := \tau^2 \beta^2 / \eta$ is the coefficient of determination (i.e.\ $R^2$) between $Y$ and $X$. For notational convenience, we also define $\zeta_y := \bE(X^2 | Y=y) = \tau_y^2 + \mu_y^2$. The complete data log-likelihood is given by
+    %
+    \begin{align}
+        \ell_c(\theta; y, x) &= \left[ - \frac{n}{2} \log 2 \pi - n \log \tau - \frac{1}{\tau^2} \sum (x_i - \mu)^2 \right] \nonumber\\
+        & + \left[ - \frac{n}{2} \log 2\pi - n \log \sigma - \frac{1}{\sigma^2} \sum (y_i - x_i \beta)^2 \right] \label{eq:complete_likelihood}\\
+        &\equiv -n \log \sigma - \frac{1}{\sigma^2} \sum (y_i - x_i \beta)^2
+    \end{align}
+    %
+    Note that the first term in line (\ref{eq:complete_likelihood}) is the marginal likelihood of $x$, and the second term is the conditional likelihood of $y$ given $x$.
+    
+    The EM objective function can be written as
+    %
+    \begin{align}
+		Q(\theta | \theta_0) &:= \bE_{\theta_0} [\ell_c (\theta; y, X) | Y=y]\\
+		&\equiv \bE_{\theta_0} \left[ \left. -n \log \sigma - \frac{1}{2\sigma^2} \sum (y_i - X_i \beta)^2 \right| Y=y \right]\\
+        &= -n \log \sigma - \frac{1}{2\sigma^2} \sum \left( y_i^2 - 2 \beta y_i \mu_{y_i}^{(0)} + \beta^2 \zeta^{(0)}_{y_i} \right)
+	\end{align}
+    %
+    where a superscript zero denotes that the quantity is computed by taking an expectation under $\theta_0$. Maximizing $Q$ analytically with respect to $\theta$ gives the following expression for the EM update:
+    %
+    \begin{align}
+        M(\theta_{k-1}) &= \begin{pmatrix}
+            \hat{\beta}_k\\ \hat{\sigma}_k
+        \end{pmatrix}\\
+        &= \begin{pmatrix}
+            {\sum y_i \mu_{y_i}^{(k-1)}} / {\sum \zeta_{y_i}^{(k-1)}}\\
+            \frac{1}{n} \bE_{\theta_{k-1}} \left[ \left. \sum (y_i - x_i \hat{\beta}_k)^2 \right| Y=y \right]
+        \end{pmatrix}\\
+        &= \begin{pmatrix}
+            {\sum y_i \mu_{y_i}^{(k-1)}} / {\sum \zeta_{y_i}^{(k-1)}}\\
+            \frac{1}{n} \sum \left( y_i^2 - 2 y_i \mu_{y_i}^{(k-1)} \hat{\beta}_k  + \zeta^{(k-1)}_{y_i} \hat{\beta}_k^2  \right)
+        \end{pmatrix}
+    \end{align}
+    %
+    where a superscript $k-1$ denotes that the quantity is computed by taking an expectation under $\theta_{k-1}$. Note that the equation for a stationary point of the EM algorithm, $M(\theta) = \theta$, has identical roots to the observed data score equation, $S(\theta) = 0$ \hl{(confirm this)}.
 
 \end{appendices}
 

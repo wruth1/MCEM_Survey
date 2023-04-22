@@ -55,6 +55,42 @@ function theta_cov_mat(theta_new, Y, all_Xs, all_weights, theta_fixed)
 end
 
 """
+Run the MCEM algorithm B times from the same starting point, theta_old, with M Monte Carlo samples each time.
+"""
+function many_theta_hats(theta_old, Y, M, B, theta_fixed)
+    all_theta_hats = []
+    all_ESSs = []
+    prog = Progress(B, desc="Computing theta updates")
+    # Threads.@threads for _ in 1:B
+    for _ in 1:B
+        theta_hat, _, this_weights = MCEM_update(theta_old, Y, theta_fixed, M; return_X=true)
+        this_ESS = get_ESS(this_weights)
+        push!(all_theta_hats, theta_hat)
+        push!(all_ESSs, this_ESS)
+        next!(prog)
+    end
+    return [all_theta_hats, all_ESSs]
+end
+
+"""
+Empirically determine the mean of theta hat.
+"""
+function empirical_theta_mean(theta_old, Y, M, B, theta_fixed)
+    all_theta_hats = []
+    all_ESSs = []
+    prog = Progress(B, desc="Computing theta updates")
+    Threads.@threads for _ in 1:B
+    # for _ in 1:B
+        theta_hat, _, this_weights = MCEM_update(theta_old, Y, theta_fixed, M; return_X=true)
+        this_ESS = get_ESS(this_weights)
+        push!(all_theta_hats, theta_hat)
+        push!(all_ESSs, this_ESS)
+        next!(prog)
+    end
+    return [mean(all_theta_hats), all_ESSs]
+end
+
+"""
 Empirically determine the covariance matrix of theta hat
 """
 function empirical_theta_cov_mat(theta_old, Y, M, B, theta_fixed)
@@ -75,8 +111,49 @@ end
 ###! START HERE
 #! The analytical and theoretical standard errors for a single theta hat update are not matching
 #! I adjusted the analytical formula to use ESS instead of M. I'm not sure if there's a justification for doing so, but the matrices are much closer this way
-#! I should check whether the mean of the MCEM updates match the EM update************************************************
+#! Furthermore, the iterate from a single MCEM step does not appear to match what we get from the corresponding EM step. I'm not sure if this is a coding problem or a theory problem. The model is pretty nice though, so it's probably a coding problem.
 
+# ----------------------------- Compute EM update ---------------------------- #
+theta_hat_EM = EM_update(theta1, Y, theta_fixed);
+
+# --------------------- Generate a sample of MCEM updates -------------------- #
+B = 1000 # Number of samples to draw
+M = 10000 # Size of each sample
+Random.seed!(1)
+all_theta_hats, all_ESSs = many_theta_hats(theta1, Y, M, B, theta_fixed);
+
+
+# ------------- Plot empirical sampling distribution of theta hat ------------ #
+using Plots
+all_beta_hats = [theta_hat[1] for theta_hat in all_theta_hats]
+all_sigma_hats = [theta_hat[2] for theta_hat in all_theta_hats]
+
+# Marginal histograms
+beta_hat_hist = histogram(all_beta_hats, label = nothing, title="beta", bins = 21);
+vline!(theta_hat_EM[1:1], label = nothing);
+
+sigma_hat_hist = histogram(all_sigma_hats, label = nothing, title="sigma", bins = 21);
+vline!(theta_hat_EM[2:2], label = nothing);
+
+plot(beta_hat_hist, sigma_hat_hist, layout=(1,2), size=(1200,1000))
+
+# Joint histogram
+joint_hist = histogram2d(all_beta_hats, all_sigma_hats, bins = (20, 20), title="Joint distribution of beta and sigma", xlabel="beta", ylabel="sigma", size = (1200, 1000), show_empty_bins=true);
+plot!(theta_hat_EM[1:1], theta_hat_EM[2:2], seriestype = :scatter, markersize = 10, label = "EM update");
+plot(joint_hist)
+
+
+
+# ------------ Check mean of theta hat under sampling distribution ----------- #
+B = 100 # Number of samples to draw
+M = 100000 # Size of each sample
+Random.seed!(1)
+emp_mean, all_ESSs = empirical_theta_mean(theta1, Y, M, B, theta_fixed);
+emp_mean
+anal_mean = EM_update(theta1, Y, theta_fixed)
+
+
+# --------- Check SE matrix of theta hat under sampling distribution --------- #
 q, all_ESSs = empirical_theta_cov_mat(theta4, Y, M, 10, theta_fixed)
 q
 w = theta_cov_mat(theta_hat, Y, all_Xs, all_weights, theta_fixed)
