@@ -124,21 +124,23 @@ all_theta_hats, all_ESSs = many_theta_hats(theta1, Y, M, B, theta_fixed);
 
 
 # ------------- Plot empirical sampling distribution of theta hat ------------ #
-using Plots
+# using Plots
 all_beta_hats = [theta_hat[1] for theta_hat in all_theta_hats]
 all_sigma_hats = [theta_hat[2] for theta_hat in all_theta_hats]
 
 # Marginal histograms
 beta_hat_hist = histogram(all_beta_hats, label = nothing, title="beta", bins = 21);
-vline!(theta_hat_EM[1:1], label = nothing);
+vline!(theta_hat_EM[1:1], label = "EM Update", linewidth = 2);
+vline!([mean(all_beta_hats)], label = "Mean MCEM Update", linewidth = 2);
 
 sigma_hat_hist = histogram(all_sigma_hats, label = nothing, title="sigma", bins = 21);
-vline!(theta_hat_EM[2:2], label = nothing);
+vline!(theta_hat_EM[2:2], label = "EM Update", linewidth = 2);
+vline!([mean(all_sigma_hats)], label = "Mean MCEM Update", linewidth = 2);
 
 plot(beta_hat_hist, sigma_hat_hist, layout=(1,2), size=(1200,1000))
 
 # Joint histogram
-joint_hist = histogram2d(all_beta_hats, all_sigma_hats, bins = (20, 20), title="Joint distribution of beta and sigma", xlabel="beta", ylabel="sigma", size = (1200, 1000), show_empty_bins=true);
+joint_hist = histogram2d(all_beta_hats, all_sigma_hats, bins = (50, 50), title="Joint distribution of beta and sigma", xlabel="beta", ylabel="sigma", size = (1200, 1000), show_empty_bins=false);
 plot!(theta_hat_EM[1:1], theta_hat_EM[2:2], seriestype = :scatter, markersize = 10, label = "EM update");
 plot(joint_hist)
 

@@ -12,6 +12,8 @@ using Distributions
 using LinearAlgebra
 using ProgressMeter
 
+using Plots
+
 
 
 # ---------------------------------------------------------------------------- #
