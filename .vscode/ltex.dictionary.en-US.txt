@@ -12,3 +12,4 @@ decompositions
 un-normalized
 integrands
 integrability
+integrand

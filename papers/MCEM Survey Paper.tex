@@ -430,7 +430,9 @@ One way to assess the performance of an importance sample is by computing the so
 
 When designing an importance sampling scheme to solve a particular problem, it is important to choose an appropriate proposal distribution. The sense in which a proposal distribution should be appropriate can be understood in a few different ways. If multiple test functions must be integrated using the same proposal distribution, or even the same sample, it makes sense to consider a worst-case error analysis over some class of test functions and to choose a proposal for which the bound is not too large. In contrast, if the goal is to estimate the expectation of a single test function, the proposal can be chosen to better facilitate estimation of the particular integrand. In the former case, we choose our proposal distribution based on its relationship with the target distribution alone, while in the latter case we make our choice based on the target distribution and the test function.
 
-\citet{Aga17} give a very readable overview of some bounds for the worst-case error of an importance sampling scheme. The bounds are simpler if we restrict attention only to bounded test functions, although bounds also exist for unbounded test functions, provided that certain integrability criteria are met.
+\citet{Aga17} give a very readable overview of some bounds for the worst-case error of an importance sampling scheme. These error bounds are simpler if we restrict attention only to bounded test functions, although similar error bounds also exist for unbounded test functions, provided that certain integrability criteria are met. Focusing on bounded test functions for simplicity, the fundamental quantity for the error bounds in \citeauthor{Aga17} is $\rho := \bG \tilde{w}^2 / (\bG \tilde{w})^2$. Specifically, for test functions bounded in absolute value by 1, the worst-case $\mathcal{L}^2$ error is less than $4 \rho / M$, where $M$ is the size of the importance sample. 
+
+
 
 \subsection{Particle-Based Methods}
 
