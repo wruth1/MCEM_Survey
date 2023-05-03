@@ -71,6 +71,8 @@
 
 \newcommand{\wcirc}{\mathring{w}}
 
+\newcommand{\mh}{Metropolis-Hastings}
+
 
 \newtheorem{proposition}{Proposition}[section]
 
@@ -432,11 +434,34 @@ When designing an importance sampling scheme to solve a particular problem, it i
 
 \citet{Aga17} give a very readable overview of some bounds for the worst-case error of an importance sampling scheme. These error bounds are simpler if we restrict attention only to bounded test functions, although similar error bounds also exist for unbounded test functions, provided that certain integrability criteria are met. Focusing on bounded test functions for simplicity, the fundamental quantity for the error bounds in \citeauthor{Aga17} is $\rho := \bG \tilde{w}^2 / (\bG \tilde{w})^2$. Specifically, for test functions bounded in absolute value by 1, the worst-case $\mathcal{L}^2$ error is less than $4 \rho / M$, where $M$ is the size of the importance sample. 
 
+When approximating the $\bF$-expectation of a single test function, it is possible to choose the proposal distribution based on this test function for increased performance. In particular, given a target density, $f$, and a test function, $\phi$, there is an optimal proposal density given by the following proposition.
+%
+\begin{proposition}
+    \label{thm:imp_samp}
+    Let $f$ be a density and $\phi$ be a test function. Let $g_* = f |\phi| / \bF |\phi|$, and $g$ be any other proposal density. Then $\bV_{g_*} w_* \phi \leq \bV_g w \phi$, where $w_* = f/g_*$ and $w = f/g$.
+\end{proposition}
 
+\begin{proof}
+    See the proof of Proposition 8.2 in \citet{Cho20}.
+\end{proof}
+%
+Unfortunately, this optimal proposal density is rarely useful in practice, since evaluating $g_*$ requires computing $\bF |\phi|$. While it's not exactly equal to the quantity we are trying to approximate, $\bF |\phi|$ is unlikely to be much easier to compute.
+
+Although Proposition \ref{thm:imp_samp} does not tell us exactly what to do in practice, this result does offer some guidance on how to choose proposal distributions. Specifically, we should choose $g$ to be positively correlated with $f |\phi|$. That is, $g$ should place most of its mass in regions where $f \phi$ is large in magnitude.
+
+\hl{Maybe write something about exponential tilting, although that might be mostly for rare event simulation.}
+
+\hl{Add some discussion around what importance sampling looks like in MCEM.}
 
 \subsection{Particle-Based Methods}
 
 \subsection{Markov Chain Monte Carlo}
+
+The literature on Markov Chain Monte Carlo, or MCMC, is vast. We cover only the basics here and refer the reader to any number of excellent introductions, such as \citet{Gel13} or \citet{Rob04}. The core idea is to construct a Markov Chain from which we can simulate, and which has stationary distribution equal to the distribution from which we wish to generate observations. Popular methods to construct such a Markov Chain are Gibbs sampling and the Metropolis-Hastings algorithm. 
+
+Both Gibbs sampling and \mh start with a random variable, $X = (X_1, \ldots, X_d)$, which we wish to simulate. Let $f$ be the density of $X$. These methods proceed by iteratively simulating draws of the vector $X$ from some distribution based on the draw from the previous iteration. 
+
+Gibbs sampling is based on successively sampling each component of $X$ conditional on all the other components. The order in which this conditioning is performed is a bit subtle, however. When generating $X_i$, we condition on the values of $X_1,\ldots, X_{i-1}$ from the current iteration and the values of $X_{i+1}, \ldots, X_d$ from the previous iteration. Once we reach the end of $X$, we start a new iteration.  More generally, we can group the components of $X$, and simulate an entire group conditional on the others, provided that we follow the structure outlined above \hl{(awk)}.
 
 \section{Alternatives to the MCEM Algorithm}
 
