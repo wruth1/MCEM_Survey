@@ -457,11 +457,13 @@ Although Proposition \ref{thm:imp_samp} does not tell us exactly what to do in p
 
 \subsection{Markov Chain Monte Carlo}
 
-The literature on Markov Chain Monte Carlo, or MCMC, is vast. We cover only the basics here and refer the reader to any number of excellent introductions, such as \citet{Gel13} or \citet{Rob04}. The core idea is to construct a Markov Chain from which we can simulate, and which has stationary distribution equal to the distribution from which we wish to generate observations. Popular methods to construct such a Markov Chain are Gibbs sampling and the Metropolis-Hastings algorithm. 
+The literature on Markov Chain Monte Carlo, or MCMC, is vast. We cover only the basics here and refer the reader to any number of excellent introductions, such as \citet{Gel13} or \citet{Rob04}. The core idea is to construct a Markov Chain from which we can simulate, and which has stationary distribution equal to the target distribution. Popular methods to construct such a Markov Chain are Gibbs sampling and the Metropolis-Hastings algorithm. 
 
 Both Gibbs sampling and \mh start with a random variable, $X = (X_1, \ldots, X_d)$, which we wish to simulate. Let $f$ be the density of $X$. These methods proceed by iteratively simulating draws of the vector $X$ from some distribution based on the draw from the previous iteration. 
 
 Gibbs sampling is based on successively sampling each component of $X$ conditional on all the other components. The order in which this conditioning is performed is a bit subtle, however. When generating $X_i$, we condition on the values of $X_1,\ldots, X_{i-1}$ from the current iteration and the values of $X_{i+1}, \ldots, X_d$ from the previous iteration. Once we reach the end of $X$, we start a new iteration.  More generally, we can group the components of $X$, and simulate an entire group conditional on the others, provided that we follow the structure outlined above \hl{(awk)}.
+
+
 
 \section{Alternatives to the MCEM Algorithm}
 
