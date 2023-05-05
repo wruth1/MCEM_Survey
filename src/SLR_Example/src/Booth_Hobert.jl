@@ -73,6 +73,24 @@ function many_theta_hats(theta_old, Y, M, B, theta_fixed)
 end
 
 """
+Run the MCEM algorithm B times from the same starting point, theta_old, with M iid Monte Carlo samples each time.
+"""
+function many_theta_hats_iid(theta_old, Y, M, B, theta_fixed)
+    all_theta_hats = []
+    all_ESSs = []
+    prog = Progress(B, desc="Computing theta updates")
+    # Threads.@threads for _ in 1:B
+    for _ in 1:B
+        theta_hat, _, this_weights = iid_MCEM_update(theta_old, Y, theta_fixed, M; return_X=true)
+        this_ESS = get_ESS(this_weights)
+        push!(all_theta_hats, theta_hat)
+        push!(all_ESSs, this_ESS)
+        next!(prog)
+    end
+    return [all_theta_hats, all_ESSs]
+end
+
+"""
 Empirically determine the mean of theta hat.
 """
 function empirical_theta_mean(theta_old, Y, M, B, theta_fixed)
@@ -122,6 +140,12 @@ M = 10000 # Size of each sample
 Random.seed!(1)
 all_theta_hats, all_ESSs = many_theta_hats(theta1, Y, M, B, theta_fixed);
 
+all_theta_hats_iid, all_ESSs_iid = many_theta_hats_iid(theta1, Y, M, B, theta_fixed);
+all_theta_hats = all_theta_hats_iid
+all_ESSs = all_ESSs_iid
+
+
+
 
 # ------------- Plot empirical sampling distribution of theta hat ------------ #
 # using Plots
@@ -144,6 +168,8 @@ joint_hist = histogram2d(all_beta_hats, all_sigma_hats, bins = (50, 50), title="
 plot!(theta_hat_EM[1:1], theta_hat_EM[2:2], seriestype = :scatter, markersize = 10, label = "EM update");
 plot(joint_hist)
 
+# Save joint histogram plot
+# savefig(joint_hist, plotsdir("SLR", "un-trunc_imp_samp_joint_hist.pdf"))
 
 
 # ------------ Check mean of theta hat under sampling distribution ----------- #

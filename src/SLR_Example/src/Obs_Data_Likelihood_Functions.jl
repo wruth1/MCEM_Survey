@@ -1,5 +1,5 @@
 
-export obs_data_log_lik_term, obs_data_log_lik
+export obs_data_log_lik
 export obs_data_score1, obs_data_score2, obs_data_score
 export obs_data_Hessian1, obs_data_Hessian2, obs_data_Hessian3, obs_data_Hessian
 export obs_data_MLE
@@ -10,25 +10,17 @@ export obs_data_obs_info, obs_data_MLE_Cov, obs_data_MLE_SE
 # ---------------------------------------------------------------------------- #
 #                                log-likelihood                                #
 # ---------------------------------------------------------------------------- #
-function obs_data_log_lik_term(theta, y, theta_fixed)
-    beta, sigma = theta
-    mu, tau = theta_fixed
 
-    eta = get_eta(theta, theta_fixed)
+function obs_data_log_lik(theta, Y)
+    p, q = theta
+    r = 1 - p - q
 
-    A = - log(2 * pi * eta) / 2
-    B = - (y - beta * mu)^2 / (2 * eta)
-    
-    return A + B
-end
+    A = 2 * Y[1] * log(r)
+    B = Y[2] * log(p^2 + 2*p*r)
+    C = Y[3] * log(q^2 + 2*q*r)
+    D = Y[4] * log(p*q)
 
-
-function obs_data_log_lik(theta, Y, theta_fixed)
-    output = 0
-    for y in Y
-        output += obs_data_log_lik_term(theta, y, theta_fixed)
-    end
-    return output
+    return A + B + C + D
 end
 
 
@@ -38,60 +30,40 @@ end
 # ---------------------------------------------------------------------------- #
 
 """
-Beta derivative of observed data log-likelihood.
+p derivative of observed data log-likelihood.
 """
-function obs_data_score1(theta, Y, theta_fixed)
-    beta, sigma = theta
-    mu, tau = theta_fixed
+function obs_data_score1(theta, Y)
+    p, q = theta
+    r = 1 - p - q
 
-    n = length(Y)
-    sY = sum(Y)
-    sY2 = sum(Y.^2)
+    A = -2 * Y[1] / r
+    B = 2 * Y[2] * r / (p^2 + 2*p*r)
+    C = -2 * Y[3] * q / (q^2 + 2*q*r)
+    D = Y[4] / p
 
-    eta = get_eta(theta, theta_fixed)
-    eta2 = eta^2
-
-    A = - n * beta^3 * tau^4
-    B = -beta^2 * mu * tau^2 * sY
-
-    C1 = tau^2 * (sY2 - n*sigma^2)
-    C2 = -n * mu^2 * sigma^2
-    C = beta * (C1 + C2)
-
-    D = mu * sigma^2 * sY
-
-    output = (A + B + C + D) / eta2
-    return output
+    return A + B + C + D
 end
 
 """
-Sigma derivative of observed data log-likelihood.
+q derivative of observed data log-likelihood.
 """
-function obs_data_score2(theta, Y, theta_fixed)
-    beta, sigma = theta
-    mu, tau = theta_fixed
+function obs_data_score2(theta, Y)
+    p, q = theta
+    r = 1 - p - q
 
-    n = length(Y)
-    sY = sum(Y)
-    sY2 = sum(Y.^2)
+    A = -2 * Y[1] / r
+    B = -2 * Y[2] * p / (p^2 + 2*p*r)
+    C = 2 * Y[3] * r / (q^2 + 2*q*r)
+    D = Y[4] / q
 
-    eta = get_eta(theta, theta_fixed)
-    eta2 = eta^2
-
-    A = n * beta^2 * (mu^2 - tau^2)
-    B = -2 * beta * mu * sY
-    C = sY2
-    D = - n * sigma^2
-
-    output = sigma * (A + B + C + D) / eta2
-    return output
+    return A + B + C + D
 end
 
 """
 Gradient of observed data log-likelihood.
 """
-function obs_data_score(theta, Y, theta_fixed)
-    output = [obs_data_score1(theta, Y, theta_fixed), obs_data_score2(theta, Y, theta_fixed)]
+function obs_data_score(theta, Y)
+    output = [obs_data_score1(theta, Y), obs_data_score2(theta, Y)]
     return output
 end
 
@@ -103,15 +75,15 @@ end
 """
 Second-order beta derivative of observed data log-likelihood.
 """
-function obs_data_Hessian1(theta, Y, theta_fixed)
-    beta, sigma = theta
-    mu, tau = theta_fixed
+function obs_data_Hessian1(theta, Y)
+    p, q = theta
+    
 
     n = length(Y)
     sY = sum(Y)
     sY2 = sum(Y.^2)
 
-    eta = get_eta(theta, theta_fixed)
+    
     eta3 = eta^3
 
     A = n * beta^4 * tau^6
@@ -136,15 +108,15 @@ function obs_data_Hessian1(theta, Y, theta_fixed)
 """
 Derivative of observed data log-likelihood wrt beta and sigma.
 """
- function obs_data_Hessian2(theta, Y, theta_fixed)
-    beta, sigma = theta
-    mu, tau = theta_fixed
+ function obs_data_Hessian2(theta, Y)
+    p, q = theta
+    
 
     n = length(Y)
     sY = sum(Y)
     sY2 = sum(Y.^2)
 
-    eta = get_eta(theta, theta_fixed)
+    
     eta3 = eta^3
 
     A = n * beta^3 * mu^2 * tau^2
@@ -164,15 +136,15 @@ Derivative of observed data log-likelihood wrt beta and sigma.
  """
 Second-order sigma derivative of observed data log-likelihood.
 """
- function obs_data_Hessian3(theta, Y, theta_fixed)
-    beta, sigma = theta
-    mu, tau = theta_fixed
+ function obs_data_Hessian3(theta, Y)
+    p, q = theta
+    
 
     n = length(Y)
     sY = sum(Y)
     sY2 = sum(Y.^2)
 
-    eta = get_eta(theta, theta_fixed)
+    
     eta3 = eta^3
 
     A = n * beta^4 * mu^2 * tau^2
@@ -192,8 +164,8 @@ Second-order sigma derivative of observed data log-likelihood.
 """
 Hessian of observed data log-likelihood.
 """
-function obs_data_Hessian(theta, Y, theta_fixed)
-    output = [obs_data_Hessian1(theta, Y, theta_fixed) obs_data_Hessian2(theta, Y, theta_fixed); obs_data_Hessian2(theta, Y, theta_fixed) obs_data_Hessian3(theta, Y, theta_fixed)]
+function obs_data_Hessian(theta, Y)
+    output = [obs_data_Hessian1(theta, Y) obs_data_Hessian2(theta, Y); obs_data_Hessian2(theta, Y) obs_data_Hessian3(theta, Y)]
     return output
 end
 
@@ -207,16 +179,16 @@ end
 Find the value of theta (i.e. beta and sigma) which maximizes the observed data log-likelihood.
 Performs numerical optimization using the BFGS algorithm. Optionally, supply an initial value of theta.
 """
-function obs_data_MLE(Y, theta_fixed; theta_init = [1.0, 1.0])
+function obs_data_MLE(Y; theta_init = [1.0, 1.0])
     
     # --------------------- Define functions for optimization -------------------- #
     function this_log_lik(theta)
-        return -obs_data_log_lik(theta, Y, theta_fixed)
+        return -obs_data_log_lik(theta, Y)
     end
     
     function this_score!(G, theta)
-        G[1] = -obs_data_score1(theta, Y, theta_fixed)
-        G[2] = -obs_data_score2(theta, Y, theta_fixed)
+        G[1] = -obs_data_score1(theta, Y)
+        G[2] = -obs_data_score2(theta, Y)
     end
 
     lower_bds = [-Inf, 0.0]
@@ -241,8 +213,8 @@ end
 Evaluate the observed information (negative Hessian) of the observed data likelihood at the MLE.
 MLE provided as an argument.
 """
-function obs_data_obs_info(theta_hat, Y, theta_fixed)
-    Hessian = obs_data_Hessian(theta_hat, Y, theta_fixed)
+function obs_data_obs_info(theta_hat, Y)
+    Hessian = obs_data_Hessian(theta_hat, Y)
     return -Hessian
 end
 
@@ -250,16 +222,16 @@ end
 """
 Estimate the covariance matrix of the MLE using the obs data information matrix.
 """
-function obs_data_MLE_Cov(theta_hat, Y, theta_fixed)
-    obs_info = obs_data_obs_info(theta_hat, Y, theta_fixed)
+function obs_data_MLE_Cov(theta_hat, Y)
+    obs_info = obs_data_obs_info(theta_hat, Y)
     return inv(obs_info)
 end
 
 """
 Estimate the standard error of the MLE using the obs data information matrix.
 """
-function obs_data_MLE_SE(theta_hat, Y, theta_fixed)
-    MLE_Cov = obs_data_MLE_Cov(theta_hat, Y, theta_fixed)
+function obs_data_MLE_SE(theta_hat, Y)
+    MLE_Cov = obs_data_MLE_Cov(theta_hat, Y)
     return sqrt.(diag(MLE_Cov))
 end
 

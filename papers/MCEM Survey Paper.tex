@@ -251,12 +251,12 @@ An alternative to Proposition \ref{thm:EM_decomp} part \ref{eq:obs_info_identity
 
 Proposition \ref{thm:info_decomp} is known as Louis' standard error formula. Other decompositions for the observed information matrix of the observed data likelihood do exist; see, e.g., \citet{Oak99,McL08}. However, the one due to Louis will be most useful to us later.
 
-\subsection{Example: Linear Regression with an Unobserved Covariate}
-\label{sec:eg-lin_reg}
+\subsection{Example: Gene Frequency Estimation}
+\label{sec:eg-genes}
 
-Consider the scenario where a measured quantity is known to depend linearly on another unobserved, but nevertheless well understood, quantity. For example, \hl{something, something, census data}. We first present a model for such a scenario, then show how to directly analyze the observed data. Throughout the rest of this document, we will return to this example to illustrate how to perform an analysis when increasing portions of the calculations cannot be performed analytically (\hl{awk}).
+Consider the problem of gene frequency estimation. That is, we seek to estimate the frequencies of different alleles for a particular gene based on a sample of phenotypes. We follow Example 2.4 from \citet{McL08}.
 
-Let $X \sim \mathrm{N}(\mu, \tau^2)$, where $\mu \in \bR$ and $\tau > 0$. Let $\varepsilon \sim \mathrm{N}(0, \sigma^2)$ for some $\sigma>0$, and $Y = X \beta + \varepsilon$ where $\beta \in \bR$. We observe an iid sample of $Y$s, but not their corresponding $X$s. We do however, treat $\mu$ and $\tau$ as known. Our goal is to estimate $\beta$ and $\sigma$ from this incomplete data. 
+
 
 
 \section{The Monte Carlo EM Algorithm}
@@ -517,7 +517,7 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
 \begin{appendices}
     \section{Likelihood for Linear Regression with an Unobserved Covariate}
 
-    In this appendix, we present details for the analysis of our linear regression example with a single, unobserved, covariate. See Section \ref{sec:eg-lin_reg} for formulation of the model and definition of notation.
+    In this appendix, we present details for the analysis of our linear regression example with a single, unobserved, covariate. See Section \ref{sec:eg-genes} for formulation of the model and definition of notation.
 
     \subsection{Observed Data Likelihood, Score and Information}
 

@@ -2,7 +2,7 @@
 
 export one_raw_imp_weight_term, one_log_raw_imp_weight, get_all_log_raw_imp_weights, normalize_weights, get_all_imp_weights
 export propose_one_X, propose_X, get_importance_sample
-export estimate_sigma2, MCEM_update
+export estimate_sigma2, MCEM_update, iid_MCEM_update
 export complete_data_log_lik_increment, Q_MCEM, Q_MCEM_with_sample, Q_MCEM_increment
 export MC_complete_cond_info, MC_expect_sq_score,  MCEM_obs_data_info_formula
 export MCEM_COV_formula, MCEM_SE_formula
@@ -72,7 +72,9 @@ function normalize_weights(all_log_weights)
     M = length(all_log_weights)
     tau = log_norm_const - log(M)/2
 
-    all_log_trunc_weights = [min(w, tau) for w in all_log_weights]
+    # all_log_trunc_weights = all_log_weights                             # Don't truncate weights
+    all_log_trunc_weights = [min(w, tau) for w in all_log_weights]    # Truncate weights
+
     log_trunc_norm_const = logsumexp(all_log_trunc_weights)
 
     return exp.(all_log_trunc_weights .- log_trunc_norm_const)
@@ -190,6 +192,27 @@ function MCEM_update(theta_old, Y, theta_fixed, M; return_X=false)
     end
 end
 
+
+"""
+Compute the next estimate of theta using MCEM with iid sampling from the conditional distribution of X.
+MC sample is generated internally and optionally returned.
+"""
+function iid_MCEM_update(theta_old, Y, theta_fixed, M; return_X=false)
+    all_cond_mus = [mu_X_given_Y(theta_old, y, theta_fixed) for y in Y]
+    cond_var = var_X_given_Y(theta_old, theta_fixed)
+    cond_sd = sqrt(cond_var)
+
+    all_Xs = [rand.(Normal.(all_cond_mus, cond_sd)) for _ in 1:M]
+    all_weights = repeat([1/M], M)
+
+    theta_hat = MCEM_update(Y, all_Xs, all_weights)
+
+    if !return_X
+        return theta_hat
+    else
+        return theta_hat, all_Xs, all_weights
+    end
+end
 
 
 
