@@ -7,64 +7,109 @@ export obs_data_obs_info, obs_data_MLE_Cov, obs_data_MLE_SE
 
 # using Optim
 
+# theta = [0.2, 0.4]
+# Y = [176, 182, 60, 17]
+
+
+
+# sum(get_cell_probs(theta))
+
 # ---------------------------------------------------------------------------- #
 #                                log-likelihood                                #
 # ---------------------------------------------------------------------------- #
+
+# ------------------- First, define each cell's probability ------------------ #
+
+
+function prob_cell1(theta)
+    p, q = theta
+    r = 1 - p - q
+    return r^2
+end
+
+function prob_cell2(theta)
+    p, q = theta
+    r = 1 - p - q
+    return p^2 + 2*p*r
+end
+
+function prob_cell3(theta)
+    p, q = theta
+    r = 1 - p - q
+    return q^2 + 2*q*r
+end
+
+function prob_cell4(theta)
+    p, q = theta
+    r = 1 - p - q
+    return 2*p*q
+end
+
+function get_cell_probs(theta)
+    return [prob_cell1(theta), prob_cell2(theta), prob_cell3(theta), prob_cell4(theta)]
+end
+
+
+# ---------------------- Now, compute the log-likelihood --------------------- #
 
 function obs_data_log_lik(theta, Y)
     p, q = theta
     r = 1 - p - q
 
-    A = 2 * Y[1] * log(r)
-    B = Y[2] * log(p^2 + 2*p*r)
-    C = Y[3] * log(q^2 + 2*q*r)
-    D = Y[4] * log(p*q)
+    probs = get_cell_probs(theta)
+    log_probs = log.(probs)
 
-    return A + B + C + D
+    return sum(Y .* log_probs)
 end
-
 
 
 # ---------------------------------------------------------------------------- #
 #                                     score                                    #
 # ---------------------------------------------------------------------------- #
 
-"""
-p derivative of observed data log-likelihood.
-"""
-function obs_data_score1(theta, Y)
+# --------- First, we compute the gradient of each cell's probability -------- #
+
+function grad_cell1(theta)
     p, q = theta
     r = 1 - p - q
 
-    A = -2 * Y[1] / r
-    B = 2 * Y[2] * r / (p^2 + 2*p*r)
-    C = -2 * Y[3] * q / (q^2 + 2*q*r)
-    D = Y[4] / p
-
-    return A + B + C + D
+    return [-2r, -2r]
 end
 
-"""
-q derivative of observed data log-likelihood.
-"""
-function obs_data_score2(theta, Y)
+function grad_cell2(theta)
     p, q = theta
     r = 1 - p - q
 
-    A = -2 * Y[1] / r
-    B = -2 * Y[2] * p / (p^2 + 2*p*r)
-    C = 2 * Y[3] * r / (q^2 + 2*q*r)
-    D = Y[4] / q
-
-    return A + B + C + D
+    return [2r, -2p]
 end
 
-"""
-Gradient of observed data log-likelihood.
-"""
+function grad_cell3(theta)
+    p, q = theta
+    r = 1 - p - q
+
+    return [-2q, 2r]
+end
+
+function grad_cell4(theta)
+    p, q = theta
+    r = 1 - p - q
+
+    return [2q, 2p]
+end
+
+function get_cell_grads(theta)
+    return [grad_cell1(theta), grad_cell2(theta), grad_cell3(theta), grad_cell4(theta)]
+end
+
+
+# -------------- Now, compute the gradient of the log-likelihood ------------- #
+
 function obs_data_score(theta, Y)
-    output = [obs_data_score1(theta, Y), obs_data_score2(theta, Y)]
-    return output
+
+    grads = get_cell_grads(theta)
+    probs = get_cell_probs(theta)
+
+    return sum(Y .* grads .* (1 ./ probs))
 end
 
 
@@ -72,100 +117,49 @@ end
 #                                    Hessian                                   #
 # ---------------------------------------------------------------------------- #
 
-"""
-Second-order beta derivative of observed data log-likelihood.
-"""
-function obs_data_Hessian1(theta, Y)
-    p, q = theta
+# As before, first we give the second derivative of each cell's probability
+
+function hess_cell1()
+    return [2 2; 2 2]    
+end
+
+function hess_cell2()
+    return [-2 -2; -2 0]
+end
+
+function hess_cell3()
+    return [0 -2; -2 -2]
+end
+
+function hess_cell4()
+    return [0 2; 2 0]
+end
+
+function get_cell_hessians()
+    return [hess_cell1(), hess_cell2(), hess_cell3(), hess_cell4()]
+end
+
+
+# -------- Next, we need the outer product of each gradient with itself ------- #
+function get_cell_grads_squared(theta)
+    grads = get_cell_grads(theta)
+    outer_prods = [grad * grad' for grad in grads]
     
-
-    n = length(Y)
-    sY = sum(Y)
-    sY2 = sum(Y.^2)
-
-    
-    eta3 = eta^3
-
-    A = n * beta^4 * tau^6
-
-    B1 = 2 * tau^4 * beta^3 * mu * sY
-    B2 = -3 * tau^4 * beta^2 * sY2
-    B = B1 + B2
-
-    C1 = 3 * n * beta^2 * mu^2
-    C2 = -6 * beta * mu * sY
-    C3 = sY2 - n* sigma^2
-    C = sigma^2 * tau^2 * (C1 + C2 + C3)
-
-    D = -n * mu^2 * sigma^4
+    return outer_prods
+end
 
 
-    output = (A + B + C + D) / eta3
-    return output
- end
-
-
-"""
-Derivative of observed data log-likelihood wrt beta and sigma.
-"""
- function obs_data_Hessian2(theta, Y)
-    p, q = theta
-    
-
-    n = length(Y)
-    sY = sum(Y)
-    sY2 = sum(Y.^2)
-
-    
-    eta3 = eta^3
-
-    A = n * beta^3 * mu^2 * tau^2
-    B = -n  * beta^3 * tau^4
-    C = -3 * beta^2 * mu * tau^2 * sY
-    D = -n * beta * mu^2 * sigma^2
-    E = -n * beta * sigma^2 * tau^2
-    F = 2 * beta * tau^2 * sY2
-    G = mu * sigma^2 * sY
-
-    output = -2 * sigma * (A + B + C + D + E + F + G) / eta3
-    return output
- end
-
-
-
- """
-Second-order sigma derivative of observed data log-likelihood.
-"""
- function obs_data_Hessian3(theta, Y)
-    p, q = theta
-    
-
-    n = length(Y)
-    sY = sum(Y)
-    sY2 = sum(Y.^2)
-
-    
-    eta3 = eta^3
-
-    A = n * beta^4 * mu^2 * tau^2
-    B = -n * beta^4 * tau^4
-    C = -2 * beta^3 * mu * tau^2 * sY
-    D = -3 * n * beta^2 * mu^2 * sigma^2
-    E = beta^2 * tau^2 * sY2
-    F = 6 * beta * mu * sigma^2 * sY
-    G = n * sigma^4
-    H = -3 * sigma^2 * sY2
-
-    output = (A + B + C + D + E + F + G + H) / eta3
-    return output
- end
-
-
-"""
-Hessian of observed data log-likelihood.
-"""
+# ------------- Now, we compute the Hessian of the log-likelihood ------------ #
 function obs_data_Hessian(theta, Y)
-    output = [obs_data_Hessian1(theta, Y) obs_data_Hessian2(theta, Y); obs_data_Hessian2(theta, Y) obs_data_Hessian3(theta, Y)]
+    cell_probs = get_cell_probs(theta)
+    cell_grad_prods = get_cell_grads_squared(theta)
+    cell_hessians = get_cell_hessians()
+
+    A = cell_probs .* cell_hessians
+    B = cell_grad_prods
+    C = cell_probs .^ 2
+
+    output = sum(Y .* (A .- B) ./ C)
     return output
 end
 
@@ -176,35 +170,37 @@ end
 # ---------------------------------------------------------------------------- #
 
 """
-Find the value of theta (i.e. beta and sigma) which maximizes the observed data log-likelihood.
+Find the value of theta (i.e. p and q) which maximizes the observed data log-likelihood.
 Performs numerical optimization using the BFGS algorithm. Optionally, supply an initial value of theta.
 """
-function obs_data_MLE(Y; theta_init = [1.0, 1.0])
-    
-    # --------------------- Define functions for optimization -------------------- #
-    function this_log_lik(theta)
-        return -obs_data_log_lik(theta, Y)
+function obs_data_MLE(Y; theta_init = [1/3, 1/3])
+    model = Model(Ipopt.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= p_jump <= 1, start = theta_init[1])
+    @variable(model, 0 <= q_jump <= 1, start = theta_init[2])
+    this_obj_fun(p_jump, q_jump) = obs_data_log_lik([p_jump, q_jump], Y)
+    function this_grad!(g, p_in, q_in)
+        grad_val = obs_data_score([p_in, q_in], Y)
+        g[1] = grad_val[1]
+        g[2] = grad_val[2]
     end
-    
-    function this_score!(G, theta)
-        G[1] = -obs_data_score1(theta, Y)
-        G[2] = -obs_data_score2(theta, Y)
+    function this_hess!(H, p_in, q_in)
+        hess_val = obs_data_Hessian([p_in, q_in], Y)
+        H[1, 1] = hess_val[1, 1]
+        H[1, 2] = hess_val[1, 2]
+        H[2, 1] = hess_val[2, 1]
+        H[2, 2] = hess_val[2, 2]
     end
+    register(model, :this_obj_fun, 2, this_obj_fun, this_grad!)
+    @NLobjective(model, Max, this_obj_fun(p_jump, q_jump))
+    @constraint(model, p_jump + q_jump <= 1)
+    optimize!(model)
 
-    lower_bds = [-Inf, 0.0]
-    upper_bds = [Inf, Inf]
-
-    # theta_init = [2.0, 2.0]
-
-    # ----------------- Perform optimization and extract results ----------------- #
-    optim_results = optimize(this_log_lik, this_score!, lower_bds, upper_bds, theta_init, Fminbox(Optim.BFGS()), Optim.Options(show_trace=false, iterations=1000))
-    # optim_results = optimize(this_log_lik, this_score!, theta_init, GradientDescent(), Optim.Options(show_trace=false, iterations=1000))
-    theta_hat = optim_results.minimizer
-
+    p_hat = value(p_jump)
+    q_hat = value(q_jump)
+    theta_hat = [p_hat, q_hat]
     return theta_hat
 end
-
-
 
 
 # --------------------------- Standard Error of MLE -------------------------- #
@@ -234,4 +230,7 @@ function obs_data_MLE_SE(theta_hat, Y)
     MLE_Cov = obs_data_MLE_Cov(theta_hat, Y)
     return sqrt.(diag(MLE_Cov))
 end
+
+obs_data_obs_info(theta_hat, Y)
+obs_data_MLE_Cov(theta_hat, Y)
 

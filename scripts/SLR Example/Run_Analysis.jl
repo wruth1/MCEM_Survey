@@ -14,6 +14,11 @@ using ProgressMeter
 
 using Plots
 
+# Run this before testing to make sure that Julia looks in the right place for tests
+Pkg.activate(srcdir("SLR_Example"))
+
+# Run this to edit the packages used for testing
+# Pkg.activate(srcdir("SLR_Example", "test"))
 
 
 # ---------------------------------------------------------------------------- #
@@ -21,6 +26,24 @@ using Plots
 # ---------------------------------------------------------------------------- #
 
 Random.seed!(1)
+
+p_0 = 0.3
+q_0 = 0.4
+r_0 = 1 - p_0 - q_0
+theta_0 = [p_0, q_0]
+
+prob_vec = get_cell_probs(theta_0)
+
+n = 1000
+Y = rand(Multinomial(n, prob_vec), 1)
+1
+
+
+theta1 = [1/3, 1/3]
+theta = theta1
+
+
+
 
 beta_0 = 1.0
 mu_0 = 1.0

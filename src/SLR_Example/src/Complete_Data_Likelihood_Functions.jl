@@ -4,6 +4,21 @@ export complete_data_score_term, complete_data_score
 export complete_data_Hessian_term, complete_data_Hessian
 
 
+#ToDo - Adjust this function to work for X. I can then use it to analytically compute the standard error of the complete data MLE. Now that I'm thinking about it though, I'm not sure that's useful.
+function Y_cov_mat(theta, Y)
+    n = sum(Y)
+    prob_vec = get_cell_probs(theta)
+
+    A = n * diagm(prob_vec)
+    B = n * prob_vec * prob_vec'
+
+    output = A - B
+    return output
+end
+
+
+p_hat_vec = [0, 1, 2, 0, 0, 1] / (2*n)
+q_hat_vec = 
 
 # ---------------------------------------------------------------------------- #
 #                                Log-Likelihood                                #
