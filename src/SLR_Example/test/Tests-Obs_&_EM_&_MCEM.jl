@@ -8,30 +8,30 @@
 
             # ---------------------- Compare at true value of theta ---------------------- #
             
-            score = obs_data_score(theta1, Y)
+            score = obs_data_score(theta0, Y)
 
             function this_log_lik(this_theta)
                 return obs_data_log_lik(this_theta, Y)
             end
-            approx_score = ReverseDiff.gradient(this_log_lik, theta1)
+            approx_score = ReverseDiff.gradient(this_log_lik, theta0)
         
             # Test
             @test score ≈ approx_score
 
 
         # ------------------- Compare away from true value of theta ------------------ #
-            score2 = obs_data_score(theta2, Y)
-            approx_score2 = ReverseDiff.gradient(this_log_lik, theta2)
+            score2 = obs_data_score(theta1, Y)
+            approx_score2 = ReverseDiff.gradient(this_log_lik, theta1)
             @test score2 ≈ approx_score2
         end
 
         @testset "Does analytical Hessian match numerical approximation?" begin
-            hessian = obs_data_Hessian(theta1, Y)
+            hessian = obs_data_Hessian(theta0, Y)
 
             function this_log_lik(this_theta)
                 return obs_data_log_lik(this_theta, Y)
             end
-            approx_hessian = ReverseDiff.hessian(this_log_lik, theta1)
+            approx_hessian = ReverseDiff.hessian(this_log_lik, theta0)
 
             @test hessian ≈ approx_hessian
         end
@@ -64,12 +64,12 @@
 
         #! START HERE
 
-        @testset "Is MLE standard error formula accurate?" begin
+        @testset "Is MLE covariance formula accurate?" begin
             # Increase sample size to invoke asymptotic SE formula
             this_n = 100
 
             # Number of datasets to simulate
-            B = 10000
+            B = 1000
 
             # Tolerance for comparing empirical and analytical SEs
             # Value is pretty generous. Getting better precision takes uncomfortably more computing time.
@@ -79,19 +79,20 @@
             all_SEs = Vector{Any}(undef, B)
 
             Random.seed!(1)
+            prog = Progress(B, "Computing obs data MLEs and SEs")
             for b in 1:B
                 # Generate data
-                X = rand(Normal(mu_0, tau_0), this_n)
-                epsilon = rand(Normal(0, sigma_0), this_n)
-                Y = beta_0 * X + epsilon
+                this_Y = rand(Multinomial(this_n, prob_vec), 1)
 
                 # Compute MLE and SE
-                theta_hat = obs_data_MLE(Y)
+                theta_hat = obs_data_MLE(this_Y)
                 all_MLEs[b] = theta_hat
-                all_SEs[b] = obs_data_MLE_SE(theta_hat, Y)
+                all_SEs[b] = obs_data_MLE_Cov(theta_hat, this_Y)
+
+                next!(prog)
             end
 
-            empirical_SE = std(all_MLEs)
+            empirical_SE = cov(all_MLEs)
             analytical_SE = mean(all_SEs)
 
             @test (empirical_SE ≈ analytical_SE) (rtol = rtol)
@@ -108,19 +109,19 @@
             @testset "Does score match numerical gradient of log-likelihood?" begin
 
                 # ---------------------- Compare at true value of theta ---------------------- #
-                score = complete_data_score(theta1, Y, X)
+                score = complete_data_score(theta0, Y, X)
 
                 function this_log_lik(this_theta)
                     return complete_data_log_lik(this_theta, Y, X)
                 end
-                approx_score = ReverseDiff.gradient(this_log_lik, theta1)
+                approx_score = ReverseDiff.gradient(this_log_lik, theta0)
             
                 # Test
                 @test score ≈ approx_score
 
                 # Another value of theta
-                score2 = complete_data_score(theta2, Y, X)
-                approx_score2 = ReverseDiff.gradient(this_log_lik, theta2)
+                score2 = complete_data_score(theta1, Y, X)
+                approx_score2 = ReverseDiff.gradient(this_log_lik, theta1)
                 @test score2 ≈ approx_score2
             end
         end
@@ -148,16 +149,16 @@
         @testset "Does EM improve the obs data likelihood?" begin
             convergence_tol = 1e-6
 
-            # ---------------------------- Starting at theta1 ---------------------------- #
-            _, theta_hat_trajectory1 = run_EM(theta1, Y, rtol = convergence_tol, return_trajectory = true)
+            # ---------------------------- Starting at theta0 ---------------------------- #
+            _, theta_hat_trajectory1 = run_EM(theta0, Y, rtol = convergence_tol, return_trajectory = true)
             all_obs_log_liks1 = [obs_data_log_lik(theta, Y) for theta in theta_hat_trajectory1]
             all_improvements1 = diff(all_obs_log_liks1)
 
             @test all(all_improvements1 .>= 0)
 
 
-            # ---------------------------- Starting at theta2 ---------------------------- #
-            _, theta_hat_trajectory2 = run_EM(theta2, Y, rtol = convergence_tol, return_trajectory = true)
+            # ---------------------------- Starting at theta1 ---------------------------- #
+            _, theta_hat_trajectory2 = run_EM(theta1, Y, rtol = convergence_tol, return_trajectory = true)
             all_obs_log_liks2 = [obs_data_log_lik(theta, Y) for theta in theta_hat_trajectory2]
             all_improvements2 = diff(all_obs_log_liks2)
 
@@ -173,11 +174,11 @@
             theta_hat_MLE = obs_data_MLE(Y)
 
             # -------------------- Starting at the true value of theta ------------------- #
-            theta_hat_EM1 = run_EM(theta1, Y, rtol = convergence_tol)
+            theta_hat_EM1 = run_EM(theta0, Y, rtol = convergence_tol)
             @test (theta_hat_EM1 ≈ theta_hat_MLE) (rtol = estimation_tol)
 
             # -------------------- Starting at a wrong value of theta -------------------- #
-            theta_hat_EM2 = run_EM(theta2, Y, rtol = convergence_tol)
+            theta_hat_EM2 = run_EM(theta1, Y, rtol = convergence_tol)
             @test (theta_hat_EM2 ≈ theta_hat_MLE) (rtol = estimation_tol)
         end
         
@@ -194,7 +195,7 @@
             # rtol = 1e-4
 
             # # --------------------- Starting from true value of theta -------------------- #
-            # theta_hat1 = run_EM(theta1, Y, rtol=conv_tol)
+            # theta_hat1 = run_EM(theta0, Y, rtol=conv_tol)
 
             # COV_EM = EM_COV_formula(theta_hat1, Y)
 

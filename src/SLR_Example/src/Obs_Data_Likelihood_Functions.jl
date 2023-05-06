@@ -1,7 +1,10 @@
 
-export obs_data_log_lik
-export obs_data_score1, obs_data_score2, obs_data_score
-export obs_data_Hessian1, obs_data_Hessian2, obs_data_Hessian3, obs_data_Hessian
+export prob_cell1, prob_cell2, prob_cell3, prob_cell4
+export get_cell_probs, obs_data_log_lik
+export grad_cell1, grad_cell2, grad_cell3, grad_cell4
+export get_cell_grads, obs_data_score
+export hess_cell1, hess_cell2, hess_cell3, hess_cell4
+export get_cell_hessians, get_cell_grads_squared, obs_data_Hessian
 export obs_data_MLE
 export obs_data_obs_info, obs_data_MLE_Cov, obs_data_MLE_SE
 
@@ -230,7 +233,4 @@ function obs_data_MLE_SE(theta_hat, Y)
     MLE_Cov = obs_data_MLE_Cov(theta_hat, Y)
     return sqrt.(diag(MLE_Cov))
 end
-
-obs_data_obs_info(theta_hat, Y)
-obs_data_MLE_Cov(theta_hat, Y)
 

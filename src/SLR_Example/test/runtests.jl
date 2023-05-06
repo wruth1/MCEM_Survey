@@ -17,25 +17,29 @@ using ProgressMeter
 # ---------------------------------------------------------------------------- #
 
 
+
 Random.seed!(1)
 
-p_0 = 0.3
+p_0 = 0.2
 q_0 = 0.4
 r_0 = 1 - p_0 - q_0
-theta_0 = [p_0, q_0]
+theta0 = [p_0, q_0]
 
-prob_vec = get_cell_probs(theta_0)
+prob_vec = get_cell_probs(theta0)
+X_prob_vec = get_complete_cell_probs(theta0)
 
 n = 1000
-Y = rand(Multinomial(n, prob_vec), 1)
-# 1
+X = rand(Multinomial(n, X_prob_vec), 1)
+Y = Y_from_X(X)
 
 
-theta1 = theta_0
-theta2 = [1/3, 1/3]
-theta = theta2
+theta1 = [1/3, 1/3]
+theta = theta1
+theta_old = theta1
 
 
+
+include("Tests-Low_Level_Functions.jl")
 
 
 # Random.seed!(1)

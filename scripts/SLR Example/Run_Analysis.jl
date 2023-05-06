@@ -2,7 +2,7 @@
 using Pkg
 using DrWatson
 
-push!(LOAD_PATH, srcdir("SLR_Example", "src"))
+push!(LOAD_PATH, srcdir("SLR_Example", "src"));
 
 using SLR_Example
 
@@ -13,6 +13,11 @@ using LinearAlgebra
 using ProgressMeter
 
 using Plots
+
+# Define some functions to help navigate the project directory
+SLRdir(args...) = srcdir("SLR_Example", args...)
+SLRsrcdir(args...) = SLRdir("src", args...)
+SLRtestdir(args...) = SLRdir("test", args...)
 
 # Run this before testing to make sure that Julia looks in the right place for tests
 Pkg.activate(srcdir("SLR_Example"))
@@ -27,20 +32,21 @@ Pkg.activate(srcdir("SLR_Example"))
 
 Random.seed!(1)
 
-p_0 = 0.3
+p_0 = 0.2
 q_0 = 0.4
 r_0 = 1 - p_0 - q_0
-theta_0 = [p_0, q_0]
+theta0 = [p_0, q_0]
 
-prob_vec = get_cell_probs(theta_0)
+prob_vec = get_cell_probs(theta0)
+X_prob_vec = get_complete_cell_probs(theta0)
 
 n = 1000
-Y = rand(Multinomial(n, prob_vec), 1)
-1
-
+X = rand(Multinomial(n, X_prob_vec), 1)
+Y = Y_from_X(X)
 
 theta1 = [1/3, 1/3]
 theta = theta1
+theta2 = [0.2, 0.4]
 
 
 
@@ -49,7 +55,7 @@ beta_0 = 1.0
 mu_0 = 1.0
 tau_0 = 1.0
 sigma_0 = 1.0
-theta_0 = [beta_0, sigma_0]
+theta0 = [beta_0, sigma_0]
 
 n = 100
 X = rand(Normal(mu_0, tau_0), n)

@@ -1,7 +1,12 @@
 
+export num_O_alleles, num_A_alleles, num_B_alleles, num_OAB_alleles
+
 export complete_data_log_lik
-export complete_data_score_term, complete_data_score
-export complete_data_Hessian_term, complete_data_Hessian
+export complete_data_score
+export complete_data_Hessian
+
+export p_hat_complete, q_hat_complete
+export complete_data_MLE
 
 
 #ToDo - Adjust this function to work for X. I can then use it to analytically compute the standard error of the complete data MLE. Now that I'm thinking about it though, I'm not sure that's useful.
@@ -17,33 +22,46 @@ function Y_cov_mat(theta, Y)
 end
 
 
-p_hat_vec = [0, 1, 2, 0, 0, 1] / (2*n)
-q_hat_vec = 
+
+# p_hat_vec = [0, 1, 2, 0, 0, 1] / (2*n)
+# q_hat_vec = 
 
 # ---------------------------------------------------------------------------- #
 #                                Log-Likelihood                                #
 # ---------------------------------------------------------------------------- #
 
+# --- Functions which count the number of alleles of each type in a sample --- #
 
-function complete_data_log_lik(theta, Y, X, theta_fixed)
-    # Unpack theta
-    beta, sigma = theta
+function num_O_alleles(X)
+    return 2*X[1] + X[2] + X[4]
+end
 
-    # Unpack theta_fixed
-    mu, tau = theta_fixed
+function num_A_alleles(X)
+    return X[2] + 2*X[3] + X[6]
+end
 
-    eta = get_eta(theta, theta_fixed)
+function num_B_alleles(X)
+    return X[4] + 2*X[5] + X[6]
+end
 
-    # Define parameters of MVNormal
-    mu_vec = [mu * beta, mu]
-    cov_mat = [eta beta * tau^2; beta * tau^2 tau^2]
+# Vector of allele counts in the order O, A, B
+function num_OAB_alleles(X)
+    num_O = num_O_alleles(X)
+    num_A = num_A_alleles(X)
+    num_B = num_B_alleles(X)
 
-    # Compute log-likelihood
-    output = 0
-    for i in eachindex(Y)
-        output += logpdf(MvNormal(mu_vec, cov_mat), [Y[i], X[i]])
-    end
-    
+    return num_O, num_A, num_B
+end
+
+
+# ------------------------ Evaluate the log-likelihood ----------------------- #
+function complete_data_log_lik(theta, Y, X)
+    p, q = theta
+    r = 1 - p - q
+
+    num_O, num_A, num_B = num_OAB_alleles(X)
+
+    output = num_O * log(r) + num_A * log(p) + num_B * log(q)    
     return output
 end
 
@@ -52,38 +70,17 @@ end
 #                                     Score                                    #
 # ---------------------------------------------------------------------------- #
 
-function complete_data_score_term(theta, y, x, theta_fixed)
-    # Unpack theta
-    beta, sigma = theta
 
-    # Unpack theta_fixed
-    mu, tau = theta_fixed
+function complete_data_score(theta, Y, X)
+    p, q = theta
+    r = 1 - p - q
 
-    # ------------------------------- Compute score ------------------------------ #
+    num_O, num_A, num_B = num_OAB_alleles(X)
 
-    # beta derivative
-    A1 = y * x
-    A2 = - beta * x^2
+    g1 = num_A / p - num_O / r
+    g2 = num_B / q - num_O / r
 
-    A = (A1 + A2) / sigma^2
-
-    # sigma derivative
-    B1 = -1/sigma
-    B2 = (y - x*beta)^2 / (sigma^3)
-
-    B = B1 + B2
-
-    return [A, B]
-end
-
-
-
-function complete_data_score(theta, Y, X, theta_fixed)
-    output = [0, 0]
-    for i in eachindex(Y)
-        output += complete_data_score_term(theta, Y[i], X[i], theta_fixed)
-    end
-    return output
+    return [g1, g2]
 end
 
 
@@ -94,40 +91,46 @@ end
 #                                    Hessian                                   #
 # ---------------------------------------------------------------------------- #
 
-function complete_data_Hessian_term(theta, y, x, theta_fixed)
-    # Unpack theta
-    beta, sigma = theta
 
-    # Unpack theta_fixed
-    mu, tau = theta_fixed
+function complete_data_Hessian(theta, Y, X)
+    p, q = theta
+    r = 1 - p - q
 
+    num_O, num_A, num_B = num_OAB_alleles(X)
 
-    # ------------------------------- Compute Hessian ------------------------------ #
+    h11 = -num_A / p^2 - num_O / r^2
+    h12 = - num_O / r^2
+    h22 = -num_B / q^2 - num_O / r^2
 
-    # Second order beta derivative
-    A = -x^2 / sigma^2
-
-    # Cross derivative
-    B1 = - 2 * x / sigma^3
-    B2 = (y - x*beta)
-    B = B1 * B2
-
-    # Second order sigma derivative
-    C1 = 1/sigma^2
-    C2 = 3 / sigma^4
-    C3 = (y - x*beta)^2
-    C = C1 - C2 * C3
-
-    return [A B; B C]
+    return [h11 h12; h12 h22]
 end
 
 
 
-function complete_data_Hessian(theta, Y, X, theta_fixed)
-    output = [0 0; 0 0]
-    for i in eachindex(Y)
-        output += complete_data_Hessian_term(theta, Y[i], X[i], theta_fixed)
-    end
-    return output
+
+
+# ---------------------------------------------------------------------------- #
+#                               Complete data MLE                              #
+# ---------------------------------------------------------------------------- #
+
+function p_hat_complete(Y, X)
+    _, num_A, _ = num_OAB_alleles(X)
+    n = sum(Y)
+
+    return num_A / (2*n)
 end
 
+function q_hat_complete(Y, X)
+    _, _, num_B = num_OAB_alleles(X)
+    n = sum(Y)
+
+    return num_B / (2*n)
+end
+
+
+function complete_data_MLE(Y, X)
+    p_hat = p_hat_complete(Y, X)
+    q_hat = q_hat_complete(Y, X)
+
+    return [p_hat, q_hat]
+end
