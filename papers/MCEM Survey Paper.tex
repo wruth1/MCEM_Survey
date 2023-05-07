@@ -254,10 +254,44 @@ Proposition \ref{thm:info_decomp} is known as Louis' standard error formula. Oth
 \subsection{Example: Gene Frequency Estimation}
 \label{sec:eg-genes}
 
-Consider the problem of gene frequency estimation. That is, we seek to estimate the frequencies of different alleles for a particular gene based on a sample of phenotypes. We follow Example 2.4 from \citet{McL08}.
+Consider the problem of gene frequency estimation. That is, we seek to estimate the frequencies of different alleles for a particular gene based on a sample of phenotypes. We closely follow Example 2.4 from \citet{McL08}\footnote{Although these authors do give data in their example, there is little context around this data, and I have been unable to locate more information from their references. I have opted instead to use my own dataset.}
 
-Consider a 
+Consider the gene for ABO blood group (see Chapter 5 of \citealp{Dea05}, for a more thorough overview). There are three alleles for this gene: A, B and O. Allele O is recessive, which alleles A and B exhibit co-dominance. That is, genotypes AO and AA encode blood type A, genotypes BO and BB encode blood type B, genotype OO encodes blood type O, and genotype AB encodes blood type AB. Suppose that we seek to estimate the proportion of each allele within a population, based on a sample of individuals' phenotypes. \citet{Fuj78} report blood types of 4,464,349 people in Japan collected between 1964 and 1975, see Figure \ref{tab:blood_type}. 
 
+\begin{table}
+    \centering
+    \caption{Observed frequency and theoretical probability of each blood type \citep{Fuj78}}
+    \begin{tabular}{c|cccc}
+        Blood Type & O & A & B & AB\\
+        \hline
+        Random Variable & $Y_1$ & $Y_2$ & $Y_3$ & $Y_4$\\
+        Observed Frequency & 1,305,924 & 1,725,950 & 988,996 & 444,479\\
+        Probability & $r^2$ & $p^2 + 2pr$ & $q^2 + 2qr$ & $2pq$
+    \end{tabular}
+    \label{tab:blood_type}
+\end{table}
+
+Let $Y_1$, $Y_2$, $Y_3$ and $Y_4$ be the number of people with blood type O, A, B and AB respectively, and $Y = (Y_1, Y_2, Y_3, Y_4)$. Let $r$, $p$ and $q$ be the proportions of alleles O, A and B respectively within the population of interest. Since $r + p + q = 1$, we let $\theta = (p, q)$ be our target of inference. Pretending that the population size is fixed and that iid sampling was employed, $Y$ follows a multinomial distribution with $n =$ 4,464,349. Assuming homogeneous genetic mixing, the probability vector for $Y$ is $\pi = (r^2, p^2 + 2pr, q^2 + 2qr, 2pq)$.
+
+\subsubsection{Complete Data}
+
+The problem of gene frequency estimation would be much simpler if we could observe individuals' genotypes. We consider augmenting the observed data $Y$ by further classifying individuals by genotype. Let $X = (X_1, \ldots, X_6)$ be the genotypes of the individuals represented in Table \ref{tab:blood_type}. See Table \ref{tab:blood_type_complete}.
+
+\begin{table}
+    \centering
+    \caption{Terminology and probabilities for our augmented version of the dataset in \citet{Fuj78}. We also give the blood type coded for be each genotype.}
+    \begin{tabular}{c|cccccc}
+        Genotype & OO & AO & AA & BO & BB & AB\\
+        \hline
+        Random Variable & $X_1$ & $X_2$ & $X_3$ & $X_4$ & $X_5$ & $X_6$\\
+        Probability & $r^2$ & $2pr$ & $p^2$ & $2qr$ & $q^2$ & $2pq$\\
+        Blood Type & O & A & A & B & B & AB
+    \end{tabular}
+    
+    \label{tab:blood_type_complete}
+\end{table}
+
+Note that we can write $Y$ in terms of $X$. Specifically, $Y_1 = X_1$, $Y_2 = X_2 + X_3$, $Y_3 = X_4 + X_5$ and $Y_4 = X_6$. This corresponds to summing components of $X$ which correspond to the same blood type.
 
 \section{The Monte Carlo EM Algorithm}
 
@@ -517,11 +551,38 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
 \newpage
 
 \begin{appendices}
-    \section{Likelihood for Linear Regression with an Unobserved Covariate}
+    \section{Likelihood for Gene Frequency Estimation}
 
-    In this appendix, we present details for the analysis of our linear regression example with a single, unobserved, covariate. See Section \ref{sec:eg-genes} for formulation of the model and definition of notation.
+    In this appendix, we present details for the analysis of our example of estimating gene frequency. See Section \ref{sec:eg-genes} for formulation of the model and definition of notation.
 
     \subsection{Observed Data Likelihood, Score and Information}
+
+    The observed data likelihood for our model can be written as follows:
+    %
+    \begin{align}
+        \ell(\theta; y) &= \log \begin{pmatrix} n \\ y \end{pmatrix} + \sum y_i \log \pi_i(\theta)\\
+        & \equiv \sum y_i \log \pi_i
+    \end{align}
+    where we use $\equiv$ to denote equality up to additive constants which do not depend on $\theta$.
+
+    Differentiating $\ell$ wrt $\theta$ gives the observed data score.
+    %
+    \begin{align}
+        S(\theta; y) &= \begin{pmatrix}
+            \partial_p \ell(\theta; Y)\\
+            \partial_q \ell(\theta; Y) 
+        \end{pmatrix} \mathrm{, where}\\
+        \partial_p \ell(\theta; Y) &= - \frac{2 y_1}{r}  + \frac{2r y_2}{p^2 + 2pr}  - \frac{2q y_3}{q^2 + 2qr}  + \frac{y_4}{p}\mathrm{, and} \label{eq:gene_obs_score1}\\
+        \partial_q \ell(\theta; Y) &= - \frac{2 y_1}{r}  - \frac{2p y_2}{p^2 + 2pr}  + \frac{2r y_3}{q^2 + 2qr}  + \frac{y_4}{q} \label{eq:gene_obs_score2}
+    \end{align}
+    %
+    Solving the score equation, $S(\theta) = 0$, thus reduces to solving a system of two polynomials in $p$ and $q$. Since $p$ and $q$ are proportions, we reject any roots outside the unit simplex.
+
+    Differentiating $\ell$ again and multiplying by $-1$ gives the observed data information matrix.
+    %
+    \hl{Add this later}
+
+    \subsection{Complete Data Likelihood, Score and Information}
 
     The complete data distribution for our model can be written as follows.
     %
