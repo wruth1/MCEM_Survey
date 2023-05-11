@@ -254,9 +254,9 @@ Proposition \ref{thm:info_decomp} is known as Louis' standard error formula. Oth
 \subsection{Example: Gene Frequency Estimation}
 \label{sec:eg-genes}
 
-Consider the problem of gene frequency estimation. That is, we seek to estimate the frequencies of different alleles for a particular gene based on a sample of phenotypes. We closely follow Example 2.4 from \citet{McL08}\footnote{Although these authors do give data in their example, there is little context around this data, and I have been unable to locate more information from their references. I have opted instead to use my own dataset.}
+Consider the problem of estimating allele frequencies based on observed phenotypes. Often, a single phenotype can be encoded by multiple genotypes with different configurations of dominant and recessive alleles. This is sometimes referred to as the problem of gene frequency estimation\index{Gene Frequency Estimation}. Our analysis closely follows Example 2.4 from \citet{McL08}\footnote{Although these authors do give data in their example, there is little context around this data, and I have been unable to locate more information from their references. I have opted instead to use my own dataset.}
 
-Consider the gene for ABO blood group (see Chapter 5 of \citealp{Dea05}, for a more thorough overview). There are three alleles for this gene: A, B and O. Allele O is recessive, which alleles A and B exhibit co-dominance. That is, genotypes AO and AA encode blood type A, genotypes BO and BB encode blood type B, genotype OO encodes blood type O, and genotype AB encodes blood type AB. Suppose that we seek to estimate the proportion of each allele within a population, based on a sample of individuals' phenotypes. \citet{Fuj78} report blood types of 4,464,349 people in Japan collected between 1964 and 1975, see Figure \ref{tab:blood_type}. 
+We investigate a simplified model for blood type which consists of only the ABO blood group. See Chapter 5 of \citet{Dea05}, for a detailed introduction to blood types\index{Blood Type}. There are three alleles for this gene: A, B and O. Allele O is recessive, which alleles A and B exhibit co-dominance. That is, genotypes AO and AA encode blood type A, genotypes BO and BB encode blood type B, genotype OO encodes blood type O, and genotype AB encodes blood type AB. Suppose that we seek to estimate the proportion of each allele within a population, based on a sample of individuals' phenotypes. \citet{Fuj78} report blood types of 4,464,349 people in Japan collected between 1964 and 1975, see Figure \ref{tab:blood_type}. 
 
 \begin{table}
     \centering
@@ -291,7 +291,10 @@ The problem of gene frequency estimation would be much simpler if we could obser
     \label{tab:blood_type_complete}
 \end{table}
 
-Note that we can write $Y$ in terms of $X$. Specifically, $Y_1 = X_1$, $Y_2 = X_2 + X_3$, $Y_3 = X_4 + X_5$ and $Y_4 = X_6$. This corresponds to summing components of $X$ which correspond to the same blood type.
+Note that we can write $Y$ in terms of $X$. Specifically, $Y_1 = X_1$, $Y_2 = X_2 + X_3$, $Y_3 = X_4 + X_5$ and $Y_4 = X_6$. This corresponds to summing components of $X$ which correspond to the same blood type. The distribution of $X$ is multinomial, with the same sample size as $Y$, and probability vector given in Table \ref{tab:blood_type_complete}.
+
+
+
 
 \section{The Monte Carlo EM Algorithm}
 
@@ -557,11 +560,12 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
 
     \subsection{Observed Data Likelihood, Score and Information}
 
-    The observed data likelihood for our model can be written as follows:
+    Let $\pi_i$ be the probability of blood type $i$. The observed data likelihood for our model can be written as follows:
     %
     \begin{align}
         \ell(\theta; y) &= \log \begin{pmatrix} n \\ y \end{pmatrix} + \sum y_i \log \pi_i(\theta)\\
-        & \equiv \sum y_i \log \pi_i
+        & \equiv \sum y_i \log \pi_i\\
+        &\equiv 2 y_1 \log r + y_2 \log(p^2 + 2pr) + y_3 \log(q^2 + 2qr) + y_4 \log pq
     \end{align}
     where we use $\equiv$ to denote equality up to additive constants which do not depend on $\theta$.
 
@@ -569,98 +573,66 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
     %
     \begin{align}
         S(\theta; y) &= \begin{pmatrix}
-            \partial_p \ell(\theta; Y)\\
-            \partial_q \ell(\theta; Y) 
+            \partial_p \ell(\theta; y)\\
+            \partial_q \ell(\theta; y) 
         \end{pmatrix} \mathrm{, where}\\
-        \partial_p \ell(\theta; Y) &= - \frac{2 y_1}{r}  + \frac{2r y_2}{p^2 + 2pr}  - \frac{2q y_3}{q^2 + 2qr}  + \frac{y_4}{p}\mathrm{, and} \label{eq:gene_obs_score1}\\
+        \partial_p \ell(\theta; y) &= - \frac{2 y_1}{r}  + \frac{2r y_2}{p^2 + 2pr}  - \frac{2q y_3}{q^2 + 2qr}  + \frac{y_4}{p} \label{eq:gene_obs_score1}\\
         \partial_q \ell(\theta; Y) &= - \frac{2 y_1}{r}  - \frac{2p y_2}{p^2 + 2pr}  + \frac{2r y_3}{q^2 + 2qr}  + \frac{y_4}{q} \label{eq:gene_obs_score2}
     \end{align}
     %
     Solving the score equation, $S(\theta) = 0$, thus reduces to solving a system of two polynomials in $p$ and $q$. Since $p$ and $q$ are proportions, we reject any roots outside the unit simplex.
 
-    Differentiating $\ell$ again and multiplying by $-1$ gives the observed data information matrix.
+    Differentiating $\ell$ again and multiplying by $-1$ gives the observed data information matrix. To simplify notation, let $p_y = p^2 + 2pr$ and $q_y = q^2 + 2qr$.
     %
-    \hl{Add this later}
+    \begin{align}
+        I(\theta;y) &= - \begin{bmatrix}
+            \partial^2_p \ell(\theta; y) & \partial_{p,q} \ell(\theta; y)\\
+            \partial_{p,q} \ell(\theta; y) & \partial^2_q \ell(\theta; y)
+        \end{bmatrix} \mathrm{, where}\\
+        \partial^2_p \ell(\theta; y) &=  \frac{2y_1}{r^2} + \frac{2 y_2 (p_y + 2r^2)}{p_y^2} + \frac{4 y_3 q^2}{q_y^2} + \frac{y_4}{p^2}\\
+        \partial_{p,q} \ell(\theta; y) &=  \frac{2y_1}{r^2} + \frac{2 y_2 p^2}{p_y^2} + \frac{2 y_3 q^2}{q_y^2}\\
+        \partial^2_q \ell(\theta; y) &=  \frac{y_1}{r^2} + \frac{4 y_2 p^2}{p_y^2} + \frac{2 y_3 (q_y + 2r)}{q_y^2} + \frac{y_4}{q^2}
+    \end{align}
 
     \subsection{Complete Data Likelihood, Score and Information}
 
     The complete data distribution for our model can be written as follows.
     %
     \begin{align}
-        \begin{pmatrix} Y \\ X \end{pmatrix} 
-        \sim \mathrm{MVN}\left( \begin{pmatrix}
-            \mu \beta\\
-            \mu
-        \end{pmatrix}, \begin{bmatrix}
-            \sigma^2 + \tau^2 \beta^2 & \tau^2 \beta\\
-            \tau^2 \beta & \tau^2
-        \end{bmatrix} \right) \label{eq:comp_dist}
+        \ell_c(\theta; y,x) &= \log \begin{pmatrix} n \\ x \end{pmatrix} + \sum x_i \log \phi_i(\theta)\\
+        & \equiv \sum y_i \log \phi_i\\
+        &\equiv 2 x_1 \log r + x_2 \log pr + 2 x_3 \log p + x_4 \log qr + 2 x_5 \log q + x_6 \log pq\\
+        &= (2 x_1 + x_2 + x_4) \log r + (x_2 + 2 x_3 + x_6) \log p + (x_4 + 2 x_5 + x_6) \log q
     \end{align}
     %
-    Since our observed data, $Y$, is a marginal of the complete data, we can read off the distribution of $Y$ from Expression (\ref{eq:comp_dist}). That is, $Y \sim \mathrm{N}(\mu \beta, \sigma^2 + \tau^2 \beta^2)$.
-
-    Based on a sample of observed data, $y_1,\ldots, y_n$, our log-likelihood is as follows. Write $\theta = (\beta, \sigma)$ for the vector of unknown parameters, and $\eta^2 = \sigma^2 + \tau^2 \beta^2$ for the marginal variance of $Y$. \hl{In previous work, I used $\eta$ for $\bV Y$. Make sure I adjust any discussion and \textbf{CODE(!!!)} accordingly}.
+    Note that $\ell_c$ depends on $y$ only through $x$, so we write $\ell_c(\theta; x)$. The complete data score function is
     %
     \begin{align}
-        \ell(\theta; y) &= - \frac{n}{2} \log (2 \pi) - n \log (\eta) - \sum_{i=1}^n \frac{(y_i - \mu \beta)^2}{2 \eta^2}\\
-        &\equiv -n \log (\eta) - \sum_{i=1}^n \frac{(y_i - \mu \beta)^2}{2 \eta^2}
+        S_c(\theta; x) &= \begin{pmatrix}
+            \partial_p \ell_c(\theta; x)\\
+            \partial_q \ell_c(\theta; x) 
+        \end{pmatrix} \mathrm{, where}\\
+        \partial_p \ell_c(\theta; x) &= \frac{x_2 + 2 x_3 + x_6}{p} - \frac{2x_1 + x_2 + x_4}{r} \label{eq:comp_score1}\\
+        \partial_p \ell_c(\theta; x) &= \frac{x_4 + 2 x_5 + x_6}{q} - \frac{2x_1 + x_2 + x_4}{r} \label{eq:comp_score2}
     \end{align}
     %
-    where $\equiv$ denotes equality up to additive constants which do not depend on $\theta$.
+    Notice that the score is linear in $x$. To make this relationship explicit, we write $S_c(\theta; x) = M(\theta) x$, where $M(\theta) \in \bR^{2 \times 6}$ consists of the coefficients on $x$ in (\ref{eq:comp_score1}) and (\ref{eq:comp_score2}). We will make use of this linearity later.
 
-    The score vector is given by
-    %
-    \begin{align}
-        S(\theta; y) &= \frac{1}{\eta^4}\begin{pmatrix}
-            - n \beta^3 \tau^4 - \beta^2 \mu \tau^2 \sum y_i + \beta [\tau^2 \sum y_i^2 - n \sigma^2 (\tau^2 + \sigma^2)] + \mu \sigma^2 \sum y_i\\
-            \sigma[n \beta^2 (\mu^2 - \tau^2)  - 2 \beta \mu \sum y_i + \sum y_i^2 - n \sigma^2]
-        \end{pmatrix}
-    \end{align}
-
-    The information matrix is given by
+    Finally, we give the information matrix for the complete data.
     %
     \begin{align}
-        I(\theta; y) &= \frac{1}{\eta^6} \begin{bmatrix}
-            I^{(1,1)} & I^{(1,2)}\\
-            I^{(1,2)} & I^{(2,2)}
-        \end{bmatrix}
+        I_c(\theta;x) &= - \begin{bmatrix}
+            \partial^2_p \ell_c(\theta; x) & \partial_{p,q} \ell_c(\theta; x)\\
+            \partial_{p,q} \ell_c(\theta; x) & \partial^2_q \ell_c(\theta; x)
+        \end{bmatrix} \mathrm{, where}\\
+        \partial^2_p \ell_c(\theta; x) &=  \frac{x_2 + 2 x_3 + x_6}{p^2} + \frac{2x_1 + x_2 + x_4}{r^2}\\
+        \partial_{p,q} \ell_c(\theta; x) &=   \frac{2x_1 + x_2 + x_4}{r^2}\\
+        \partial^2_q \ell_c(\theta; x) &=  \frac{x_4 + 2 x_5 + x_6}{q^2} + \frac{2x_1 + x_2 + x_4}{r^2}
     \end{align}
-    %
-    where
-    \begin{align}
-        I^{(1,1)} & = - n \beta^4 \tau^6 - 2 \beta^3 \mu \tau^4 \sum y_i + 3 \beta^2 \tau^2 (3 \tau^2 \sum y_i^2 - n \sigma^2 \mu^2) \\
-        & + 6 \beta \sigma^2 \tau^2 \mu \sum y_i + \sigma^2 [n \sigma^2 (\tau^2 + \mu^2) - \tau^2 \sum y_i] \nonumber \\
-        I^{(1,2)} &= 2 n \beta^3 \sigma \tau^2 (\mu^2 - \tau^2) - 6 \beta^2 \sigma \mu \tau^2 \sum y_i + 2 \beta \sigma [2 \tau^2 \sum y_i^2 - n \sigma^2 (\mu^2 + \tau^2)] \\
-        & + 2 \mu \sigma^3 \sum y_i \nonumber \\
-        I^{(2,2)} &= n \beta^4 \tau^2 (\tau^2 - \mu^2) + 2 \beta^3 \mu \tau^2 \sum y_i + \beta^2 (3 n \mu^2 \sigma^2 - \tau^2 \sum y_i^2) \\
-        & - 6 \beta \mu \tau^2 \sum y_i + \sigma^2 (3 \sum y_i^2 - n \sigma^2) \nonumber
-    \end{align}
-
-
-    As an aside, I did explore the above model with multiple covariates. Unfortunately, marginalizing out $X$ consists of replacing each observed covariate vector with its mean, $\mu$. This results in linearly dependent observations, so the model is overparameterized. I could probably incorporate an intercept term without introducing the overparameterization problem, but I don't think it's worth the effort. I'm not going to be able to sell anyone on the applicability of my model, and adding a third parameter won't really increase the pedagogical value.
 
     \subsection{EM Algorithm}
 
-    In order to apply the EM algorithm, we must construct and optimize the EM objective function. That is, we must compute $Q(\theta|\theta_0) = \bE_{\theta_0} \left[ \ell_c(\theta; y, X) | Y=y \right]$. The conditional distribution of $X$ given $Y=y$ is $N(\mu_y, \tau^2_y)$, with $\mu_y$ and $\tau^2_y$ given by the following expressions:
-    %
-	\begin{align}
-		\mu_y & := \bE (X | Y=y)\\
-		&= \mu + \frac{\tau^2 \beta}{\eta} (y - \mu \beta)\\
-		&= \rho^2 \frac{y}{\beta} + (1-\rho^2) \mu\\
-		\tau^2_y &:= \bV (X | Y=y)\\
-		&= \tau^2 - \frac{\tau^4 \beta^2}{\eta}\\
-		&= \tau^2 (1 - \rho^2)
-	\end{align}
-	%
-    where $\rho^2 := \tau^2 \beta^2 / \eta$ is the coefficient of determination (i.e.\ $R^2$) between $Y$ and $X$. For notational convenience, we also define $\zeta_y := \bE(X^2 | Y=y) = \tau_y^2 + \mu_y^2$. The complete data log-likelihood is given by
-    %
-    \begin{align}
-        \ell_c(\theta; y, x) &= \left[ - \frac{n}{2} \log 2 \pi - n \log \tau - \frac{1}{\tau^2} \sum (x_i - \mu)^2 \right] \nonumber\\
-        & + \left[ - \frac{n}{2} \log 2\pi - n \log \sigma - \frac{1}{\sigma^2} \sum (y_i - x_i \beta)^2 \right] \label{eq:complete_likelihood}\\
-        &\equiv -n \log \sigma - \frac{1}{\sigma^2} \sum (y_i - x_i \beta)^2
-    \end{align}
-    %
-    Note that the first term in line (\ref{eq:complete_likelihood}) is the marginal likelihood of $x$, and the second term is the conditional likelihood of $y$ given $x$.
+    In order to apply the EM algorithm, we must construct and optimize the EM objective function. That is, we must compute $Q(\theta|\theta_0) = \bE_{\theta_0} \left[ \ell_c(\theta; y, X) | Y=y \right]$. The conditional distribution of $X$ given $Y=y$ is best described componentwise in $X$. First, note that $X_1$ and $X_6$ occur in $Y$, so we have $X_1 = y_1$ and $X_6 = y_4$. Next, we have that $X_2 + X_3 = y_2$ and $X_4 + X_5 = y_3$. Thus, we can write $X_2 \sim \mathrm{Bin}(y_2, 2pr / (p^2 + 2pr))$ and $X_4 \sim \mathrm{Bin}(y_3, 2qr / (q^2 + 2qr))$. Finally, we recover $X_3$ and $X_5$ by subtracting $X_2$ from $y_2$ and $X_4$ from $y_3$ respectively.
     
     The EM objective function can be written as
     %
