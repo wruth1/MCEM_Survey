@@ -70,10 +70,30 @@ function normalize_weights(all_log_weights)
     log_norm_const = logsumexp(all_log_weights)
 
     M = length(all_log_weights)
-    tau = log_norm_const - log(M)/2
+    tau = log_norm_const - log(M)/2     # It looks weird, but this is actually log(sqrt(M) * mean(raw weights))
 
     all_log_trunc_weights = [min(w, tau) for w in all_log_weights]
     log_trunc_norm_const = logsumexp(all_log_trunc_weights)
+
+    return exp.(all_log_trunc_weights .- log_trunc_norm_const)
+end
+
+"""
+Truncate, then normalize and exponentiate the given log weights.
+Truncation level is alpha * M^(1/beta), where M is the number of samples.
+Note: If beta is zero, just don't do any truncation (i.e. tau = infinity)
+"""
+function normalize_weights(all_log_weights, alpha, beta)
+    log_norm_const = logsumexp(all_log_weights)
+
+    M = length(all_log_weights)
+    if beta == 0
+        all_log_trunc_weights = all_log_weights
+    else
+        tau = log_norm_const + log(alpha) + (1/beta - 1) * log(M)
+        all_log_trunc_weights = [min(w, tau) for w in all_log_weights]
+        log_trunc_norm_const = logsumexp(all_log_trunc_weights)
+    end
 
     return exp.(all_log_trunc_weights .- log_trunc_norm_const)
 end
@@ -87,6 +107,13 @@ function get_all_imp_weights(all_Xs, theta, Y, theta_fixed)
     return normalize_weights(all_log_weights)
 end
 
+"""
+Compute the normalized importance weights (not on log-scale). Truncation is at level alpha * M^(1/beta).
+"""
+function get_all_imp_weights(all_Xs, theta, Y, theta_fixed, alpha, beta)
+    all_log_weights = get_all_log_raw_imp_weights(all_Xs, theta, Y, theta_fixed)
+    return normalize_weights(all_log_weights, alpha, beta)
+end
 
 
 
@@ -128,6 +155,24 @@ function get_importance_sample(theta, Y, theta_fixed, M; raw_weights=false)
     
     if !raw_weights
         all_weights = get_all_imp_weights(all_Xs, theta, Y, theta_fixed)
+    else
+        all_weights = get_all_log_raw_imp_weights(all_Xs, theta, Y, theta_fixed)
+    end
+
+    # Return weighted sample
+    return all_Xs, all_weights
+end
+
+"""
+Generate an importance sample for X, as well as the corresponding importance weights.
+Note: If raw_weights is true, then the weights are returned unnormalized and on log-scale.
+Truncation is at level alpha * M^(1/beta).
+"""
+function get_importance_sample(theta, Y, theta_fixed, M, alpha, beta; raw_weights=false)
+    all_Xs = propose_X(theta, Y, theta_fixed, M)
+    
+    if !raw_weights
+        all_weights = get_all_imp_weights(all_Xs, theta, Y, theta_fixed, alpha, beta)
     else
         all_weights = get_all_log_raw_imp_weights(all_Xs, theta, Y, theta_fixed)
     end
@@ -190,7 +235,21 @@ function MCEM_update(theta_old, Y, theta_fixed, M; return_X=false)
     end
 end
 
+"""
+Compute the next estimate of theta using MCEM.
+MC sample is generated internally and optionally returned.
+Truncation is at level alpha * M^(1/beta).
+"""
+function MCEM_update(theta_old, Y, theta_fixed, M, alpha, beta; return_X=false)
+    all_Xs, all_weights = get_importance_sample(theta_old, Y, theta_fixed, M, alpha, beta)
+    theta_hat = MCEM_update(Y, all_Xs, all_weights)
 
+    if !return_X
+        return theta_hat
+    else
+        return theta_hat, all_Xs, all_weights
+    end
+end
 
 
 # ---------------------------------------------------------------------------- #

@@ -73,6 +73,27 @@ function many_theta_hats(theta_old, Y, M, B, theta_fixed)
 end
 
 """
+Run the MCEM algorithm B times from the same starting point, theta_old, with M Monte Carlo samples each time.
+Weights are truncated at level alpha * M^(1/beta)
+"""
+function many_theta_hats(theta_old, Y, M, B, theta_fixed, alpha, beta)
+    all_theta_hats = []
+    all_ESSs = []
+    prog = Progress(B, desc="Computing theta updates")
+    # Threads.@threads for _ in 1:B
+    for _ in 1:B
+        theta_hat, _, this_weights = MCEM_update(theta_old, Y, theta_fixed, M, alpha, beta; return_X=true)
+        this_ESS = get_ESS(this_weights)
+        push!(all_theta_hats, theta_hat)
+        push!(all_ESSs, this_ESS)
+        next!(prog)
+    end
+    return [all_theta_hats, all_ESSs]
+end
+
+
+
+"""
 Empirically determine the mean of theta hat.
 """
 function empirical_theta_mean(theta_old, Y, M, B, theta_fixed)
@@ -117,10 +138,41 @@ end
 theta_hat_EM = EM_update(theta1, Y, theta_fixed);
 
 # --------------------- Generate a sample of MCEM updates -------------------- #
-B = 1000 # Number of samples to draw
+B = 500 # Number of samples to draw
 M = 10000 # Size of each sample
 Random.seed!(1)
-all_theta_hats, all_ESSs = many_theta_hats(theta1, Y, M, B, theta_fixed);
+
+all_alphas = [0.1, 0.5, 1, 2, 10]
+all_betas = [1, 1.5, 2, 4]
+
+all_beta_hats = zeros(length(all_alphas), length(all_betas));
+all_sigma_hats = zeros(length(all_alphas), length(all_betas));
+
+for i in eachindex(all_alphas), j in eachindex(all_betas)
+    println("alpha $i of $(length(all_alphas)), beta $j of $(length(all_betas))")
+
+    this_alpha = all_alphas[i]
+    this_beta = all_betas[j]
+
+    all_theta_hats, all_ESSs = many_theta_hats(theta1, Y, M, B, theta_fixed, i, j);
+
+    this_beta_hat = mean([theta_hat[1] for theta_hat in all_theta_hats]);   
+    this_sigma_hat = mean([theta_hat[2] for theta_hat in all_theta_hats]);
+
+    all_beta_hats[i, j] = this_beta_hat
+    all_sigma_hats[i, j] = this_sigma_hat
+end
+
+
+all_mean_MCEM_updates_raw = [[all_alphas[i], all_betas[j], all_beta_hats[i, j], all_sigma_hats[i, j]] for i in eachindex(all_alphas), j in eachindex(all_betas)]
+all_mean_MCEM_udates = hcat(all_mean_MCEM_updates_raw...)
+
+
+all_mean_MCEM_updates = Dict("all_mean_MCEM_updates" => all_mean_MCEM_updates)
+
+tagsave(datadir("SLR_Example", "all_mean_MCEM_updates.jld2"), all_mean_MCEM_updates)
+
+
 
 
 # ------------- Plot empirical sampling distribution of theta hat ------------ #
