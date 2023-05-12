@@ -39,7 +39,11 @@ theta_old = theta1
 
 
 
+# include("src\\SLR_Example\\test\\Tests-Low_Level_Functions.jl")
 include("Tests-Low_Level_Functions.jl")
+
+# include("src\\SLR_Example\\test\\Tests-Obs_&_EM_&_MCEM.jl")
+include("Tests-Obs_&_EM_&_MCEM.jl")
 
 
 # Random.seed!(1)

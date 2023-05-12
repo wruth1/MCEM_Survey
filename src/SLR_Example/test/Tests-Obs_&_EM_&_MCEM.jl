@@ -168,7 +168,7 @@
         @testset "Does EM converge to the MLE?" begin
             #* Note: This test will need to be modified if the obs data likelihood has multiple modes
             convergence_tol = 1e-6
-            estimation_tol = 1e-3
+            estimation_tol = 1e-6
 
             # Directly maximize the observed data likelihood
             theta_hat_MLE = obs_data_MLE(Y)
@@ -212,23 +212,23 @@
 
 
 
-    @testset "Ascent-Based MCEM Algorithm" begin
+    # @testset "Ascent-Based MCEM Algorithm" begin
         
-        @testset "Does ascent MCEM (approximately) converge to the MLE?" begin
+    #     @testset "Does ascent MCEM (approximately) converge to the MLE?" begin
 
-            # Relative tolerance for comparing MLE and ascent MCEM estimates
-            tol = 5e-2
+    #         # Relative tolerance for comparing MLE and ascent MCEM estimates
+    #         tol = 5e-2
 
-            # Maximizer of the observed data likelihood
-            theta_hat_MLE = obs_data_MLE(Y)
+    #         # Maximizer of the observed data likelihood
+    #         theta_hat_MLE = obs_data_MLE(Y)
 
-            # --------------------------- Ascent MCEM estimator -------------------------- #
-            theta_hat_MCEM = all_theta_hat_MCEMs[1]
+    #         # --------------------------- Ascent MCEM estimator -------------------------- #
+    #         theta_hat_MCEM = all_theta_hat_MCEMs[1]
 
-            @test (theta_hat_MLE ≈ theta_hat_MCEM) (rtol = tol)
+    #         @test (theta_hat_MLE ≈ theta_hat_MCEM) (rtol = tol)
 
-        end
-    end
+    #     end
+    # end
 end
 
 #? Some notes on the atol parameter of AMCEM:

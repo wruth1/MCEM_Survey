@@ -9,45 +9,6 @@ export expect_sq_score
 export EM_obs_data_information_formula, EM_COV_formula, EM_SE_formula
 
 
-# ---------------------------------------------------------------------------- #
-#                          EM objective and maximizer                          #
-# ---------------------------------------------------------------------------- #
-
-
-function Q_EM_term(theta, y, theta_old)
-
-    # Unpack theta
-    beta, sigma = theta
-
-    # Unpack theta_fixed
-    mu, gamma = theta_fixed
-
-    # Compute Q
-    A = -log(sigma)
-    B = -y^2 / (2 * sigma^2)
-    C = beta * y * mu_X_given_Y(theta_old, y) / sigma^2
-    D = - beta^2 * mu2_X_given_Y(theta_old, y) / (2 * sigma^2)
-
-    output = A + B + C + D
-    return output
-end
-
-
-function Q_EM(theta, Y, theta_old)
-    output = 0
-    for i in eachindex(Y)
-        output += Q_EM_term(theta, Y[i], theta_old)
-    end
-    return output
-end
-
-
-function Q_EM_increment(theta_new, Y, theta_old)
-    A = Q_EM(theta_new, Y, theta_old)
-    B = Q_EM(theta_old, Y, theta_old)
-
-    return A - B
-end
 
 
 # ---------------------------------------------------------------------------- #
