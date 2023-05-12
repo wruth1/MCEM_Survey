@@ -139,7 +139,7 @@ theta_hat_EM = EM_update(theta1, Y, theta_fixed);
 
 # --------------------- Generate a sample of MCEM updates -------------------- #
 B = 500 # Number of samples to draw
-M = 2000 # Size of each sample
+M = 1000 # Size of each sample
 Random.seed!(1)
 
 all_alphas = [0.1, 0.5, 1, 2, 10]
@@ -147,6 +147,8 @@ all_betas = [1, 1.5, 2, 4]
 
 all_beta_hats = zeros(length(all_alphas), length(all_betas));
 all_sigma_hats = zeros(length(all_alphas), length(all_betas));
+
+all_cov_dets = zeros(length(all_alphas), length(all_betas));
 
 for i in eachindex(all_alphas), j in eachindex(all_betas)
     println("alpha $i of $(length(all_alphas)), beta $j of $(length(all_betas))")
@@ -161,16 +163,22 @@ for i in eachindex(all_alphas), j in eachindex(all_betas)
 
     all_beta_hats[i, j] = this_beta_hat
     all_sigma_hats[i, j] = this_sigma_hat
+
+
+    this_cov_mat = cov(all_theta_hats)
+    all_cov_dets[i, j] = det(this_cov_mat)
 end
 
+# Determinant of the empirical covariance matrix between beta hat and sigma hat for each combination of alpha and beta
+normed_cov_dets = all_cov_dets ./ minimum(all_cov_dets)
 
-all_mean_MCEM_updates_raw = [[all_alphas[i], all_betas[j], all_beta_hats[i, j], all_sigma_hats[i, j]] for i in eachindex(all_alphas), j in eachindex(all_betas)]
+all_mean_MCEM_updates_raw = [[all_alphas[i], all_betas[j], all_beta_hats[i, j], all_sigma_hats[i, j], normed_cov_dets[i,j]] for i in eachindex(all_alphas), j in eachindex(all_betas)]
 all_mean_MCEM_updates = hcat(all_mean_MCEM_updates_raw...)
-test = all_mean_MCEM_udates
 
 all_mean_MCEM_updates_dict = Dict("all_mean_MCEM_updates" => all_mean_MCEM_updates)
 
 tagsave(datadir("SLR_Example", "all_mean_MCEM_updates.jld2"), all_mean_MCEM_updates_dict)
+
 
 
 MCEM_update_data = wload(datadir("SLR_Example", "all_mean_MCEM_updates.jld2"))
@@ -178,11 +186,13 @@ MCEM_update_data = wload(datadir("SLR_Example", "all_mean_MCEM_updates.jld2"))
 
 
 
+
+
 # ---------------------------------------------------------------------------- #
 #                               Plot MCEM Updates                              #
 # ---------------------------------------------------------------------------- #
 
-alpha_colors = Dict(0.1 => :red, 0.5 => :orange, 1 => :yellow, 2 => :green, 10 => :blue)
+alpha_colors = Dict(0.1 => :red, 0.5 => :orange, 1 => :green, 2 => :blue, 10 => :brown)
 beta_shapes = Dict(1 => :circle, 1.5 => :square, 2 => :diamond, 4 => :cross)
 
 MCEM_update_plot = scatter([theta_hat_EM[1]], [theta_hat_EM[2]], label = "EM", xlabel = "beta hat", ylabel = "sigma hat", size = (1200, 1000), markercolor = :black, title = "Truncation at alpha * M^(1/beta)", markersize = 20);
@@ -194,9 +204,10 @@ for i in 1:size(all_mean_MCEM_updates)[2]
     scatter!(MCEM_update_plot, [this_beta_hat], [this_sigma_hat], label = nothing, markercolor = alpha_colors[this_alpha], markershape = beta_shapes[this_beta]);
 end
 
-# ------------------------------- Create Legend ------------------------------ #
 
-# Create legend for alpha
+# # ------------------------------- Create Legend ------------------------------ #
+
+# # Create legend for alpha
 for this_alpha in all_alphas
     scatter!(MCEM_update_plot, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "alpha = $this_alpha", color = alpha_colors[this_alpha], markershape = :circle, markerstrokewidth=0)
 end
@@ -208,6 +219,34 @@ end
 
 plot(MCEM_update_plot)
 savefig(MCEM_update_plot, plotsdir("SLR_Example", "MCEM_update_alpha_beta.pdf"))
+
+
+
+
+MCEM_update_plot_cov = scatter([theta_hat_EM[1]], [theta_hat_EM[2]], label = "EM", xlabel = "beta hat", ylabel = "sigma hat", size = (1200, 1000), markercolor = :black, title = "Truncation at alpha * M^(1/beta)\\n size based on determinant of empirical covariance matrix", markersize = 20);
+for i in 1:size(all_mean_MCEM_updates)[2]
+    this_alpha = all_mean_MCEM_updates[1, i]
+    this_beta = all_mean_MCEM_updates[2, i]
+    this_beta_hat = all_mean_MCEM_updates[3, i]
+    this_sigma_hat = all_mean_MCEM_updates[4, i]
+    this_cov_det = all_mean_MCEM_updates[5, i]
+    scatter!(MCEM_update_plot_cov, [this_beta_hat], [this_sigma_hat], label = nothing, markercolor = alpha_colors[this_alpha], markershape = beta_shapes[this_beta], markersize = this_cov_det);
+end
+
+# ------------------------------- Create Legend ------------------------------ #
+
+# Create legend for alpha
+for this_alpha in all_alphas
+    scatter!(MCEM_update_plot_cov, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "alpha = $this_alpha", color = alpha_colors[this_alpha], markershape = :circle, markerstrokewidth=0)
+end
+
+# Create legend for beta
+for this_beta in all_betas
+    scatter!(MCEM_update_plot_cov, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "beta = $this_beta", color = :black, markershape = beta_shapes[this_beta])
+end
+
+plot(MCEM_update_plot_cov)
+savefig(MCEM_update_plot_cov, plotsdir("SLR_Example", "MCEM_update_cov_alpha_beta.pdf"))
 
 
 
@@ -227,6 +266,8 @@ all_betas = [1, 1.5, 2, 4]
 
 all_beta_hats = zeros(length(all_Ms), length(all_betas));
 all_sigma_hats = zeros(length(all_Ms), length(all_betas));
+all_cov_dets = zeros(length(all_Ms), length(all_betas));
+
 
 for i in eachindex(all_Ms), j in eachindex(all_betas)
     println("M $i of $(length(all_Ms)), beta $j of $(length(all_betas))")
@@ -241,10 +282,15 @@ for i in eachindex(all_Ms), j in eachindex(all_betas)
 
     all_beta_hats[i, j] = this_beta_hat
     all_sigma_hats[i, j] = this_sigma_hat
+
+    this_cov_mat = cov(all_theta_hats)
+    all_cov_dets[i, j] = det(this_cov_mat)
 end
 
+# Determinant of the empirical covariance matrix between beta hat and sigma hat for each combination of alpha and beta
+normed_cov_dets = all_cov_dets ./ minimum(all_cov_dets)
 
-all_mean_MCEM_updates_raw = [[all_Ms[i], all_betas[j], all_beta_hats[i, j], all_sigma_hats[i, j]] for i in eachindex(all_Ms), j in eachindex(all_betas)]
+all_mean_MCEM_updates_raw = [[all_Ms[i], all_betas[j], all_beta_hats[i, j], all_sigma_hats[i, j], normed_cov_dets[i,j]] for i in eachindex(all_Ms), j in eachindex(all_betas)]
 all_mean_MCEM_updates = hcat(all_mean_MCEM_updates_raw...)
 
 all_mean_MCEM_updates_dict = Dict("all_mean_MCEM_updates" => all_mean_MCEM_updates)
@@ -261,7 +307,7 @@ MCEM_update_data = wload(datadir("SLR_Example", "mean_MCEM_updates_M_beta.jld2")
 #                               Plot MCEM Updates                              #
 # ---------------------------------------------------------------------------- #
 
-M_colors = Dict(1e1 => :red, 1e2 => :orange, 1e3 => :yellow, 1e4 => :green, 1e5 => :blue)
+M_colors = Dict(1e1 => :red, 1e2 => :orange, 1e3 => :green, 1e4 => :blue, 1e5 => :brown)
 beta_shapes = Dict(1 => :circle, 1.5 => :square, 2 => :diamond, 4 => :cross)
 
 MCEM_update_plot = scatter([theta_hat_EM[1]], [theta_hat_EM[2]], label = "EM", xlabel = "beta hat", ylabel = "sigma hat", size = (1200, 1000), markercolor = :black, title = "Truncation at M^(1/beta)", markersize = 20);
@@ -282,11 +328,52 @@ end
 
 # Create legend for beta
 for this_beta in all_betas
-    scatter!(MCEM_update_plot, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "beta = $this_beta", color = :black, markershape = beta_shapes[this_beta])
+    if this_beta != 4.0
+        scatter!(MCEM_update_plot, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "beta = $this_beta", color = :white, markershape = beta_shapes[this_beta])
+    else
+        scatter!(MCEM_update_plot, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "beta = $this_beta", color = :black, markershape = beta_shapes[this_beta])
+    end
 end
 
 plot(MCEM_update_plot)
 savefig(MCEM_update_plot, plotsdir("SLR_Example", "MCEM_update_M_beta.pdf"))
+
+
+
+
+# ---------------- Scale point size by sqrt of covariance determinant ---------------- #
+
+M_colors = Dict(1e1 => :red, 1e2 => :orange, 1e3 => :green, 1e4 => :blue, 1e5 => :brown)
+beta_shapes = Dict(1 => :circle, 1.5 => :square, 2 => :diamond, 4 => :cross)
+
+MCEM_update_plot = scatter([theta_hat_EM[1]], [theta_hat_EM[2]], label = "EM", xlabel = "beta hat", ylabel = "sigma hat", size = (1200, 1000), markercolor = :black, title = "Truncation at M^(1/beta)\\n size based on sqrt of determinant of empirical covariance matrix", markersize = 20);
+for i in 1:size(all_mean_MCEM_updates)[2]
+    this_M = all_mean_MCEM_updates[1, i]
+    this_beta = all_mean_MCEM_updates[2, i]
+    this_beta_hat = all_mean_MCEM_updates[3, i]
+    this_sigma_hat = all_mean_MCEM_updates[4, i]
+    this_cov_det = all_mean_MCEM_updates[5, i]
+    scatter!(MCEM_update_plot, [this_beta_hat], [this_sigma_hat], label = nothing, markercolor = M_colors[this_M], markershape = beta_shapes[this_beta], markersize = sqrt(this_cov_det));
+end
+
+# ------------------------------- Create Legend ------------------------------ #
+
+# Create legend for alpha
+for this_M in all_Ms
+    scatter!(MCEM_update_plot, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "M = $this_M", color = M_colors[this_M], markershape = :circle, markerstrokewidth=0)
+end
+
+# Create legend for beta
+for this_beta in all_betas
+    if this_beta != 4.0
+        scatter!(MCEM_update_plot, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "beta = $this_beta", color = :white, markershape = beta_shapes[this_beta])
+    else
+        scatter!(MCEM_update_plot, [theta_hat_EM[1]], [theta_hat_EM[2]], label = "beta = $this_beta", color = :black, markershape = beta_shapes[this_beta])
+    end
+end
+
+plot(MCEM_update_plot)
+savefig(MCEM_update_plot, plotsdir("SLR_Example", "MCEM_update_cov_M_beta.pdf"))
 
 
 
