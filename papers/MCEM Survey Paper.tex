@@ -596,43 +596,60 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
 
     \subsection{Complete Data Likelihood, Score and Information}
 
-    The complete data distribution for our model can be written as follows.
+    The complete data distribution for our model can be written as follows. Write $\rho_i$ for the probability of genotype $i$. See Table \ref{tab:blood_type_complete} for the values of these probabilities.
     %
     \begin{align}
-        \ell_c(\theta; y,x) &= \log \begin{pmatrix} n \\ x \end{pmatrix} + \sum x_i \log \phi_i(\theta)\\
-        & \equiv \sum y_i \log \phi_i\\
+        \ell_c(\theta; y,x) &= \log \begin{pmatrix} n \\ x \end{pmatrix} + \sum x_i \log \rho_i(\theta)\\
+        & \equiv \sum y_i \log \rho_i\\
         &\equiv 2 x_1 \log r + x_2 \log pr + 2 x_3 \log p + x_4 \log qr + 2 x_5 \log q + x_6 \log pq\\
-        &= (2 x_1 + x_2 + x_4) \log r + (x_2 + 2 x_3 + x_6) \log p + (x_4 + 2 x_5 + x_6) \log q
+        &= (2 x_1 + x_2 + x_4) \log r + (x_2 + 2 x_3 + x_6) \log p + (x_4 + 2 x_5 + x_6) \log q\\
+        &= n_O \log r + n_A \log p + n_B \log q
     \end{align}
     %
-    Note that $\ell_c$ depends on $y$ only through $x$, so we write $\ell_c(\theta; x)$. The complete data score function is
+    where $n_O$, $n_A$ and $n_B$ are the number of times allele O, A and B arise respectively in the sampled genotypes. Note that $\ell_c$ depends on $y$ only through $x$, so we suppress $y$ from our notation for complete data quantities. The complete data score function is
     %
     \begin{align}
         S_c(\theta; x) &= \begin{pmatrix}
             \partial_p \ell_c(\theta; x)\\
             \partial_q \ell_c(\theta; x) 
         \end{pmatrix} \mathrm{, where}\\
-        \partial_p \ell_c(\theta; x) &= \frac{x_2 + 2 x_3 + x_6}{p} - \frac{2x_1 + x_2 + x_4}{r} \label{eq:comp_score1}\\
-        \partial_p \ell_c(\theta; x) &= \frac{x_4 + 2 x_5 + x_6}{q} - \frac{2x_1 + x_2 + x_4}{r} \label{eq:comp_score2}
+        \partial_p \ell_c(\theta; x) &= \frac{x_2 + 2 x_3 + x_6}{p} - \frac{2x_1 + x_2 + x_4}{r} = \frac{n_A}{p} - \frac{n_O}{r} \label{eq:comp_score1}\\
+        \partial_p \ell_c(\theta; x) &= \frac{x_4 + 2 x_5 + x_6}{q} - \frac{2x_1 + x_2 + x_4}{r} = \frac{n_B}{q} - \frac{n_O}{r} \label{eq:comp_score2}
     \end{align}
     %
     Notice that the score is linear in $x$. To make this relationship explicit, we write $S_c(\theta; x) = M(\theta) x$, where $M(\theta) \in \bR^{2 \times 6}$ consists of the coefficients on $x$ in (\ref{eq:comp_score1}) and (\ref{eq:comp_score2}). We will make use of this linearity later.
 
-    Finally, we give the information matrix for the complete data.
+    Next, we give the information matrix for the complete data.
     %
     \begin{align}
         I_c(\theta;x) &= - \begin{bmatrix}
             \partial^2_p \ell_c(\theta; x) & \partial_{p,q} \ell_c(\theta; x)\\
             \partial_{p,q} \ell_c(\theta; x) & \partial^2_q \ell_c(\theta; x)
         \end{bmatrix} \mathrm{, where}\\
-        \partial^2_p \ell_c(\theta; x) &=  \frac{x_2 + 2 x_3 + x_6}{p^2} + \frac{2x_1 + x_2 + x_4}{r^2}\\
-        \partial_{p,q} \ell_c(\theta; x) &=   \frac{2x_1 + x_2 + x_4}{r^2}\\
-        \partial^2_q \ell_c(\theta; x) &=  \frac{x_4 + 2 x_5 + x_6}{q^2} + \frac{2x_1 + x_2 + x_4}{r^2}
+        \partial^2_p \ell_c(\theta; x) &=  \frac{x_2 + 2 x_3 + x_6}{p^2} + \frac{2x_1 + x_2 + x_4}{r^2} = \frac{n_A}{p^2} + \frac{n_O}{r^2}\\
+        \partial_{p,q} \ell_c(\theta; x) &=   \frac{2x_1 + x_2 + x_4}{r^2} = \frac{n_O}{r^2}\\
+        \partial^2_q \ell_c(\theta; x) &=  \frac{x_4 + 2 x_5 + x_6}{q^2} + \frac{2x_1 + x_2 + x_4}{r^2} = \frac{n_B}{q^2} + \frac{n_O}{r^2}
     \end{align}
+    %
+    
 
     \subsection{EM Algorithm}
 
     In order to apply the EM algorithm, we must construct and optimize the EM objective function. That is, we must compute $Q(\theta|\theta_0) = \bE_{\theta_0} \left[ \ell_c(\theta; y, X) | Y=y \right]$. The conditional distribution of $X$ given $Y=y$ is best described componentwise in $X$. First, note that $X_1$ and $X_6$ occur in $Y$, so we have $X_1 = y_1$ and $X_6 = y_4$. Next, we have that $X_2 + X_3 = y_2$ and $X_4 + X_5 = y_3$. Thus, we can write $X_2 \sim \mathrm{Bin}(y_2, 2pr / (p^2 + 2pr))$ and $X_4 \sim \mathrm{Bin}(y_3, 2qr / (q^2 + 2qr))$. Finally, we recover $X_3$ and $X_5$ by subtracting $X_2$ from $y_2$ and $X_4$ from $y_3$ respectively.
+    
+    Before writing out the EM objective function, we first compute conditional expectations of the sample allele counts.
+    %
+    \begin{align}
+        \bE(n_O|y) &= 2y_1 + \frac{2 y_2 pr}{p^2 + 2pr} + \frac{2 y_3 qr}{q^2 + 2qr}\\
+        &= 2y_1 + 2 y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} \right) + 2 y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} \right) &\left( = 2y_1 + 2 y_2 \left( \frac{\rho_2}{\pi_2} \right) + 2 y_3 \left( \frac{\rho_4}{\pi_3} \right) \right)\\
+        \bE(n_A|y) &= \frac{2 y_2 pr}{p^2 + 2pr} + \frac{2y_2 p^2}{p^2 + 2pr} + y_4\\
+        &= 2y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} + \frac{\rho_3}{\rho_2 + \rho_3} \right) + y_4 &\left(= 2y_2 \left( \frac{\rho_2}{\pi_2} + \frac{\rho_3}{\pi_2} \right) + y_4 \right)\\
+        &= y_2 \left( 1 + \frac{p^2}{p^2 + 2pr} \right) + y_4\\
+        \bE(n_B|y) &= \frac{2 y_3 qr}{q^2 + 2qr} + \frac{2y_3 q^2}{q^2 + 2qr} + y_4\\
+        &= 2y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} + \frac{\rho_5}{\rho_4 + \rho_5} \right) + y_4 &\left(= 2y_3 \left( \frac{\rho_4}{\pi_3} + \frac{\rho_5}{\pi_3} \right) + y_4 \right)\\
+        &= y_3 \left( 1 + \frac{q^2}{q^2 + 2qr} \right) + y_4
+    \end{align}
+    
     
     The EM objective function can be written as
     %
