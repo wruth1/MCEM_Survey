@@ -20,7 +20,7 @@ SLRsrcdir(args...) = SLRdir("src", args...)
 SLRtestdir(args...) = SLRdir("test", args...)
 
 # Run this before testing to make sure that Julia looks in the right place for tests
-Pkg.activate(srcdir("SLR_Example"))
+# Pkg.activate(srcdir("SLR_Example"))
 
 # Run this to edit the packages used for testing
 # Pkg.activate(srcdir("SLR_Example", "test"))
@@ -51,28 +51,28 @@ theta2 = [0.2, 0.4]
 
 
 
-beta_0 = 1.0
-mu_0 = 1.0
-tau_0 = 1.0
-sigma_0 = 1.0
-theta0 = [beta_0, sigma_0]
+# beta_0 = 1.0
+# mu_0 = 1.0
+# tau_0 = 1.0
+# sigma_0 = 1.0
+# theta0 = [beta_0, sigma_0]
 
-n = 100
-X = rand(Normal(mu_0, tau_0), n)
-epsilon = rand(Normal(0, sigma_0), n)
-Y = beta_0 * X + epsilon
+# n = 100
+# X = rand(Normal(mu_0, tau_0), n)
+# epsilon = rand(Normal(0, sigma_0), n)
+# Y = beta_0 * X + epsilon
 
-x = X[1]
-y = Y[1]
+# x = X[1]
+# y = Y[1]
 
 
-theta1 = [1.0, 1.0]
-theta = theta1
-theta2 = [2.0, 1.0]
-theta3 = [1.0, 2.0]
-theta4 = [2.0, 2.0]
-all_thetas = [theta1, theta2, theta3, theta4]
-theta_fixed = [mu_0, tau_0]
+# theta1 = [1.0, 1.0]
+# theta = theta1
+# theta2 = [2.0, 1.0]
+# theta3 = [1.0, 2.0]
+# theta4 = [2.0, 2.0]
+# all_thetas = [theta1, theta2, theta3, theta4]
+# theta_fixed = [mu_0, tau_0]
 
 
 

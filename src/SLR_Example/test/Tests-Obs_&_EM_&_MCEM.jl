@@ -61,9 +61,6 @@
             @test all(max_lik_val .>= nearby_lik_vals)
         end
 
-
-        #! START HERE
-
         @testset "Is MLE covariance formula accurate?" begin
             # Increase sample size to invoke asymptotic SE formula
             this_n = 100
@@ -182,31 +179,29 @@
             @test (theta_hat_EM2 ≈ theta_hat_MLE) (rtol = estimation_tol)
         end
         
-        # @testset "Do covariance matrices from EM and obs data likelihood match?" begin
-            #! Fix-SE
+        @testset "Do covariance matrices from EM and obs data likelihood match?" begin
 
-        #     #todo: Use the conditional sampler for X to investigate the individual components of the EM covariance matrix.
             
             
 
-            # # Tolerance for assessing convergence of EM algorithm
-            # conv_tol = 1e-8
-            # # Tolerance for comparing SEs from EM and MLE
-            # rtol = 1e-4
+            # Tolerance for assessing convergence of EM algorithm
+            conv_tol = 1e-8
+            # Tolerance for comparing SEs from EM and MLE
+            rtol = 1e-8
 
-            # # --------------------- Starting from true value of theta -------------------- #
-            # theta_hat1 = run_EM(theta0, Y, rtol=conv_tol)
+            # --------------------- Starting from true value of theta -------------------- #
+            theta_hat1 = run_EM(theta0, Y, rtol=conv_tol)
 
-            # COV_EM = EM_COV_formula(theta_hat1, Y)
+            COV_EM = EM_COV_formula(theta_hat1, Y)
 
-            # theta_hat_MLE = obs_data_MLE(Y)
+            theta_hat_MLE = obs_data_MLE(Y)
 
-            # COV_MLE = obs_data_MLE_Cov(theta_hat_MLE, Y)
+            COV_MLE = obs_data_MLE_Cov(theta_hat_MLE, Y)
 
-            # # EM_COV_formula(run_EM(theta1, Y, rtol=1e-10), Y)
+            # norm(COV_EM - COV_MLE) / max(norm(COV_MLE), norm(COV_EM))
 
-            # @test (SE_EM ≈ SE_MLE) (rtol = rtol)
-        # end
+            @test (COV_EM ≈ COV_MLE) (rtol = rtol)
+        end
     end
 
 
