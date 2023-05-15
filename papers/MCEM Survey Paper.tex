@@ -640,38 +640,38 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
     Before writing out the EM objective function, we first compute conditional expectations of the sample allele counts.
     %
     \begin{align}
-        \bE(n_O|y) &= 2y_1 + \frac{2 y_2 pr}{p^2 + 2pr} + \frac{2 y_3 qr}{q^2 + 2qr}\\
-        &= 2y_1 + 2 y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} \right) + 2 y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} \right) &\left( = 2y_1 + 2 y_2 \left( \frac{\rho_2}{\pi_2} \right) + 2 y_3 \left( \frac{\rho_4}{\pi_3} \right) \right)\\
+        \bE(n_O|y) &= 2y_1 + \frac{y_2 pr}{p^2 + 2pr} + \frac{y_3 qr}{q^2 + 2qr}\\
+        &= 2y_1 + y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} \right) + y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} \right) &\left( = 2y_1 +  y_2 \left( \frac{\rho_2}{\pi_2} \right) + y_3 \left( \frac{\rho_4}{\pi_3} \right) \right)\\
+        &=: \nu_O\\
+        \nonumber \\
         \bE(n_A|y) &= \frac{2 y_2 pr}{p^2 + 2pr} + \frac{2y_2 p^2}{p^2 + 2pr} + y_4\\
-        &= 2y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} + \frac{\rho_3}{\rho_2 + \rho_3} \right) + y_4 &\left(= 2y_2 \left( \frac{\rho_2}{\pi_2} + \frac{\rho_3}{\pi_2} \right) + y_4 \right)\\
+        &= y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} + 2 \frac{\rho_3}{\rho_2 + \rho_3} \right) + y_4 &\left(= y_2 \left( \frac{\rho_2}{\pi_2} + 2\frac{\rho_3}{\pi_2} \right) + y_4 \right)\\
         &= y_2 \left( 1 + \frac{p^2}{p^2 + 2pr} \right) + y_4\\
+        &=: \nu_A\\
+        \nonumber \\
         \bE(n_B|y) &= \frac{2 y_3 qr}{q^2 + 2qr} + \frac{2y_3 q^2}{q^2 + 2qr} + y_4\\
-        &= 2y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} + \frac{\rho_5}{\rho_4 + \rho_5} \right) + y_4 &\left(= 2y_3 \left( \frac{\rho_4}{\pi_3} + \frac{\rho_5}{\pi_3} \right) + y_4 \right)\\
-        &= y_3 \left( 1 + \frac{q^2}{q^2 + 2qr} \right) + y_4
+        &= y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} + 2\frac{\rho_5}{\rho_4 + \rho_5} \right) + y_4 &\left(= y_3 \left( \frac{\rho_4}{\pi_3} + 2\frac{\rho_5}{\pi_3} \right) + y_4 \right)\\
+        &= y_3 \left( 1 + \frac{q^2}{q^2 + 2qr} \right) + y_4\\
+        &=: \nu_B
     \end{align}
     
     
     The EM objective function can be written as
     %
     \begin{align}
-		Q(\theta | \theta_0) &:= \bE_{\theta_0} [\ell_c (\theta; y, X) | Y=y]\\
-		&\equiv \bE_{\theta_0} \left[ \left. -n \log \sigma - \frac{1}{2\sigma^2} \sum (y_i - X_i \beta)^2 \right| Y=y \right]\\
-        &= -n \log \sigma - \frac{1}{2\sigma^2} \sum \left( y_i^2 - 2 \beta y_i \mu_{y_i}^{(0)} + \beta^2 \zeta^{(0)}_{y_i} \right)
+		Q(\theta | \theta_0) &:= \bE_{\theta_0} [\ell_c (\theta; X) | Y=y]\\
+		&\equiv \nu_O^{(0)} \log r + \nu_A^{(0)} \log p + \nu_B^{(0)} \log q
 	\end{align}
     %
     where a superscript zero denotes that the quantity is computed by taking an expectation under $\theta_0$. Maximizing $Q$ analytically with respect to $\theta$ gives the following expression for the EM update:
     %
     \begin{align}
         M(\theta_{k-1}) &= \begin{pmatrix}
-            \hat{\beta}_k\\ \hat{\sigma}_k
+            \hat{p}_k\\ \hat{q}_k
         \end{pmatrix}\\
         &= \begin{pmatrix}
-            {\sum y_i \mu_{y_i}^{(k-1)}} / {\sum \zeta_{y_i}^{(k-1)}}\\
-            \frac{1}{n} \bE_{\theta_{k-1}} \left[ \left. \sum (y_i - x_i \hat{\beta}_k)^2 \right| Y=y \right]
-        \end{pmatrix}\\
-        &= \begin{pmatrix}
-            {\sum y_i \mu_{y_i}^{(k-1)}} / {\sum \zeta_{y_i}^{(k-1)}}\\
-            \frac{1}{n} \sum \left( y_i^2 - 2 y_i \mu_{y_i}^{(k-1)} \hat{\beta}_k  + \zeta^{(k-1)}_{y_i} \hat{\beta}_k^2  \right)
+            \nu_A^{(k-1)} / 2n\\
+            \nu_B^{(k-1)} / 2n
         \end{pmatrix}
     \end{align}
     %
