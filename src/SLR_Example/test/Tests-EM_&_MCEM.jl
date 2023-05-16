@@ -6,20 +6,20 @@
 @testset "EM and MCEM" begin
 
     @testset "Conditional Distribution" begin
-        @testset "Is conditional variance non-negative?" begin
-            all_cond_vars = [var_X_given_Y(all_thetas[i], theta_fixed) for i in eachindex(all_thetas)]
+        @testset "Is conditional variance positive definite?" begin
+            all_cond_covs = [cov_X_given_Y(all_thetas[i], Y) for i in eachindex(all_thetas)]
 
-            for cond_var in all_cond_vars
-                @test cond_var >= 0
+            for cond_cov in all_cond_covs
+                @test ispossemidef(cond_cov) >= 0
             end
         end
         
 
         @testset "Is conditional second moment non-negative?" begin
-            cond_mu2s = [mu2_X_given_Y(all_thetas[i], Y[j], theta_fixed) for i in eachindex(all_thetas), j in eachindex(Y)]
+            cond_mu2s = [mu2_X_given_Y(all_thetas[i], Y) for i in eachindex(all_thetas)]
 
-            for these_vals in eachrow(cond_mu2s)
-                @test all(these_vals .>= 0)
+            for this_mu2 in cond_mu2s
+                @test all(this_mu2 .>= 0)
             end
         end
     end
@@ -36,24 +36,24 @@
                 # ---------------------------- Starting at theta1 ---------------------------- #
                 theta_old = theta1
 
-                theta_hat = EM_update(theta_old, Y, theta_fixed)
-                Q_max = Q_EM(theta_hat, Y, theta_old, theta_fixed)
+                theta_hat = EM_update(theta_old, Y)
+                Q_max = Q_EM(theta_hat, Y, theta_old)
 
                 nearby_theta_values = [theta_hat + noise_grid[i] for i in eachindex(noise_grid)]
 
-                nearby_Q_values = [Q_EM(theta, Y, theta_old, theta_fixed) for theta in nearby_theta_values]
+                nearby_Q_values = [Q_EM(theta, Y, theta_old) for theta in nearby_theta_values]
 
                 @test all(Q_max .>= nearby_Q_values)
 
-                # ---------------------------- Starting at theta2 ---------------------------- #
-                theta_old = theta2
+                # ---------------------------- Starting at theta0 ---------------------------- #
+                theta_old = theta0
 
-                theta_hat = EM_update(theta_old, Y, theta_fixed)
-                Q_max = Q_EM(theta_hat, Y, theta_old, theta_fixed)
+                theta_hat = EM_update(theta_old, Y)
+                Q_max = Q_EM(theta_hat, Y, theta_old)
 
                 nearby_theta_values = [theta_hat + noise_grid[i] for i in eachindex(noise_grid)]
 
-                nearby_Q_values = [Q_EM(theta, Y, theta_old, theta_fixed) for theta in nearby_theta_values]
+                nearby_Q_values = [Q_EM(theta, Y, theta_old) for theta in nearby_theta_values]
 
                 @test all(Q_max .>= nearby_Q_values)
             end
@@ -76,26 +76,26 @@
 
                 # ---------------------- Compare at true value of theta ---------------------- #
                 Random.seed!(1)
-                all_Xs1 = sample_X_given_Y(theta1, Y, theta_fixed, M)
+                all_Xs1 = sample_X_given_Y_iid(M, theta1, Y)
 
-                all_Hessians1 = [complete_data_Hessian(theta1, Y, all_Xs1[i], theta_fixed) for i in eachindex(all_Xs1)]
+                all_Hessians1 = [complete_data_Hessian(theta1, Y, all_Xs1[i]) for i in eachindex(all_Xs1)]
 
                 empirical_cond_mean_info1 = -mean(all_Hessians1)
 
-                analytical_cond_mean_info1 = complete_data_conditional_information(theta1, Y, theta_fixed)
+                analytical_cond_mean_info1 = complete_data_conditional_information(theta1, Y)
 
                 @test (empirical_cond_mean_info1 ≈ analytical_cond_mean_info1) (rtol = rtol)
 
 
                 # ------------------- Compare away from true value of theta ------------------ #
                 Random.seed!(1)
-                all_Xs2 = sample_X_given_Y(theta2, Y, theta_fixed, M)
+                all_Xs2 = sample_X_given_Y(theta2, Y, M)
 
-                all_Hessians2 = [complete_data_Hessian(theta2, Y, all_Xs2[i], theta_fixed) for i in eachindex(all_Xs2)]
+                all_Hessians2 = [complete_data_Hessian(theta2, Y, all_Xs2[i]) for i in eachindex(all_Xs2)]
 
                 empirical_cond_mean_info2 = mean(all_Hessians2)
 
-                analytical_cond_mean_info2 = complete_data_conditional_information(theta2, Y, theta_fixed)
+                analytical_cond_mean_info2 = complete_data_conditional_information(theta2, Y)
 
                 @test (empirical_cond_mean_info2 ≈ -analytical_cond_mean_info2) (rtol = rtol)
             end
@@ -111,14 +111,14 @@
                     rtol = 0.05
 
                     # Random.seed!(1)
-                    all_Xs = sample_X_given_Y(theta1, Y, theta_fixed, M)
+                    all_Xs = sample_X_given_Y(theta1, Y, M)
 
-                    all_scores = [complete_data_score(theta1, Y, all_Xs[i], theta_fixed) for i in eachindex(all_Xs)]
+                    all_scores = [complete_data_score(theta1, Y, all_Xs[i]) for i in eachindex(all_Xs)]
                     all_sq_scores = [all_scores[i] * Transpose(all_scores[i]) for i in eachindex(all_scores)]
 
                     mean_sq_score = mean(all_sq_scores)
 
-                    expect_squared_score = expect_sq_score(theta1, Y, theta_fixed)
+                    expect_squared_score = expect_sq_score(theta1, Y)
 
                     @test (mean_sq_score ≈ expect_squared_score) (rtol = rtol)
                 end
@@ -152,10 +152,10 @@
                     Y = beta_0 * X + epsilon
 
                     # Estimate beta
-                    theta_hat = run_EM(theta1, Y, theta_fixed)
+                    theta_hat = run_EM(theta1, Y)
 
                     # Estimate SE
-                    this_cov_hat = EM_COV_formula(theta_hat, Y, theta_fixed)
+                    this_cov_hat = EM_COV_formula(theta_hat, Y)
 
                     all_beta_hats1[i] = theta_hat
                     all_cov_hats1[i] = this_cov_hat
@@ -188,10 +188,10 @@
                 #     Y = beta_0 * X + epsilon
 
                 #     # Estimate beta
-                #     theta_hat = run_EM(theta2, Y, theta_fixed)
+                #     theta_hat = run_EM(theta2, Y)
 
                 #     # Estimate SE
-                #     this_cov_hat = EM_COV_formula(theta_hat, Y, theta_fixed)
+                #     this_cov_hat = EM_COV_formula(theta_hat, Y)
 
                 #     all_beta_hats2[i] = theta_hat
                 #     all_cov_hats2[i] = this_cov_hat
@@ -217,8 +217,8 @@
         @testset "Maximizer of MCEM objective" begin
             
             @testset "Is MCEM maximizer close to EM maximizer?" begin
-                theta_hat_EM1 = EM_update(theta1, Y, theta_fixed)
-                theta_hat_EM2 = EM_update(theta2, Y, theta_fixed)
+                theta_hat_EM1 = EM_update(theta1, Y)
+                theta_hat_EM2 = EM_update(theta2, Y)
 
                 # Number of Monte Carlo samples to draw
                 M = 10000
@@ -227,9 +227,9 @@
                 tol = 0.01
 
                 Random.seed!(1)
-                theta_hat_MCEM1 = MCEM_update(theta1, Y, theta_fixed, M)
+                theta_hat_MCEM1 = MCEM_update(theta1, Y, M)
                 Random.seed!(1)
-                theta_hat_MCEM2 = MCEM_update(theta2, Y, theta_fixed, M)
+                theta_hat_MCEM2 = MCEM_update(theta2, Y, M)
 
                 @test isapprox(theta_hat_MCEM1, theta_hat_EM1, rtol = tol)
                 @test isapprox(theta_hat_MCEM2, theta_hat_EM2, rtol = tol)
@@ -240,13 +240,13 @@
         @testset "Recovering EM SE formula" begin
     
             # Value of theta at which to evaluate scores and Hessians
-            theta_hat_EM = run_EM(theta1, Y, theta_fixed)
+            theta_hat_EM = run_EM(theta1, Y)
 
 
             # Number of Monte Carlo samples to draw
             M = 100000
             Random.seed!(1)
-            all_Xs = sample_X_given_Y(theta_hat_EM, Y, theta_fixed, M)
+            all_Xs = sample_X_given_Y(theta_hat_EM, Y, M)
 
 
 
@@ -256,9 +256,9 @@
                     # Relative tolerance
                     rtol = 0.1
 
-                    MCEM_cond_exp = MC_complete_cond_info(theta_hat_EM, Y, all_Xs, theta_fixed)
+                    MCEM_cond_exp = MC_complete_cond_info(theta_hat_EM, Y, all_Xs)
 
-                    EM_cond_exp = complete_data_conditional_information(theta_hat_EM, Y, theta_fixed)
+                    EM_cond_exp = complete_data_conditional_information(theta_hat_EM, Y)
 
                     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
                 end
@@ -267,9 +267,9 @@
                     # Relative tolerance
                     rtol = 0.1
 
-                    MCEM_cond_exp = MC_expect_sq_score(theta_hat_EM, Y, all_Xs, theta_fixed)
+                    MCEM_cond_exp = MC_expect_sq_score(theta_hat_EM, Y, all_Xs)
 
-                    EM_cond_exp = expect_sq_score(theta_hat_EM, Y, theta_fixed)
+                    EM_cond_exp = expect_sq_score(theta_hat_EM, Y)
 
                     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
                 end
@@ -278,9 +278,9 @@
                     # Relative tolerance
                     rtol = 0.1
 
-                    MCEM_cond_exp = MCEM_obs_data_info_formula(theta_hat_EM, Y, all_Xs, theta_fixed)
+                    MCEM_cond_exp = MCEM_obs_data_info_formula(theta_hat_EM, Y, all_Xs)
 
-                    EM_cond_exp = EM_obs_data_information_formula(theta_hat_EM, Y, theta_fixed)
+                    EM_cond_exp = EM_obs_data_information_formula(theta_hat_EM, Y)
 
                     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
                 end
@@ -293,9 +293,9 @@
                 #     # Relative tolerance
                 #     rtol = 0.1
 
-                #     MCEM_cond_exp = MCEM_COV_formula(theta_hat_EM, Y, all_Xs, theta_fixed)
+                #     MCEM_cond_exp = MCEM_COV_formula(theta_hat_EM, Y, all_Xs)
 
-                #     EM_cond_exp = EM_COV_formula(theta_hat_EM, Y, theta_fixed)
+                #     EM_cond_exp = EM_COV_formula(theta_hat_EM, Y)
 
                 #     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
                 # end
@@ -331,18 +331,18 @@
 
             Random.seed!(1)
 
-            theta_hat_EM = EM_update(theta1, Y, theta_fixed)
-            EM_increment = Q_EM_increment(theta_hat_EM, Y, theta1, theta_fixed)
+            theta_hat_EM = EM_update(theta1, Y)
+            EM_increment = Q_EM_increment(theta_hat_EM, Y, theta1)
 
             # Confidence bounds for the EM increment to the MCEM update
             all_MCEM_bounds = zeros(B)
 
             for i in eachindex(all_MCEM_bounds)
-                all_Xs = sample_X_given_Y(theta1, Y, theta_fixed, M)
+                all_Xs = sample_X_given_Y(theta1, Y, M)
                 
                 theta_hat_MCEM = MCEM_update(Y, all_Xs)
                 
-                _, this_bound_MCEM = check_ascent(theta_hat_MCEM, theta1, Y, all_Xs, theta_fixed, alpha, return_lcl = true)
+                _, this_bound_MCEM = check_ascent(theta_hat_MCEM, theta1, Y, all_Xs, alpha, return_lcl = true)
                 all_MCEM_bounds[i] = this_bound_MCEM
             end
 
@@ -358,18 +358,18 @@
 
             Random.seed!(1)
 
-            theta_hat_EM = EM_update(theta2, Y, theta_fixed)
-            EM_increment = Q_EM_increment(theta_hat_EM, Y, theta2, theta_fixed)
+            theta_hat_EM = EM_update(theta2, Y)
+            EM_increment = Q_EM_increment(theta_hat_EM, Y, theta2)
 
             # Confidence bounds for the EM increment to the MCEM update
             all_MCEM_bounds = zeros(B)
 
             for i in eachindex(all_MCEM_bounds)
-                all_Xs = sample_X_given_Y(theta2, Y, theta_fixed, M)
+                all_Xs = sample_X_given_Y(theta2, Y, M)
                 
                 theta_hat_MCEM = MCEM_update(Y, all_Xs)
                 
-                _, this_bound_MCEM = check_ascent(theta_hat_MCEM, theta2, Y, all_Xs, theta_fixed, alpha, return_lcl = true)
+                _, this_bound_MCEM = check_ascent(theta_hat_MCEM, theta2, Y, all_Xs, alpha, return_lcl = true)
                 all_MCEM_bounds[i] = this_bound_MCEM
             end
 
@@ -401,7 +401,7 @@
             
 
             # ---------------------- Starting at true value of theta --------------------- #
-            theta_hat_EM = run_EM(theta1, Y, theta_fixed, rtol = EM_conv_tol)
+            theta_hat_EM = run_EM(theta1, Y, rtol = EM_conv_tol)
 
             # --------------------------- Ascent MCEM estimator -------------------------- #
             # theta_hat_MCEM = all_theta_hat_MCEMs[1]
@@ -416,8 +416,8 @@
         # @testset "Does empirical SE of ascent MCEM match EM SE formula?" begin
         #     # --------------------------------- Get EM SE -------------------------------- #
 
-        #     theta_hat_EM = run_EM(theta1, Y, theta_fixed, rtol = 1e-6)
-        #     EM_SE = EM_SE_formula(theta_hat_EM, Y, theta_fixed)
+        #     theta_hat_EM = run_EM(theta1, Y, rtol = 1e-6)
+        #     EM_SE = EM_SE_formula(theta_hat_EM, Y)
 
         #     # ---------------------- Get empirical SE of ascent MCEM --------------------- #
 

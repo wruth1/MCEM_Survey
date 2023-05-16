@@ -37,6 +37,8 @@ theta1 = [1/3, 1/3]
 theta = theta1
 theta_old = theta1
 
+all_thetas = [theta0, theta1]
+
 
 
 # include("src\\SLR_Example\\test\\Tests-Low_Level_Functions.jl")

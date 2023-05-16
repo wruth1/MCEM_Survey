@@ -90,24 +90,24 @@ end
 Construct vectors of weights which map from X to the number of alleles of each type.
 """
 function get_allele_weights()
-    nu_O = [2, 1, 0, 1, 0, 0]
-    nu_A = [0, 1, 2, 0, 0, 1]
-    nu_B = [0, 0, 0, 1, 2, 1]
+    eta_O = [2, 1, 0, 1, 0, 0]
+    eta_A = [0, 1, 2, 0, 0, 1]
+    eta_B = [0, 0, 0, 1, 2, 1]
 
-    return nu_O, nu_A, nu_B
+    return eta_O, eta_A, eta_B
 end
 
 """
 Matrix which maps X to the score vector.
 """
 function get_M_score(theta)
-    nu_O, nu_A, nu_B = get_allele_weights()
+    eta_O, eta_A, eta_B = get_allele_weights()
 
     p, q = theta
     r = 1 - p - q
 
-    M1 = nu_A/p - nu_O/r
-    M2 = nu_B/q - nu_O/r
+    M1 = eta_A/p - eta_O/r
+    M2 = eta_B/q - eta_O/r
 
     M = [M1 M2]'
     return M
@@ -159,3 +159,17 @@ end
 
 
 
+
+
+
+# ---------------------------------------------------------------------------- #
+#                             EM Objective Function                            #
+# ---------------------------------------------------------------------------- #
+
+"""
+Evaluate the EM objective function at theta, using conditional expectations computed under theta_old.
+"""
+function Q_EM(theta, Y, theta_old)
+    cond_mu = mu_X_given_Y(theta_old, Y)
+    return complete_data_log_lik(theta, Y, cond_mu)
+end

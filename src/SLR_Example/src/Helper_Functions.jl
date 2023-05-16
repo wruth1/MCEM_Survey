@@ -3,6 +3,7 @@ export get_eta
 export get_ESS
 export get_complete_cell_probs
 export Y_from_X
+export ispossemidef
 
 
 """
@@ -44,4 +45,12 @@ Sum the cells in X to get Y. I.e. Aggregate genotypes which have the same phenot
 """
 function Y_from_X(X)
     return [X[1], X[2] + X[3], X[4] + X[5], X[6]]
+end
+
+
+"""
+Checks whether the matrix A is positive semidefinite. Not fast.
+"""
+function ispossemidef(A)
+    return all(eigvals(A) .>= 0)
 end
