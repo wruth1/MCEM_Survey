@@ -105,15 +105,15 @@ function conditional_complete_information_iid(theta, Y, all_Xs)
     end
 
     mean_Hessian = sum_Hessian / length(all_Xs)
-    return mean_Hessian
+    return -mean_Hessian
 end
 
 
 """
 Empirical conditional expectation of complete data information matrix (i.e. negative Hessian of log-likelihood).
-MC sample is generated and optionally returned
+MC sample is generated and optionally returned. return_X flags whether to return the MC sample. This argument is not optional to avoid overloading the 3-argument version of this function.
 """
-function conditional_complete_information_iid(theta, Y, M; return_X=false)
+function conditional_complete_information_iid(theta, Y, M, return_X)
     all_Xs = sample_X_given_Y_iid(M, theta, Y)
     if return_X
         return conditional_complete_information_iid(theta, Y, all_Xs), all_Xs

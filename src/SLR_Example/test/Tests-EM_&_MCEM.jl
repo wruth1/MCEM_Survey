@@ -72,7 +72,7 @@
                 M = 10000
 
                 # Relative tolerance for comparing empirical and analytical conditional expectations
-                rtol = 0.01
+                rtol = 1e-3
 
                 # ---------------------- Compare at true value of theta ---------------------- #
                 Random.seed!(1)
@@ -82,22 +82,27 @@
 
                 empirical_cond_mean_info1 = -mean(all_Hessians1)
 
-                analytical_cond_mean_info1 = complete_data_conditional_information(theta1, Y)
+                analytical_cond_mean_info1 = expected_complete_info(theta1, Y)
+
+                # norm(empirical_cond_mean_info1 - analytical_cond_mean_info1) / norm(analytical_cond_mean_info1)
 
                 @test (empirical_cond_mean_info1 ≈ analytical_cond_mean_info1) (rtol = rtol)
 
 
                 # ------------------- Compare away from true value of theta ------------------ #
                 Random.seed!(1)
-                all_Xs2 = sample_X_given_Y(theta2, Y, M)
+                all_Xs2 = sample_X_given_Y_iid(M, theta2, Y)
 
                 all_Hessians2 = [complete_data_Hessian(theta2, Y, all_Xs2[i]) for i in eachindex(all_Xs2)]
 
-                empirical_cond_mean_info2 = mean(all_Hessians2)
+                empirical_cond_mean_info2 = -mean(all_Hessians2)
 
-                analytical_cond_mean_info2 = complete_data_conditional_information(theta2, Y)
+                analytical_cond_mean_info2 = expected_complete_info(theta2, Y)
 
-                @test (empirical_cond_mean_info2 ≈ -analytical_cond_mean_info2) (rtol = rtol)
+                # norm(empirical_cond_mean_info2 - analytical_cond_mean_info2) / norm(analytical_cond_mean_info2)
+
+
+                @test (empirical_cond_mean_info2 ≈ analytical_cond_mean_info2) (rtol = rtol)
             end
 
             @testset "Conditional expectation of squared score" begin                    
@@ -108,66 +113,87 @@
 
                     # Relative tolerance for comparing empirical and analytical conditional expectations
                     # Generous tolerance due to high MC variability (this is a hard seed)
-                    rtol = 0.05
+                    rtol = 1e-3
 
                     # Random.seed!(1)
-                    all_Xs = sample_X_given_Y(theta1, Y, M)
+                    all_Xs = sample_X_given_Y_iid(M, theta1, Y)
 
                     all_scores = [complete_data_score(theta1, Y, all_Xs[i]) for i in eachindex(all_Xs)]
                     all_sq_scores = [all_scores[i] * Transpose(all_scores[i]) for i in eachindex(all_scores)]
 
                     mean_sq_score = mean(all_sq_scores)
 
-                    expect_squared_score = expect_sq_score(theta1, Y)
+                    expect_squared_score = expected_squared_score(theta1, Y)
+
+                    norm(mean_sq_score - expect_squared_score) / norm(expect_squared_score)
 
                     @test (mean_sq_score ≈ expect_squared_score) (rtol = rtol)
                 end
             end
 
+            #? This test is working, but only for a pretty generous tolerance. It's not clear to me why estimating the covariance is so much harder than estimating its two components. I tried digging into the covariance between the two components, but I didn't get very far. This is probably worth returning to when I'm more awake. For now, the test passes. I'm going to move on.
             @testset "Is our formula for the covariance matrix of the EM estimator accurate?" begin
                 # Number of datasets to generate
                 B = 10000
 
-                # Need larger sample size for asymptotics to kick in
-                n = 500
+                # Sample size for multinomial
+                n = 100000
 
                 # Relative tolerance for comparing empirical and analytical SEs
-                # Generous due to high MC variability
-                rtol = 0.05
+                # Generous due accumulation of MC error (addition of two estimated quantities)
+                err_rtol = 1e-2
+
+                # Tolerance for assessing EM convergence
+                conv_rtol = 1e-8
 
                 # ---------------------- Starting at true value of theta --------------------- #
 
-                all_beta_hats1 = Vector{Any}(undef, B)
-                all_cov_hats1 = Vector{Any}(undef, B)
+                all_theta_hats = Vector{Any}(undef, B)  # Parameter estimate from each sample
+                all_cov_hats = Vector{Any}(undef, B)    # Covariance estimate from each sample
+
+                all_cond_infos = Vector{Any}(undef, B)  
+                all_cond_sq_scores = Vector{Any}(undef, B)
 
                 # using ProgressMeter
                 # prog = Progress(B, desc="Running EM")
 
-                @showprogress for i in eachindex(all_beta_hats1)
-                # Threads.@threads for i in eachindex(all_beta_hats1)
+                for i in eachindex(all_theta_hats)
+                # @showprogress for i in eachindex(all_theta_hats)
+                        # Threads.@threads for i in eachindex(all_beta_hats1)
                     # Generate new dataset
-                    Random.seed!(i^2)
-                    X = rand(Normal(mu_0, tau_0), n)
-                    epsilon = rand(Normal(0, sigma_0), n)
-                    Y = beta_0 * X + epsilon
+                    Random.seed!(i^3)
+                    X = rand(Multinomial(n, X_prob_vec), 1)
+                    Y = Y_from_X(X)
 
                     # Estimate beta
-                    theta_hat = run_EM(theta1, Y)
+                    theta_hat = run_EM(theta1, Y, rtol = conv_rtol)
 
-                    # Estimate SE
+                    # Estimate SE and its components
+                    this_cond_info = expected_complete_info(theta_hat, Y)
+                    this_cond_sq_score = expected_squared_score(theta_hat, Y)
+                    
                     this_cov_hat = EM_COV_formula(theta_hat, Y)
 
-                    all_beta_hats1[i] = theta_hat
-                    all_cov_hats1[i] = this_cov_hat
+                    all_theta_hats[i] = theta_hat
+                    all_cov_hats[i] = this_cov_hat
+
+                    all_cond_infos[i] = this_cond_info
+                    all_cond_sq_scores[i] = this_cond_sq_score
 
                     # next!(prog)
                 end
 
-                empirical_cov1 = cov(all_beta_hats1)
-                mean_cov_hat1 = mean(all_cov_hats1)
+                # empirical_cov = cov(all_theta_hats)
+                # mean_cov_hat = mean(all_cov_hats)
 
+                # all_estimator_correlations = [cor(getindex.(all_cond_infos, i, j), getindex.(all_cond_sq_scores, i, j)) for i in 1:2, j in 1:2]
+                # getindex.(all_cond_infos, 1, 2)
 
-                @test (empirical_cov1 ≈ mean_cov_hat1) (rtol = rtol)
+                # [i*j for i in 1:2, j in 1:2]
+
+                # norm(empirical_cov - mean_cov_hat) / max(norm(mean_cov_hat), norm(empirical_cov))
+
+                @test (empirical_cov ≈ mean_cov_hat) (rtol = rtol)
 
 
                 # ------------------ Starting away from true value of theta ------------------ #
@@ -224,12 +250,14 @@
                 M = 10000
 
                 # Relative tolerance
-                tol = 0.01
+                tol = 1e-4
 
                 Random.seed!(1)
-                theta_hat_MCEM1 = MCEM_update(theta1, Y, M)
+                theta_hat_MCEM1 = MCEM_update_iid(theta1, Y, M)
                 Random.seed!(1)
-                theta_hat_MCEM2 = MCEM_update(theta2, Y, M)
+                theta_hat_MCEM2 = MCEM_update_iid(theta2, Y, M)
+
+                # norm(theta_hat_MCEM1 - theta_hat_EM1) / max(norm(theta_hat_MCEM1), norm(theta_hat_EM1))
 
                 @test isapprox(theta_hat_MCEM1, theta_hat_EM1, rtol = tol)
                 @test isapprox(theta_hat_MCEM2, theta_hat_EM2, rtol = tol)
@@ -244,21 +272,22 @@
 
 
             # Number of Monte Carlo samples to draw
-            M = 100000
+            M = 1e5
             Random.seed!(1)
-            all_Xs = sample_X_given_Y(theta_hat_EM, Y, M)
-
+            all_Xs = sample_X_given_Y_iid(M, theta_hat_EM, Y)
 
 
             @testset "Do MCEM and EM match on the covariance matrix formula?" begin
                 @testset "Conditional expectation of complete data information." begin
 
                     # Relative tolerance
-                    rtol = 0.1
+                    rtol = 1e-6
 
-                    MCEM_cond_exp = MC_complete_cond_info(theta_hat_EM, Y, all_Xs)
+                    MCEM_cond_exp = conditional_complete_information_iid(theta_hat_EM, Y, all_Xs)
 
-                    EM_cond_exp = complete_data_conditional_information(theta_hat_EM, Y)
+                    EM_cond_exp = expected_complete_info(theta_hat_EM, Y)
+
+                    norm(MCEM_cond_exp - EM_cond_exp) / max(norm(MCEM_cond_exp), norm(EM_cond_exp))
 
                     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
                 end
@@ -338,7 +367,7 @@
             all_MCEM_bounds = zeros(B)
 
             for i in eachindex(all_MCEM_bounds)
-                all_Xs = sample_X_given_Y(theta1, Y, M)
+                all_Xs = sample_X_given_Y_iid(theta1, Y, M)
                 
                 theta_hat_MCEM = MCEM_update(Y, all_Xs)
                 
@@ -365,7 +394,7 @@
             all_MCEM_bounds = zeros(B)
 
             for i in eachindex(all_MCEM_bounds)
-                all_Xs = sample_X_given_Y(theta2, Y, M)
+                all_Xs = sample_X_given_Y_iid(theta2, Y, M)
                 
                 theta_hat_MCEM = MCEM_update(Y, all_Xs)
                 
