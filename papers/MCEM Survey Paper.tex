@@ -273,6 +273,19 @@ We investigate a simplified model for blood type which consists of only the ABO 
 
 Let $Y_1$, $Y_2$, $Y_3$ and $Y_4$ be the number of people with blood type O, A, B and AB respectively, and $Y = (Y_1, Y_2, Y_3, Y_4)$. Let $r$, $p$ and $q$ be the proportions of alleles O, A and B respectively within the population of interest. Since $r + p + q = 1$, we let $\theta = (p, q)$ be our target of inference. Pretending that the population size is fixed and that iid sampling was employed, $Y$ follows a multinomial distribution with $n =$ 4,464,349. Assuming homogeneous genetic mixing, the probability vector for $Y$ is $\pi = (r^2, p^2 + 2pr, q^2 + 2qr, 2pq)$.
 
+Maximizing the likelihood in this model involves solving the score equation, a system of two 3rd-degree polynomials in $p$ and $q$. This can be done numerically, and gives estimates $p = 0.283$ and $q = 0.176$. These values match the ones given by \citet{Fuj78}. The information matrix and asymptotic covariance (inverse information matrix) are given by
+%
+\begin{align}
+    I(\hat{\theta}) &= \begin{bmatrix}
+        3.94 \cdot 10^7 & 1.20 \cdot 10^7\\
+        1.20 \cdot 10^7 & 5.95 \cdot 10^7
+    \end{bmatrix}\\
+    \hat{\Sigma}_\mathrm{MLE} &= \begin{bmatrix}
+        2.70 \cdot 10^{-8} & -5.46 \cdot 10^{-9}\\
+        -5.46 \cdot 10^{-9} & 1.79 \cdot 10^{-8}
+    \end{bmatrix}
+\end{align}
+
 \subsubsection{Complete Data}
 
 The problem of gene frequency estimation would be much simpler if we could observe individuals' genotypes. We consider augmenting the observed data $Y$ by further classifying individuals by genotype. Let $X = (X_1, \ldots, X_6)$ be the genotypes of the individuals represented in Table \ref{tab:blood_type}. See Table \ref{tab:blood_type_complete}.
@@ -293,7 +306,42 @@ The problem of gene frequency estimation would be much simpler if we could obser
 
 Note that we can write $Y$ in terms of $X$. Specifically, $Y_1 = X_1$, $Y_2 = X_2 + X_3$, $Y_3 = X_4 + X_5$ and $Y_4 = X_6$. This corresponds to summing components of $X$ which correspond to the same blood type. The distribution of $X$ is multinomial, with the same sample size as $Y$, and probability vector given in Table \ref{tab:blood_type_complete}.
 
+See Appendix \ref{app:blood_complete} for the complete data likelihood function and its derivatives.
 
+\subsubsection{EM Algorithm}
+
+The gene frequency estimation problem fits nicely into the EM algorithm framework. In this section, we present key quantities and results of our analysis. See Appendix \ref{app:blood}, especially part \ref{app:blood_miss}, for more details.
+
+The EM objective function at iteration $k+1$ is
+%
+\begin{align}
+    Q(\theta|\theta_k) &\equiv  \bE_{\theta_k}(n_O | y) \log r + \bE_{\theta_k}(n_A | y) \log p + \bE_{\theta_k}(n_B | y) \log q\\
+    &=: \nu^{(k)}_O \log r + \nu^{(k)}_A \log p + \nu^{(k)}_B \log q
+\end{align}
+%
+where $nu^{(k)}_O$, $\nu^{(k)}_A$ and $\nu^{(k)}_B$ are the expected number of O, A and B alleles respectively given $Y=y$ and $\theta = \theta_k$. Maximizing this objective function in $p$ and $q$ gives the following EM update function:
+%
+\begin{align}
+    M(\theta_k) &= \begin{pmatrix}
+        p_{k+1}\\
+        q_{k+1}
+    \end{pmatrix}\\    
+    &= \begin{pmatrix}
+        \nu^{(k)}_A / 2n\\
+        \nu^{(k)}_B / 2n
+    \end{pmatrix}
+\end{align}
+%
+Starting with $\theta_0 = (1/3, 1/3)$ corresponding to equal proportions of the three alleles, Figure \ref{fig:blood_EM_traj} gives trajectories of the EM estimates for $p$ and $q$ using the data in Figure \ref{tab:blood_type}. These estimates converge quite quickly the maximizer of the observed data likelihood.
+%
+\begin{figure}
+    \caption{Trajectory of EM estimates for $p$ and $q$ for the blood type example.}
+    \label{fig:blood_EM_traj}
+    \includegraphics[width=\textwidth]{../plots/Blood_Type/EM_traj.pdf}
+\end{figure}
+%
+Beyond computing the observed data MLE, we also need the standard error of this estimator. To this end, we compute the observed data information matrix using Louis' Method (see Proposition \ref{thm:info_decomp}). The asymptotic covariance matrix of our MLE is then the inverse of this information matrix. Omitting details (see Appendices \ref{app:blood_complete} and \ref{app:blood_miss}), both the observed data information matrix and asymptotic covariance match those obtained from the observed data likelihood. 
+%
 
 
 \section{The Monte Carlo EM Algorithm}
@@ -555,10 +603,12 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
 
 \begin{appendices}
     \section{Likelihood for Gene Frequency Estimation}
+    \label{app:blood}
 
     In this appendix, we present details for the analysis of our example of estimating gene frequency. See Section \ref{sec:eg-genes} for formulation of the model and definition of notation.
 
     \subsection{Observed Data Likelihood, Score and Information}
+    \label{app:blood_obs}
 
     Let $\pi_i$ be the probability of blood type $i$. The observed data likelihood for our model can be written as follows:
     %
@@ -593,8 +643,11 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
         \partial_{p,q} \ell(\theta; y) &=  \frac{2y_1}{r^2} + \frac{2 y_2 p^2}{p_y^2} + \frac{2 y_3 q^2}{q_y^2}\\
         \partial^2_q \ell(\theta; y) &=  \frac{y_1}{r^2} + \frac{4 y_2 p^2}{p_y^2} + \frac{2 y_3 (q_y + 2r)}{q_y^2} + \frac{y_4}{q^2}
     \end{align}
+    %
+    The asymptotic standard error of our MLE is $I^{-1}$, evaluated at the estimate.
 
     \subsection{Complete Data Likelihood, Score and Information}
+    \label{app:blood_complete}
 
     The complete data distribution for our model can be written as follows. Write $\rho_i$ for the probability of genotype $i$. See Table \ref{tab:blood_type_complete} for the values of these probabilities.
     %
@@ -632,6 +685,49 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
     \end{align}
     %
     
+
+    \subsection{Missing Data Distribution}
+    \label{app:blood_miss}
+
+    Many quantities which arise in the EM and MCEM algorithms depend on the missing data distribution (i.e.\ the conditional distribution of $X$ given $Y=y$). This distribution is best described componentwise in $X$. First, note that $X_1$ and $X_6$ occur in $Y$, so we have $X_1 = y_1$ and $X_6 = y_4$. Next, we have that $X_2 + X_3 = y_2$ and $X_4 + X_5 = y_3$. Thus, we can write $X_2 \sim \mathrm{Bin}(y_2, 2pr / (p^2 + 2pr))$ and $X_4 \sim \mathrm{Bin}(y_3, 2qr / (q^2 + 2qr))$. Finally, we recover $X_3$ and $X_5$ by subtracting $X_2$ from $y_2$ and $X_4$ from $y_3$ respectively.
+
+    We make frequent require the first few conditional moments of $X$. We list them here for convenience. Let $\alpha_1 = 2pr / (p^2 + 2pr)$ be the probability parameter for the binomial distribution of $X_2$ given $Y$, and $\alpha_2 = 1 - \alpha_1$. Similarly, let $\beta_1 = 2qr / (q^2 + 2qr)$ correspond to $X_4$ and $\beta_2 = 1 - \beta_1$. \hl{Notation in this section is new. I'm not sure I will use it.}
+    %
+    \begin{align}
+        \bE(X | Y=y) &= \begin{pmatrix}
+            y_1,  y_2 \alpha_1,  y_2 \alpha_2,  y_3 \beta_1,  y_3 \beta_2,  y_4
+        \end{pmatrix}^T\\
+        &=: \mu_m\\
+        \bV(X | Y=y) &= \begin{pmatrix}
+            0 & 0 & 0 & 0 & 0 & 0\\
+            0 & y_2 \alpha_1 \alpha_2 & - y_2 \alpha_1 \alpha_2 & 0 & 0 & 0\\
+            0 & - y_2 \alpha_1 \alpha_2 & y_2 \alpha_1 \alpha_2 & 0 & 0 & 0\\
+            0 & 0 & 0 & y_3 \beta_1 \beta_2 & - y_3 \beta_1 \beta_2 & 0\\
+            0 & 0 & 0 & -y_3 \beta_1 \beta_2 & y_3 \beta_1 \beta_2 & 0\\
+            0 & 0 & 0 & 0 & 0 & 0
+        \end{pmatrix}\\
+        &=: \Sigma_m\\
+        \bE(XX^T | Y=y) &= \Sigma_m + \mu_m \mu_m^T
+    \end{align}
+    %
+    Conditional expectations of the number of alleles of each kind will be of particular interest.
+    %
+    \begin{align}
+        \nu_O & := \bE(n_O|y)\\
+         &= 2y_1 + \frac{y_2 pr}{p^2 + 2pr} + \frac{y_3 qr}{q^2 + 2qr}\\
+        &= 2y_1 + y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} \right) + y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} \right) &\left( = 2y_1 +  y_2 \left( \frac{\rho_2}{\pi_2} \right) + y_3 \left( \frac{\rho_4}{\pi_3} \right) \right)\\
+        \nonumber \\
+        \nu_A & := \bE(n_A|y)\\
+        &= \frac{2 y_2 pr}{p^2 + 2pr} + \frac{2y_2 p^2}{p^2 + 2pr} + y_4\\
+        &= y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} + 2 \frac{\rho_3}{\rho_2 + \rho_3} \right) + y_4 &\left(= y_2 \left( \frac{\rho_2}{\pi_2} + 2\frac{\rho_3}{\pi_2} \right) + y_4 \right)\\
+        &= y_2 \left( 1 + \frac{p^2}{p^2 + 2pr} \right) + y_4\\
+        \nonumber \\
+        \nu_B &:= \bE(n_B|y)\\
+        &= \frac{2 y_3 qr}{q^2 + 2qr} + \frac{2y_3 q^2}{q^2 + 2qr} + y_4\\
+        &= y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} + 2\frac{\rho_5}{\rho_4 + \rho_5} \right) + y_4 &\left(= y_3 \left( \frac{\rho_4}{\pi_3} + 2\frac{\rho_5}{\pi_3} \right) + y_4 \right)\\
+        &= y_3 \left( 1 + \frac{q^2}{q^2 + 2qr} \right) + y_4
+    \end{align}
+
 
     \subsection{EM Algorithm}
 
@@ -677,9 +773,9 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
     %
     where a superscript $k-1$ denotes that the quantity is computed by taking an expectation under $\theta_{k-1}$. Note that the equation for a stationary point of the EM algorithm, $M(\theta) = \theta$, has identical roots to the observed data score equation, $S(\theta) = 0$ \hl{(confirm this)}.
 
+    \subsubsection{Asymptotic Standard Error}
 
     \subsection{Monte Carlo EM}
-
 
 
 \end{appendices}

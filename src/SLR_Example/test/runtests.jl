@@ -47,6 +47,9 @@ include("Tests-Low_Level_Functions.jl")
 # include("src\\SLR_Example\\test\\Tests-Obs_&_EM_&_MCEM.jl")
 include("Tests-Obs_&_EM_&_MCEM.jl")
 
+# include("src\\SLR_Example\\test\\Tests-EM_&_MCEM.jl")
+include("Tests-EM_&_MCEM.jl")
+
 
 # Random.seed!(1)
 

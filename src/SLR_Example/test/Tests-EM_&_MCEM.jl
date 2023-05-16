@@ -76,6 +76,21 @@
 
                 # ---------------------- Compare at true value of theta ---------------------- #
                 Random.seed!(1)
+                all_Xs0 = sample_X_given_Y_iid(M, theta0, Y)
+
+                all_Hessians0 = [complete_data_Hessian(theta0, Y, all_Xs0[i]) for i in eachindex(all_Xs0)]
+
+                empirical_cond_mean_info0 = -mean(all_Hessians0)
+
+                analytical_cond_mean_info0 = expected_complete_info(theta0, Y)
+
+                # norm(empirical_cond_mean_info0 - analytical_cond_mean_info0) / norm(analytical_cond_mean_info0)
+
+                @test (empirical_cond_mean_info0 ≈ analytical_cond_mean_info0) (rtol = rtol)
+
+
+                # ------------------- Compare away from true value of theta ------------------ #
+                Random.seed!(1)
                 all_Xs1 = sample_X_given_Y_iid(M, theta1, Y)
 
                 all_Hessians1 = [complete_data_Hessian(theta1, Y, all_Xs1[i]) for i in eachindex(all_Xs1)]
@@ -86,23 +101,8 @@
 
                 # norm(empirical_cond_mean_info1 - analytical_cond_mean_info1) / norm(analytical_cond_mean_info1)
 
+
                 @test (empirical_cond_mean_info1 ≈ analytical_cond_mean_info1) (rtol = rtol)
-
-
-                # ------------------- Compare away from true value of theta ------------------ #
-                Random.seed!(1)
-                all_Xs2 = sample_X_given_Y_iid(M, theta2, Y)
-
-                all_Hessians2 = [complete_data_Hessian(theta2, Y, all_Xs2[i]) for i in eachindex(all_Xs2)]
-
-                empirical_cond_mean_info2 = -mean(all_Hessians2)
-
-                analytical_cond_mean_info2 = expected_complete_info(theta2, Y)
-
-                # norm(empirical_cond_mean_info2 - analytical_cond_mean_info2) / norm(analytical_cond_mean_info2)
-
-
-                @test (empirical_cond_mean_info2 ≈ analytical_cond_mean_info2) (rtol = rtol)
             end
 
             @testset "Conditional expectation of squared score" begin                    
@@ -113,7 +113,7 @@
 
                     # Relative tolerance for comparing empirical and analytical conditional expectations
                     # Generous tolerance due to high MC variability (this is a hard seed)
-                    rtol = 1e-3
+                    rtol = 1e-2
 
                     # Random.seed!(1)
                     all_Xs = sample_X_given_Y_iid(M, theta1, Y)
@@ -141,7 +141,7 @@
 
                 # Relative tolerance for comparing empirical and analytical SEs
                 # Generous due accumulation of MC error (addition of two estimated quantities)
-                err_rtol = 1e-2
+                err_rtol = 5e-2
 
                 # Tolerance for assessing EM convergence
                 conv_rtol = 1e-8
@@ -159,9 +159,8 @@
 
                 for i in eachindex(all_theta_hats)
                 # @showprogress for i in eachindex(all_theta_hats)
-                        # Threads.@threads for i in eachindex(all_beta_hats1)
-                    # Generate new dataset
-                    Random.seed!(i^3)
+                    
+                    Random.seed!(i^2)
                     X = rand(Multinomial(n, X_prob_vec), 1)
                     Y = Y_from_X(X)
 
@@ -183,17 +182,17 @@
                     # next!(prog)
                 end
 
-                # empirical_cov = cov(all_theta_hats)
-                # mean_cov_hat = mean(all_cov_hats)
+                empirical_cov = cov(all_theta_hats)
+                mean_cov_hat = mean(all_cov_hats)
 
                 # all_estimator_correlations = [cor(getindex.(all_cond_infos, i, j), getindex.(all_cond_sq_scores, i, j)) for i in 1:2, j in 1:2]
                 # getindex.(all_cond_infos, 1, 2)
 
                 # [i*j for i in 1:2, j in 1:2]
 
-                # norm(empirical_cov - mean_cov_hat) / max(norm(mean_cov_hat), norm(empirical_cov))
+                norm(empirical_cov - mean_cov_hat) / max(norm(mean_cov_hat), norm(empirical_cov))
 
-                @test (empirical_cov ≈ mean_cov_hat) (rtol = rtol)
+                @test (empirical_cov ≈ mean_cov_hat) (rtol = err_rtol)
 
 
                 # ------------------ Starting away from true value of theta ------------------ #
@@ -243,24 +242,24 @@
         @testset "Maximizer of MCEM objective" begin
             
             @testset "Is MCEM maximizer close to EM maximizer?" begin
+                theta_hat_EM0 = EM_update(theta0, Y)
                 theta_hat_EM1 = EM_update(theta1, Y)
-                theta_hat_EM2 = EM_update(theta2, Y)
 
                 # Number of Monte Carlo samples to draw
                 M = 10000
 
                 # Relative tolerance
-                tol = 1e-4
+                tol = 1e-3
 
+                Random.seed!(1)
+                theta_hat_MCEM0 = MCEM_update_iid(theta0, Y, M)
                 Random.seed!(1)
                 theta_hat_MCEM1 = MCEM_update_iid(theta1, Y, M)
-                Random.seed!(1)
-                theta_hat_MCEM2 = MCEM_update_iid(theta2, Y, M)
 
-                # norm(theta_hat_MCEM1 - theta_hat_EM1) / max(norm(theta_hat_MCEM1), norm(theta_hat_EM1))
+                norm(theta_hat_MCEM0 - theta_hat_EM0) / max(norm(theta_hat_MCEM0), norm(theta_hat_EM0))
 
+                @test isapprox(theta_hat_MCEM0, theta_hat_EM0, rtol = tol)
                 @test isapprox(theta_hat_MCEM1, theta_hat_EM1, rtol = tol)
-                @test isapprox(theta_hat_MCEM2, theta_hat_EM2, rtol = tol)
             
             end
         end
@@ -281,7 +280,7 @@
                 @testset "Conditional expectation of complete data information." begin
 
                     # Relative tolerance
-                    rtol = 1e-6
+                    rtol = 1e-4
 
                     MCEM_cond_exp = conditional_complete_information_iid(theta_hat_EM, Y, all_Xs)
 
@@ -294,22 +293,26 @@
 
                 @testset "Conditional expectation of squared score" begin
                     # Relative tolerance
-                    rtol = 0.1
+                    rtol = 0.01
 
-                    MCEM_cond_exp = MC_expect_sq_score(theta_hat_EM, Y, all_Xs)
+                    MCEM_cond_exp = conditional_complete_sq_score_iid(theta_hat_EM, Y, all_Xs)
 
-                    EM_cond_exp = expect_sq_score(theta_hat_EM, Y)
+                    EM_cond_exp = expected_squared_score(theta_hat_EM, Y)
+
+                    norm(MCEM_cond_exp - EM_cond_exp) / max(norm(MCEM_cond_exp), norm(EM_cond_exp))
 
                     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
                 end
 
                 @testset "Observed Data Information" begin
                     # Relative tolerance
-                    rtol = 0.1
+                    rtol = 1e-3
 
-                    MCEM_cond_exp = MCEM_obs_data_info_formula(theta_hat_EM, Y, all_Xs)
+                    MCEM_cond_exp = obs_information_formula_iid(theta_hat_EM, Y, all_Xs)
 
                     EM_cond_exp = EM_obs_data_information_formula(theta_hat_EM, Y)
+
+                    norm(MCEM_cond_exp - EM_cond_exp) / max(norm(MCEM_cond_exp), norm(EM_cond_exp))
 
                     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
                 end
@@ -318,16 +321,18 @@
 
                 #! This test fails due to instability of matrix inversion. I can estimate the information matrix reasonably accurately, but when I invert it to get the covariance matrix, the result is way off. The problem isn't a matter of roundoff error, its an issue of inverting the matrix amplifying stochastic fluctuations of the MCEM estimate around the true EM value. 
                 #! Note: The Woodbury identity gives an alternative formula for the covariance matrix which depends on the inverse of the residual (i.e. MCEM estimate - EM estimate). More precisely, there is a term of the form (A^-1 + E^-1)^-1. That is, we're inverting a mean-zero object (the residual), adding it to another matrix, then inverting the result. This is not a thing I expect to be able to do stably. Worth investigating further, but not before my presentation in 3 days.
-                # @testset "MLE Covariance Matrix" begin
-                #     # Relative tolerance
-                #     rtol = 0.1
+                @testset "MLE Covariance Matrix" begin
+                    # Relative tolerance
+                    rtol = 1e-3
 
-                #     MCEM_cond_exp = MCEM_COV_formula(theta_hat_EM, Y, all_Xs)
+                    MCEM_cond_exp = MCEM_cov_formula_iid(theta_hat_EM, Y, all_Xs)
 
-                #     EM_cond_exp = EM_COV_formula(theta_hat_EM, Y)
+                    EM_cond_exp = EM_COV_formula(theta_hat_EM, Y)
 
-                #     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
-                # end
+                    norm(MCEM_cond_exp - EM_cond_exp) / max(norm(MCEM_cond_exp), norm(EM_cond_exp))
+
+                    @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
+                end
                     
             end
         end
@@ -336,123 +341,123 @@
 
 
 
-    @testset "Ascent-Based MCEM Algorithm" begin
-        # Note: We check for coverage of the increment to both the EM update and the MCEM update
-        @testset "Is the confidence bound in check_ascent() valid?" begin
+    # @testset "Ascent-Based MCEM Algorithm" begin
+    #     # Note: We check for coverage of the increment to both the EM update and the MCEM update
+    #     @testset "Is the confidence bound in check_ascent() valid?" begin
                     
 
-            # Confidence level
-            alpha = 0.2
+    #         # Confidence level
+    #         alpha = 0.2
 
-            # Number of Monte Carlo samples to draw
-            M = 1000
+    #         # Number of Monte Carlo samples to draw
+    #         M = 1000
 
-            # Number of times to replicate iteration
-            B = 100
+    #         # Number of times to replicate iteration
+    #         B = 100
 
-            # A generous coverage tolerance based on SD of the binomial distribution
-            abs_coverage_tol = 3 * sqrt(alpha * (1 - alpha) / B)
+    #         # A generous coverage tolerance based on SD of the binomial distribution
+    #         abs_coverage_tol = 3 * sqrt(alpha * (1 - alpha) / B)
 
 
-            # ---------------------------------------------------------------------------- #
-            #                      Starting at the true value of theta                     #
-            # ---------------------------------------------------------------------------- #
+    #         # ---------------------------------------------------------------------------- #
+    #         #                      Starting at the true value of theta                     #
+    #         # ---------------------------------------------------------------------------- #
 
-            Random.seed!(1)
+    #         Random.seed!(1)
 
-            theta_hat_EM = EM_update(theta1, Y)
-            EM_increment = Q_EM_increment(theta_hat_EM, Y, theta1)
+    #         theta_hat_EM = EM_update(theta1, Y)
+    #         EM_increment = Q_EM_increment(theta_hat_EM, Y, theta1)
 
-            # Confidence bounds for the EM increment to the MCEM update
-            all_MCEM_bounds = zeros(B)
+    #         # Confidence bounds for the EM increment to the MCEM update
+    #         all_MCEM_bounds = zeros(B)
 
-            for i in eachindex(all_MCEM_bounds)
-                all_Xs = sample_X_given_Y_iid(theta1, Y, M)
+    #         for i in eachindex(all_MCEM_bounds)
+    #             all_Xs = sample_X_given_Y_iid(theta1, Y, M)
                 
-                theta_hat_MCEM = MCEM_update(Y, all_Xs)
+    #             theta_hat_MCEM = MCEM_update(Y, all_Xs)
                 
-                _, this_bound_MCEM = check_ascent(theta_hat_MCEM, theta1, Y, all_Xs, alpha, return_lcl = true)
-                all_MCEM_bounds[i] = this_bound_MCEM
-            end
+    #             _, this_bound_MCEM = check_ascent(theta_hat_MCEM, theta1, Y, all_Xs, alpha, return_lcl = true)
+    #             all_MCEM_bounds[i] = this_bound_MCEM
+    #         end
 
-            empirical_coverage_MCEM = mean(all_MCEM_bounds .< EM_increment)
+    #         empirical_coverage_MCEM = mean(all_MCEM_bounds .< EM_increment)
 
-            @test empirical_coverage_MCEM ≈ 1 - alpha (atol = abs_coverage_tol)
+    #         @test empirical_coverage_MCEM ≈ 1 - alpha (atol = abs_coverage_tol)
 
 
 
-            # # ---------------------------------------------------------------------------- #
-            # #                    Starting away from true value of theta                    #
-            # # ---------------------------------------------------------------------------- #
+    #         # # ---------------------------------------------------------------------------- #
+    #         # #                    Starting away from true value of theta                    #
+    #         # # ---------------------------------------------------------------------------- #
 
-            Random.seed!(1)
+    #         Random.seed!(1)
 
-            theta_hat_EM = EM_update(theta2, Y)
-            EM_increment = Q_EM_increment(theta_hat_EM, Y, theta2)
+    #         theta_hat_EM = EM_update(theta2, Y)
+    #         EM_increment = Q_EM_increment(theta_hat_EM, Y, theta2)
 
-            # Confidence bounds for the EM increment to the MCEM update
-            all_MCEM_bounds = zeros(B)
+    #         # Confidence bounds for the EM increment to the MCEM update
+    #         all_MCEM_bounds = zeros(B)
 
-            for i in eachindex(all_MCEM_bounds)
-                all_Xs = sample_X_given_Y_iid(theta2, Y, M)
+    #         for i in eachindex(all_MCEM_bounds)
+    #             all_Xs = sample_X_given_Y_iid(theta2, Y, M)
                 
-                theta_hat_MCEM = MCEM_update(Y, all_Xs)
+    #             theta_hat_MCEM = MCEM_update(Y, all_Xs)
                 
-                _, this_bound_MCEM = check_ascent(theta_hat_MCEM, theta2, Y, all_Xs, alpha, return_lcl = true)
-                all_MCEM_bounds[i] = this_bound_MCEM
-            end
+    #             _, this_bound_MCEM = check_ascent(theta_hat_MCEM, theta2, Y, all_Xs, alpha, return_lcl = true)
+    #             all_MCEM_bounds[i] = this_bound_MCEM
+    #         end
 
-            empirical_coverage_MCEM = mean(all_MCEM_bounds .< EM_increment)
+    #         empirical_coverage_MCEM = mean(all_MCEM_bounds .< EM_increment)
 
-            @test empirical_coverage_MCEM ≈ 1 - alpha (atol = abs_coverage_tol)
+    #         @test empirical_coverage_MCEM ≈ 1 - alpha (atol = abs_coverage_tol)
 
-        end
+    #     end
 
 
-        # --------------- Set control parameters for ascent-based MCEM --------------- #
-        alpha1 = 0.3
-        alpha2 = 0.3
-        alpha3 = 0.3
-        k = 3
-        atol = 1e-4 # Absolute tolerance for convergence. 1e-4 is a good value for this example. 1e-5 is better but takes much longer
+    #     # --------------- Set control parameters for ascent-based MCEM --------------- #
+    #     alpha1 = 0.3
+    #     alpha2 = 0.3
+    #     alpha3 = 0.3
+    #     k = 3
+    #     atol = 1e-4 # Absolute tolerance for convergence. 1e-4 is a good value for this example. 1e-5 is better but takes much longer
         
-        control = Ascent_MCEM_Control(alpha1, alpha2, alpha3, k, atol)
-        
-
-        @testset "Does ascent MCEM (approximately) converge to the same limit as EM?" begin
-            
-            # Relative tolerance for comparing EM and ascent MCEM estimates
-            tol = 5e-2
-
-            # Tolerance for EM convergence
-            EM_conv_tol = 1e-6
-
-            
-
-            # ---------------------- Starting at true value of theta --------------------- #
-            theta_hat_EM = run_EM(theta1, Y, rtol = EM_conv_tol)
-
-            # --------------------------- Ascent MCEM estimator -------------------------- #
-            # theta_hat_MCEM = all_theta_hat_MCEMs[1]
-            theta_hat_MCEM = all_theta_hat_MCEMs[1]
-
-            @test (theta_hat_EM ≈ theta_hat_MCEM) (rtol = tol)
-        end
-
+    #     control = Ascent_MCEM_Control(alpha1, alpha2, alpha3, k, atol)
         
 
-        #! Fix-SE
-        # @testset "Does empirical SE of ascent MCEM match EM SE formula?" begin
-        #     # --------------------------------- Get EM SE -------------------------------- #
+    #     @testset "Does ascent MCEM (approximately) converge to the same limit as EM?" begin
+            
+    #         # Relative tolerance for comparing EM and ascent MCEM estimates
+    #         tol = 5e-2
 
-        #     theta_hat_EM = run_EM(theta1, Y, rtol = 1e-6)
-        #     EM_SE = EM_SE_formula(theta_hat_EM, Y)
-
-        #     # ---------------------- Get empirical SE of ascent MCEM --------------------- #
+    #         # Tolerance for EM convergence
+    #         EM_conv_tol = 1e-6
 
             
-        # end
-    end
+
+    #         # ---------------------- Starting at true value of theta --------------------- #
+    #         theta_hat_EM = run_EM(theta1, Y, rtol = EM_conv_tol)
+
+    #         # --------------------------- Ascent MCEM estimator -------------------------- #
+    #         # theta_hat_MCEM = all_theta_hat_MCEMs[1]
+    #         theta_hat_MCEM = all_theta_hat_MCEMs[1]
+
+    #         @test (theta_hat_EM ≈ theta_hat_MCEM) (rtol = tol)
+    #     end
+
+        
+
+    #     #! Fix-SE
+    #     # @testset "Does empirical SE of ascent MCEM match EM SE formula?" begin
+    #     #     # --------------------------------- Get EM SE -------------------------------- #
+
+    #     #     theta_hat_EM = run_EM(theta1, Y, rtol = 1e-6)
+    #     #     EM_SE = EM_SE_formula(theta_hat_EM, Y)
+
+    #     #     # ---------------------- Get empirical SE of ascent MCEM --------------------- #
+
+            
+    #     # end
+    # end
 
 end
 

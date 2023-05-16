@@ -1,11 +1,10 @@
 
 
-export one_raw_imp_weight_term, one_log_raw_imp_weight, get_all_log_raw_imp_weights, normalize_weights, get_all_imp_weights
-export propose_one_X, propose_X, get_importance_sample
-export estimate_sigma2, MCEM_update, iid_MCEM_update
-export complete_data_log_lik_increment, Q_MCEM, Q_MCEM_with_sample, Q_MCEM_increment
-export MC_complete_cond_info, MC_expect_sq_score,  MCEM_obs_data_info_formula
-export MCEM_COV_formula, MCEM_SE_formula
+export one_X_given_Y_iid, sample_X_given_Y_iid
+export MCEM_update_iid
+
+export conditional_complete_information_iid, conditional_complete_sq_score_iid
+export obs_information_formula_iid, MCEM_cov_formula_iid
 
 
 
@@ -45,7 +44,7 @@ end
 Generate M observations from the conditional distribution of X given Y.
 """
 function sample_X_given_Y_iid(M, theta, Y)
-    return [one_X_given_Y(theta, Y) for i in 1:M]
+    return [one_X_given_Y_iid(theta, Y) for i in 1:M]
 end
 
 # all_Xs = sample_X_given_Y_iid(100, theta, Y)
@@ -125,6 +124,7 @@ end
 
 """
 Empirical conditional expectation of outer product of complete data score with itself.
+MC sample provided as argument.
 """
 function conditional_complete_sq_score_iid(theta, Y, all_Xs)
     sum_sq_score = zeros(2,2)
@@ -140,7 +140,59 @@ function conditional_complete_sq_score_iid(theta, Y, all_Xs)
 end
 
 
+"""
+Empirical conditional expectation of outer product of complete data score with itself.
+MC sample computed internally.
+"""
+function conditional_complete_sq_score_iid(theta, Y, M, return_X)
+    all_Xs = sample_X_given_Y_iid(M, theta, Y)
+    if return_X
+        return conditional_complete_sq_score_iid(theta, Y, all_Xs), all_Xs
+    else
+        return conditional_complete_sq_score_iid(theta, Y, all_Xs)
+    end
+end
 
+
+"""
+Estimated observed data information matrix from MCEM.
+MC sample provided as argument.
+"""
+function obs_information_formula_iid(theta, Y, all_Xs)
+    A = conditional_complete_information_iid(theta, Y, all_Xs)
+    B = conditional_complete_sq_score_iid(theta, Y, all_Xs)
+
+    return A - B
+end
+
+
+"""
+Estimated observed data information matrix from MCEM.
+MC sample computed internally.
+"""
+function obs_information_formula_iid(theta, Y, M, return_X)
+    all_Xs = sample_X_given_Y_iid(M, theta, Y)
+    if return_X
+        return obs_information_formula_iid(theta, Y, all_Xs), all_Xs
+    else
+        return obs_information_formula_iid(theta, Y, all_Xs)
+    end
+end
+
+
+function MCEM_cov_formula_iid(theta, Y, all_Xs)
+    I = obs_information_formula_iid(theta, Y, all_Xs)
+    return inv(I)
+end
+
+function MCEM_cov_formula_iid(theta, Y, M, return_X)
+    all_Xs = sample_X_given_Y_iid(M, theta, Y)
+    if return_X
+        return MCEM_cov_formula_iid(theta, Y, all_Xs), all_Xs
+    else
+        return MCEM_cov_formula_iid(theta, Y, all_Xs)
+    end
+end
 
 
 # # ---------------------------------------------------------------------------- #

@@ -13,6 +13,7 @@ using LinearAlgebra
 using ProgressMeter
 
 using Plots
+using Measures  # For plot margins
 
 # Define some functions to help navigate the project directory
 SLRdir(args...) = srcdir("SLR_Example", args...)
@@ -49,30 +50,15 @@ theta = theta1
 theta2 = [0.2, 0.4]
 
 
+# ---------------------------------------------------------------------------- #
+#                             Actual Data Analysis                             #
+# ---------------------------------------------------------------------------- #
 
+Y = [1305924, 1725950, 988996, 444479]
+sum(Y) - 4465349
 
-# beta_0 = 1.0
-# mu_0 = 1.0
-# tau_0 = 1.0
-# sigma_0 = 1.0
-# theta0 = [beta_0, sigma_0]
+theta_init = [1/3, 1/3]
 
-# n = 100
-# X = rand(Normal(mu_0, tau_0), n)
-# epsilon = rand(Normal(0, sigma_0), n)
-# Y = beta_0 * X + epsilon
-
-# x = X[1]
-# y = Y[1]
-
-
-# theta1 = [1.0, 1.0]
-# theta = theta1
-# theta2 = [2.0, 1.0]
-# theta3 = [1.0, 2.0]
-# theta4 = [2.0, 2.0]
-# all_thetas = [theta1, theta2, theta3, theta4]
-# theta_fixed = [mu_0, tau_0]
 
 
 
@@ -80,8 +66,8 @@ theta2 = [0.2, 0.4]
 #                                 Analysis: MLE                                #
 # ---------------------------------------------------------------------------- #
 
-theta_MLE = obs_data_MLE(Y, theta_fixed)
-SE_MLE = obs_data_MLE_Cov(theta_MLE, Y, theta_fixed)
+theta_MLE = obs_data_MLE(Y)
+cov_MLE = obs_data_MLE_Cov(theta_MLE, Y)
 
 
 
@@ -89,8 +75,26 @@ SE_MLE = obs_data_MLE_Cov(theta_MLE, Y, theta_fixed)
 #                                 Analysis: EM                                 #
 # ---------------------------------------------------------------------------- #
 
-theta_EM = run_EM(theta4, Y, theta_fixed)
-SE_EM = EM_COV_formula(theta_EM, Y, theta_fixed)
+# ----------------------------- Compute estimate ----------------------------- #
+theta_hat_EM, theta_hat_traj = run_EM(theta_init, Y, rtol = 1e-8, return_trajectory=true)
+p_hat_EM, q_hat_EM = theta_hat_EM
+r_hat_EM = 1 - p_hat_EM - q_hat_EM
+
+# ----------------------------- Plot Trajectories ---------------------------- #
+p_hat_traj = getindex.(theta_hat_traj, 1)
+q_hat_traj = getindex.(theta_hat_traj, 2)
+
+EM_plot = plot(p_hat_traj, label = "p", xlabel = "Iteration", ylabel = "Estimate", size = (1100, 1000), margin=10mm)
+plot!(EM_plot, q_hat_traj, label = "q")
+scatter!(EM_plot, p_hat_traj, label = nothing)
+scatter!(EM_plot, q_hat_traj, label = nothing)
+savefig(EM_plot, plotsdir("Blood_Type", "EM_traj.pdf"))
+
+# -------------------------------- Estimate SE ------------------------------- #
+obs_info_EM = EM_obs_data_information_formula(theta_hat_EM, Y)
+cov_EM = EM_COV_formula(theta_hat_EM, Y)
+
+cov_EM - cov_MLE
 
 
 # ---------------------------------------------------------------------------- #

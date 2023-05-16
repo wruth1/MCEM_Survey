@@ -13,3 +13,5 @@ un-normalized
 integrands
 integrability
 integrand
+MLE
+componentwise

@@ -3,6 +3,7 @@ export EM_update, run_EM
 export expected_complete_info
 export get_allele_weights, get_M_score, expected_squared_score
 export EM_obs_data_information_formula, EM_COV_formula, EM_SE_formula
+export Q_EM
 
 
 
