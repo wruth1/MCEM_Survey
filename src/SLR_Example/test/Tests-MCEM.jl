@@ -10,29 +10,29 @@
             @testset "Is complete data score equal to gradient of complete data log-lik?" begin
                 # Function to differentiate numerically
                 function this_log_lik(theta)
-                    return complete_data_log_lik(theta, Y, X, theta_fixed)
-                    # return fun(theta, Y, X, theta_fixed)
+                    return complete_data_log_lik(theta, Y, X)
+                    # return fun(theta, Y, X)
                 end
 
 
                 # ---------------------- Compare at true value of theta --------------------- #
                 # Compute score
-                score1 = complete_data_score(theta1, Y, X, theta_fixed)
+                score0 = complete_data_score(theta0, Y, X)
 
                 # Compute gradient of log-lik
-                grad_log_lik1 = ReverseDiff.gradient(this_log_lik, theta1)
+                grad_log_lik0 = ReverseDiff.gradient(this_log_lik, theta0)
                 
-                @test score1 ≈ grad_log_lik1
+                @test score0 ≈ grad_log_lik0
 
 
                 # ------------------ Compare away from true value of theta ------------------ #
                 # Compute score
-                score2 = complete_data_score(theta2, Y, X, theta_fixed)
+                score1 = complete_data_score(theta1, Y, X)
 
                 # Compute gradient of log-lik
-                grad_log_lik2 = ReverseDiff.gradient(this_log_lik, theta2)
+                grad_log_lik1 = ReverseDiff.gradient(this_log_lik, theta1)
 
-                @test score2 ≈ grad_log_lik2
+                @test score1 ≈ grad_log_lik1
             end
         end
 
@@ -43,127 +43,101 @@
             M = 10000
 
             # Relative tolerance for various moments
-            mean_tol = 0.01
-            var_tol = 0.01
-            mu2_tol = 0.01
-            mu3_tol = 0.05
-            mu4_tol = 0.05
+            mean_tol = 1e-5
+            var_tol = 0.05
+            mu2_tol = 1e-5
+
 
             # Generate conditional samples
             Random.seed!(1)
-            all_Xs1 = sample_X_given_Y(theta1, Y, theta_fixed, M)   # theta equal to true value
+            all_Xs0 = sample_X_given_Y_iid(M, theta0, Y)   # theta equal to true value
             Random.seed!(1)
-            all_Xs2 = sample_X_given_Y(theta2, Y, theta_fixed, M)   # theta different from true value
+            all_Xs1 = sample_X_given_Y_iid(M, theta1, Y)   # theta different from true value
 
 
             @testset "Does conditional sampler get the moments right?" begin
                 @testset "Conditional mean" begin
+                    # ---------------------------- Starting at theta0 ---------------------------- #
+                    
+                    # Compute mean of Xs
+                    mean_X0 = mean(all_Xs0)
+
+                    # Analytical mean
+                    true_mean_X0 = mu_X_given_Y(theta0, Y)
+
+                    # norm(mean_X0 - true_mean_X0) / max(norm(mean_X0), norm(true_mean_X0))
+                    @test isapprox(mean_X0, true_mean_X0, rtol = mean_tol)
+
+
                     # ---------------------------- Starting at theta1 ---------------------------- #
                     
                     # Compute mean of Xs
                     mean_X1 = mean(all_Xs1)
 
                     # Analytical mean
-                    true_mean_X1 = [mu_X_given_Y(theta1, y, theta_fixed) for y in Y]
+                    true_mean_X1 = mu_X_given_Y(theta1, Y)
 
+                    # norm(mean_X1 - true_mean_X1) / max(norm(mean_X1), norm(true_mean_X1))
                     @test isapprox(mean_X1, true_mean_X1, rtol = mean_tol)
-
-
-                    # ---------------------------- Starting at theta2 ---------------------------- #
-                    
-                    # Compute mean of Xs
-                    mean_X2 = mean(all_Xs2)
-
-                    # Analytical mean
-                    true_mean_X2 = [mu_X_given_Y(theta2, y, theta_fixed) for y in Y]
-
-                    @test isapprox(mean_X2, true_mean_X2, rtol = mean_tol)
                 end
 
                 @testset "Conditional variance" begin
+                    # ---------------------------- Starting at theta0 ---------------------------- #
+                    cov_X0 = cov(all_Xs0)
+
+                    # # Evaluate correlations based on cov_X0
+                    # cor_X0 = deepcopy(cov_X0)
+                    # for i in 2:5, j in 2:5
+                    #     cor_X0[i, j] = cov_X0[i, j] / sqrt(cov_X0[i, i] * cov_X0[j, j])
+                    # end
+                    # cor_X0
+
+                    # Analytical variance
+                    true_cov_X0 = cov_X_given_Y(theta0, Y)
+
+                    # # Analytical correlation matrix
+                    # true_cor_X0 = deepcopy(true_cov_X0)
+                    # for i in 2:5, j in 2:5
+                    #     true_cor_X0[i, j] = true_cov_X0[i, j] / sqrt(true_cov_X0[i, i] * true_cov_X0[j, j])
+                    # end
+
+
+                    # norm(cov_X0 - true_cov_X0) / max(norm(cov_X0), norm(true_cov_X0))
+                    @test isapprox(cov_X0, true_cov_X0, rtol = var_tol)
+
+                    # norm(cor_X0 - true_cor_X0) / max(norm(cor_X0), norm(true_cor_X0))
+
+
                     # ---------------------------- Starting at theta1 ---------------------------- #
                     
                     ### Pooled estimate of conditional variance of X
                     # Estimate variance of each X component separately
-                    all_X_components1 = [[all_Xs1[i][j] for i in 1:M] for j in eachindex(Y)]
-                    all_X_vars1 = Statistics.var.(all_X_components1)
-                    var_X1 = mean(all_X_vars1)
+                    cov_X1 = cov(all_Xs1)
 
                     # Analytical variance
-                    true_var_X1 = var_X_given_Y(theta1, theta_fixed)
+                    true_var_X1 = var_X_given_Y(theta1)
 
                     @test isapprox(var_X1, true_var_X1, rtol = var_tol)
-
-
-                    # ---------------------------- Starting at theta2 ---------------------------- #
-                    
-                    ### Pooled estimate of conditional variance of X
-                    # Estimate variance of each X component separately
-                    all_X_components2 = [[all_Xs2[i][j] for i in 1:M] for j in eachindex(Y)]
-                    all_X_vars2 = Statistics.var.(all_X_components2)
-                    var_X2 = mean(all_X_vars2)
-
-                    # Analytical variance
-                    true_var_X2 = var_X_given_Y(theta2, theta_fixed)
-
-                    @test isapprox(var_X2, true_var_X2, rtol = var_tol)
                 end
 
                 @testset "Conditional second moment" begin
-                    all_X_components1 = [[all_Xs1[i][j] for i in 1:M] for j in eachindex(Y)]
-                    all_mu2s1 = [mean(X.^2) for X in all_X_components1]
+                    all_X0s_sq = [X * X' for X in all_Xs0]
+                    mean_X0_sq = mean(all_X0s_sq)
 
-                    true_mu2s1 = [mu2_X_given_Y(theta1, y, theta_fixed) for y in Y]
+                    true_mean_X0_sq = mu2_X_given_Y(theta0, Y)
 
-                    @test isapprox(all_mu2s1, true_mu2s1, rtol = mu2_tol)
-
-
-
-                    all_X_components2 = [[all_Xs2[i][j] for i in 1:M] for j in eachindex(Y)]
-                    all_mu2s2 = [mean(X.^2) for X in all_X_components2]
-
-                    true_mu2s2 = [mu2_X_given_Y(theta2, y, theta_fixed) for y in Y]
-
-                    @test isapprox(all_mu2s2, true_mu2s2, rtol = mu2_tol)
-                end
-
-
-                @testset "Conditional third moment" begin
-                    all_X_components1 = [[all_Xs1[i][j] for i in 1:M] for j in eachindex(Y)]
-                    all_mu3s1 = [mean(X.^3) for X in all_X_components1]
-
-                    true_mu3s1 = [mu3_X_given_Y(theta1, y, theta_fixed) for y in Y]
-
-                    @test isapprox(all_mu3s1, true_mu3s1, rtol = mu3_tol)
+                    # norm(mean_X0_sq - true_mean_X0_sq) / max(norm(mean_X0_sq), norm(true_mean_X0_sq))
+                    @test isapprox(mean_X0_sq, true_mean_X0_sq, rtol = mu2_tol)
 
 
 
-                    all_X_components2 = [[all_Xs2[i][j] for i in 1:M] for j in eachindex(Y)]
-                    all_mu3s2 = [mean(X.^3) for X in all_X_components2]
+                    all_X1s_sq = [X * X' for X in all_Xs1]
+                    mean_X1_sq = mean(all_X1s_sq)
 
-                    true_mu3s2 = [mu3_X_given_Y(theta2, y, theta_fixed) for y in Y]
+                    true_mean_X1_sq = mu2_X_given_Y(theta1, Y)
 
-                    @test isapprox(all_mu3s2, true_mu3s2, rtol = mu3_tol)
-                end
-
-
-
-                @testset "Conditional fourth moment" begin
-                    all_X_components1 = [[all_Xs1[i][j] for i in 1:M] for j in eachindex(Y)]
-                    all_mu4s1 = [mean(X.^4) for X in all_X_components1]
-
-                    true_mu4s1 = [mu4_X_given_Y(theta1, y, theta_fixed) for y in Y]
-
-                    @test isapprox(all_mu4s1, true_mu4s1, rtol = mu4_tol)
-
-
-
-                    all_X_components2 = [[all_Xs2[i][j] for i in 1:M] for j in eachindex(Y)]
-                    all_mu4s2 = [mean(X.^4) for X in all_X_components2]
-
-                    true_mu4s2 = [mu4_X_given_Y(theta2, y, theta_fixed) for y in Y]
-
-                    @test isapprox(all_mu4s2, true_mu4s2, rtol = mu4_tol)
+                    # norm(mean_X1_sq - true_mean_X1_sq) / max(norm(mean_X1_sq), norm(true_mean_X1_sq))
+                    @test isapprox(mean_X1_sq, true_mean_X1_sq, rtol = mu2_tol)
                 end
             end
         end
@@ -177,28 +151,28 @@
                 # ---------------------- Starting at true value of theta --------------------- #
 
                 Random.seed!(1)
-                theta_hat1, all_Xs1 = MCEM_update(theta1, Y, theta_fixed, M, return_X = true)
+                theta_hat0, all_Xs0 = MCEM_update_iid(theta0, Y, M, return_X = true)
 
-                Q_old = Q_MCEM(theta1, Y, all_Xs1, theta_fixed)
-                Q_new = Q_MCEM(theta_hat1, Y, all_Xs1, theta_fixed)
-                Q_diff1 = Q_new - Q_old
+                Q_old = Q_MCEM_iid(theta0, Y, all_Xs0)
+                Q_new = Q_MCEM_iid(theta_hat0, Y, all_Xs0)
+                Q_diff0 = Q_new - Q_old
 
-                Q_increment1 = Q_MCEM_increment(theta_hat1, theta1, Y, all_Xs1, theta_fixed)
+                Q_increment0 = Q_MCEM_increment_iid(theta_hat0, theta0, Y, all_Xs0)
 
-                @test Q_diff1 ≈ Q_increment1
+                @test Q_diff0 ≈ Q_increment0
 
 
                 # ------------------ Starting away from true value of theta ------------------ #
                 Random.seed!(1)
-                theta_hat2, all_Xs2 = MCEM_update(theta2, Y, theta_fixed, M, return_X = true)
+                theta_hat1, all_Xs1 = MCEM_update_iid(theta1, Y, M, return_X = true)
 
-                Q_old = Q_MCEM(theta2, Y, all_Xs2, theta_fixed)
-                Q_new = Q_MCEM(theta_hat2, Y, all_Xs2, theta_fixed)
-                Q_diff2 = Q_new - Q_old
+                Q_old = Q_MCEM_iid(theta1, Y, all_Xs1)
+                Q_new = Q_MCEM_iid(theta_hat1, Y, all_Xs1)
+                Q_diff1 = Q_new - Q_old
 
-                Q_increment2 = Q_MCEM_increment(theta_hat2, theta2, Y, all_Xs2, theta_fixed)
+                Q_increment1 = Q_MCEM_increment_iid(theta_hat1, theta1, Y, all_Xs1)
 
-                @test Q_diff2 ≈ Q_increment2
+                @test Q_diff1 ≈ Q_increment1
             end
 
         end
@@ -211,29 +185,29 @@
                 
                 Random.seed!(1)
                 noise_sizes = randn(100)
-                noise_grid = [0.1 * theta1 .* noise_sizes[i] for i in eachindex(noise_sizes)]
+                noise_grid = [0.1 * theta0 .* noise_sizes[i] for i in eachindex(noise_sizes)]
 
-                # ---------------------------- Starting at theta1 ---------------------------- #
-                theta_old = theta1
+                # ---------------------------- Starting at theta0 ---------------------------- #
+                theta_old = theta0
 
                 Random.seed!(1)
-                theta_hat1, all_Xs1 = MCEM_update(theta1, Y, theta_fixed, M, return_X = true)
-                Q_max = Q_MCEM(theta_hat1, Y, all_Xs1, theta_fixed)
+                theta_hat0, all_Xs0 = MCEM_update_iid(theta0, Y, M, return_X = true)
+                Q_max = Q_MCEM_iid(theta_hat0, Y, all_Xs0)
 
-                nearby_theta_values = [theta_hat1 + noise_grid[i] for i in eachindex(noise_grid)]
+                nearby_theta_values = [theta_hat0 + noise_grid[i] for i in eachindex(noise_grid)]
 
-                nearby_Q_values = [Q_MCEM(theta, Y, all_Xs1, theta_fixed) for theta in nearby_theta_values]
+                nearby_Q_values = [Q_MCEM_iid(theta, Y, all_Xs0) for theta in nearby_theta_values]
 
                 @test all(Q_max .>= nearby_Q_values)
 
-                # ---------------------------- Starting at theta2 ---------------------------- #
+                # ---------------------------- Starting at theta1 ---------------------------- #
 
-                theta_hat2, all_Xs2 = MCEM_update(theta2, Y, theta_fixed, M, return_X = true)
-                Q_max = Q_MCEM(theta_hat2, Y, all_Xs2, theta_fixed)
+                theta_hat1, all_Xs1 = MCEM_update_iid(theta1, Y, M, return_X = true)
+                Q_max = Q_MCEM_iid(theta_hat1, Y, all_Xs1)
 
-                nearby_theta_values = [theta_hat2 + noise_grid[i] for i in eachindex(noise_grid)]
+                nearby_theta_values = [theta_hat1 + noise_grid[i] for i in eachindex(noise_grid)]
 
-                nearby_Q_values = [Q_MCEM(theta, Y, all_Xs2, theta_fixed) for theta in nearby_theta_values]
+                nearby_Q_values = [Q_MCEM_iid(theta, Y, all_Xs1) for theta in nearby_theta_values]
 
                 @test all(Q_max .>= nearby_Q_values)            
             end
@@ -274,16 +248,16 @@
             # @showprogress for b in 1:B
 
                 # Generate conditional sample
-                all_Xs = sample_X_given_Y(theta1, Y, theta_fixed, M)
+                all_Xs = sample_X_given_Y(theta0, Y, M)
 
                 # Run MCEM
                 theta_hat = MCEM_update(Y, all_Xs)
 
                 # Estimated ASE
-                all_ASEs[b] = get_ASE(theta_hat, theta1, Y, all_Xs, theta_fixed)
+                all_ASEs[b] = get_ASE(theta_hat, theta0, Y, all_Xs)
 
                 # Improvement in MCEM objective function
-                all_increments[b] = Q_MCEM_increment(theta_hat, theta1, Y, all_Xs, theta_fixed)
+                all_increments[b] = Q_MCEM_increment(theta_hat, theta0, Y, all_Xs)
             end
 
             # Average ASE
@@ -309,16 +283,16 @@
             # @showprogress for b in 1:B
 
                 # Generate conditional sample
-                all_Xs = sample_X_given_Y(theta2, Y, theta_fixed, M)
+                all_Xs = sample_X_given_Y(theta1, Y, M)
 
                 # Run MCEM
                 theta_hat = MCEM_update(Y, all_Xs)
 
                 # Estimated ASE
-                all_ASEs[b] = get_ASE(theta_hat, theta2, Y, all_Xs, theta_fixed)
+                all_ASEs[b] = get_ASE(theta_hat, theta1, Y, all_Xs)
 
                 # Improvement in MCEM objective function
-                all_increments[b] = Q_MCEM_increment(theta_hat, theta2, Y, all_Xs, theta_fixed)
+                all_increments[b] = Q_MCEM_increment(theta_hat, theta1, Y, all_Xs)
             end
 
             # Average ASE
@@ -344,18 +318,18 @@
 
             # Ordinary MCEM updates
             Random.seed!(1)
-            theta_hat_MCEM1 = MCEM_update(theta1, Y, theta_fixed, M)
+            theta_hat_MCEM0 = MCEM_update(theta0, Y, M)
             Random.seed!(1)
-            theta_hat_MCEM2 = MCEM_update(theta2, Y, theta_fixed, M)
+            theta_hat_MCEM1 = MCEM_update(theta1, Y, M)
 
             # Ascent MCEM updates
             Random.seed!(1)
-            theta_hat_ascent_MCEM1 = ascent_MCEM_update(theta1, Y, theta_fixed, M, 0.05, 3)
+            theta_hat_ascent_MCEM0 = ascent_MCEM_update(theta0, Y, M, 0.05, 3)
             Random.seed!(1)
-            theta_hat_ascent_MCEM2 = ascent_MCEM_update(theta2, Y, theta_fixed, M, 0.05, 3)
+            theta_hat_ascent_MCEM1 = ascent_MCEM_update(theta1, Y, M, 0.05, 3)
 
+            @test isapprox(theta_hat_ascent_MCEM0, theta_hat_MCEM0, rtol = tol)
             @test isapprox(theta_hat_ascent_MCEM1, theta_hat_MCEM1, rtol = tol)
-            @test isapprox(theta_hat_ascent_MCEM2, theta_hat_MCEM2, rtol = tol)
         end
 
 

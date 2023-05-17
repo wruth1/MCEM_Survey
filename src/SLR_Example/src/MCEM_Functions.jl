@@ -6,6 +6,10 @@ export MCEM_update_iid
 export conditional_complete_information_iid, conditional_complete_sq_score_iid
 export obs_information_formula_iid, MCEM_cov_formula_iid
 
+export Q_MCEM_iid, Q_MCEM_increment_iid
+
+export run_MCEM_fixed_iteration_count
+
 
 
 
@@ -44,7 +48,7 @@ end
 Generate M observations from the conditional distribution of X given Y.
 """
 function sample_X_given_Y_iid(M, theta, Y)
-    return [one_X_given_Y_iid(theta, Y) for i in 1:M]
+    return [one_X_given_Y_iid(theta, Y) for _ in 1:M]
 end
 
 # all_Xs = sample_X_given_Y_iid(100, theta, Y)
@@ -191,6 +195,61 @@ function MCEM_cov_formula_iid(theta, Y, M, return_X)
         return MCEM_cov_formula_iid(theta, Y, all_Xs), all_Xs
     else
         return MCEM_cov_formula_iid(theta, Y, all_Xs)
+    end
+end
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                              Objective Function                              #
+# ---------------------------------------------------------------------------- #
+
+"""
+Evaluate the MCEM objective function under iid sampling.
+"""
+function Q_MCEM_iid(theta, Y, all_Xs)
+    sum_loglik = 0
+    for X in all_Xs
+        this_loglik = complete_data_log_lik(theta, Y, X)
+        sum_loglik += this_loglik
+    end
+
+    return sum_loglik / length(all_Xs)
+end
+
+
+"""
+Evaluate the improvement in the MCEM objective function under iid sampling.
+"""
+function Q_MCEM_increment_iid(theta_new, theta_old, Y, all_Xs)
+    A = Q_MCEM_iid(theta_new, Y, all_Xs)
+    B = Q_MCEM_iid(theta_old, Y, all_Xs)
+
+    return A - B
+end
+
+
+
+# ---------------------------------------------------------------------------- #
+#                   Run MCEM with fixed number of iterations                   #
+# ---------------------------------------------------------------------------- #
+
+function run_MCEM_fixed_iteration_count(theta_init, Y, M, K; return_trajectory=false)
+    all_theta_hats = Vector{Vector{Float64}}(undef, K+1)
+    all_theta_hats[1] = theta_init
+
+    theta_hat = theta_init
+
+    for i in 1:K
+        theta_hat = MCEM_update_iid(theta_hat, Y, M)
+        all_theta_hats[i+1] = theta_hat
+    end
+
+    if return_trajectory
+        return theta_hat, all_theta_hats
+    else
+        return theta_hat
     end
 end
 

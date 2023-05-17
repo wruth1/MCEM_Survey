@@ -54,12 +54,22 @@ theta2 = [0.2, 0.4]
 #                             Actual Data Analysis                             #
 # ---------------------------------------------------------------------------- #
 
-Y = [1305924, 1725950, 988996, 444479]
-sum(Y) - 4465349
+# # Full dataset
+# # Sample size is so large that variability is negligible
+# Y = [1305924, 1725950, 988996, 444479]
+# sum(Y) - 4465349
+
+# # A smaller sample from the city of Yame in Fukuoka Prefecture
+# # Yame is where Gyokuru is grown
+# Y = [664, 1092, 538, 257]
+
+# # A very small sample (comparatively), from the city of Tonosho in Kagawa Prefecture
+# Y = [49, 80, 28, 11]
+
+# # A very very small sample, from the administrative division of Oto in Nara Prefecture
+Y = [10, 16, 7, 1]
 
 theta_init = [1/3, 1/3]
-
-
 
 
 # ---------------------------------------------------------------------------- #
@@ -76,15 +86,15 @@ cov_MLE = obs_data_MLE_Cov(theta_MLE, Y)
 # ---------------------------------------------------------------------------- #
 
 # ----------------------------- Compute estimate ----------------------------- #
-theta_hat_EM, theta_hat_traj = run_EM(theta_init, Y, rtol = 1e-8, return_trajectory=true)
+theta_hat_EM, theta_hat_traj_EM = run_EM(theta_init, Y, rtol = 1e-8, return_trajectory=true)
 p_hat_EM, q_hat_EM = theta_hat_EM
 r_hat_EM = 1 - p_hat_EM - q_hat_EM
 
 # ----------------------------- Plot Trajectories ---------------------------- #
-p_hat_traj = getindex.(theta_hat_traj, 1)
-q_hat_traj = getindex.(theta_hat_traj, 2)
+p_hat_traj = getindex.(theta_hat_traj_EM, 1)
+q_hat_traj = getindex.(theta_hat_traj_EM, 2)
 
-EM_plot = plot(p_hat_traj, label = "p", xlabel = "Iteration", ylabel = "Estimate", size = (1100, 1000), margin=10mm)
+EM_plot = plot(p_hat_traj, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
 plot!(EM_plot, q_hat_traj, label = "q")
 scatter!(EM_plot, p_hat_traj, label = nothing)
 scatter!(EM_plot, q_hat_traj, label = nothing)
@@ -95,6 +105,30 @@ obs_info_EM = EM_obs_data_information_formula(theta_hat_EM, Y)
 cov_EM = EM_COV_formula(theta_hat_EM, Y)
 
 cov_EM - cov_MLE
+
+
+
+# ---------------------------------------------------------------------------- #
+#                             Analysis: Naive MCEM                             #
+# ---------------------------------------------------------------------------- #
+
+# Fixed MC size for each iteration
+M = 100
+
+# Preliminary number of iterations
+K = 50
+
+theta_hat_MCEM, theta_hat_traj_MCEM = run_MCEM_fixed_iteration_count(theta_init, Y, M, K; return_trajectory=true)
+cov_MCEM = MCEM_cov_formula_iid(theta_hat_MCEM, Y, M, false)
+
+# ----------------------------- Plot Trajectories ---------------------------- #
+p_hat_traj = getindex.(theta_hat_traj_MCEM, 1)
+q_hat_traj = getindex.(theta_hat_traj_MCEM, 2)
+
+naive_MCEM_plot = plot(p_hat_traj, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
+plot!(naive_MCEM_plot, q_hat_traj, label = "q")
+savefig(naive_MCEM_plot, plotsdir("Blood_Type", "naive_MCEM_traj.pdf"))
+
 
 
 # ---------------------------------------------------------------------------- #

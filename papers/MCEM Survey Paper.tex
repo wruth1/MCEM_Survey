@@ -256,7 +256,7 @@ Proposition \ref{thm:info_decomp} is known as Louis' standard error formula. Oth
 
 Consider the problem of estimating allele frequencies based on observed phenotypes. Often, a single phenotype can be encoded by multiple genotypes with different configurations of dominant and recessive alleles. This is sometimes referred to as the problem of gene frequency estimation\index{Gene Frequency Estimation}. Our analysis closely follows Example 2.4 from \citet{McL08}\footnote{Although these authors do give data in their example, there is little context around this data, and I have been unable to locate more information from their references. I have opted instead to use my own dataset.}
 
-We investigate a simplified model for blood type which consists of only the ABO blood group. See Chapter 5 of \citet{Dea05}, for a detailed introduction to blood types\index{Blood Type}. There are three alleles for this gene: A, B and O. Allele O is recessive, which alleles A and B exhibit co-dominance. That is, genotypes AO and AA encode blood type A, genotypes BO and BB encode blood type B, genotype OO encodes blood type O, and genotype AB encodes blood type AB. Suppose that we seek to estimate the proportion of each allele within a population, based on a sample of individuals' phenotypes. \citet{Fuj78} report blood types of 4,464,349 people in Japan collected between 1964 and 1975, see Figure \ref{tab:blood_type}. 
+We investigate a simplified model for blood type which consists of only the ABO blood group. See Chapter 5 of \citet{Dea05}, for a detailed introduction to blood types\index{Blood Type}. There are three alleles for this gene: A, B and O. Allele O is recessive, which alleles A and B exhibit co-dominance. That is, genotypes AO and AA encode blood type A, genotypes BO and BB encode blood type B, genotype OO encodes blood type O, and genotype AB encodes blood type AB. Suppose that we seek to estimate the proportion of each allele within a population, based on a sample of individuals' phenotypes. \citet{Fuj78} report blood types of 4,464,349 people in Japan collected between 1964 and 1975. This sample is so large that any standard errors are very small. To retain a reasonable level of uncertainty, we focus on a single administrative division, Oto, in Nara Prefecture. See Figure \ref{tab:blood_type} for details.
 
 \begin{table}
     \centering
@@ -265,7 +265,7 @@ We investigate a simplified model for blood type which consists of only the ABO 
         Blood Type & O & A & B & AB\\
         \hline
         Random Variable & $Y_1$ & $Y_2$ & $Y_3$ & $Y_4$\\
-        Observed Frequency & 1,305,924 & 1,725,950 & 988,996 & 444,479\\
+        Observed Frequency & 10 & 16 & 7 & 1\\
         Probability & $r^2$ & $p^2 + 2pr$ & $q^2 + 2qr$ & $2pq$
     \end{tabular}
     \label{tab:blood_type}
@@ -273,7 +273,7 @@ We investigate a simplified model for blood type which consists of only the ABO 
 
 Let $Y_1$, $Y_2$, $Y_3$ and $Y_4$ be the number of people with blood type O, A, B and AB respectively, and $Y = (Y_1, Y_2, Y_3, Y_4)$. Let $r$, $p$ and $q$ be the proportions of alleles O, A and B respectively within the population of interest. Since $r + p + q = 1$, we let $\theta = (p, q)$ be our target of inference. Pretending that the population size is fixed and that iid sampling was employed, $Y$ follows a multinomial distribution with $n =$ 4,464,349. Assuming homogeneous genetic mixing, the probability vector for $Y$ is $\pi = (r^2, p^2 + 2pr, q^2 + 2qr, 2pq)$.
 
-Maximizing the likelihood in this model involves solving the score equation, a system of two 3rd-degree polynomials in $p$ and $q$. This can be done numerically, and gives estimates $p = 0.283$ and $q = 0.176$. These values match the ones given by \citet{Fuj78}. The information matrix and asymptotic covariance (inverse information matrix) are given by
+Maximizing the likelihood in this model involves solving the score equation, a system of two 3rd-degree polynomials in $p$ and $q$. This can be done numerically, and gives estimates $p = 0.299$ and $q = 0.128$. These values match the ones given by \citet{Fuj78}. The information matrix and asymptotic covariance (inverse information matrix) are given by
 %
 \begin{align}
     I(\hat{\theta}) &= \begin{bmatrix}
@@ -335,9 +335,10 @@ where $nu^{(k)}_O$, $\nu^{(k)}_A$ and $\nu^{(k)}_B$ are the expected number of O
 Starting with $\theta_0 = (1/3, 1/3)$ corresponding to equal proportions of the three alleles, Figure \ref{fig:blood_EM_traj} gives trajectories of the EM estimates for $p$ and $q$ using the data in Figure \ref{tab:blood_type}. These estimates converge quite quickly the maximizer of the observed data likelihood.
 %
 \begin{figure}
+    \centering
     \caption{Trajectory of EM estimates for $p$ and $q$ for the blood type example.}
     \label{fig:blood_EM_traj}
-    \includegraphics[width=\textwidth]{../plots/Blood_Type/EM_traj.pdf}
+    \includegraphics[width=0.5\textwidth]{../plots/Blood_Type/EM_traj.pdf}
 \end{figure}
 %
 Beyond computing the observed data MLE, we also need the standard error of this estimator. To this end, we compute the observed data information matrix using Louis' Method (see Proposition \ref{thm:info_decomp}). The asymptotic covariance matrix of our MLE is then the inverse of this information matrix. Omitting details (see Appendices \ref{app:blood_complete} and \ref{app:blood_miss}), both the observed data information matrix and asymptotic covariance match those obtained from the observed data likelihood. 
@@ -371,11 +372,20 @@ The MCEM algorithm has the advantage of circumventing the challenge of computing
 
 Two problems which have received considerable attention in the literature are how to choose the Monte Carlo sample size at each iteration, and how to decide when to terminate the MCEM algorithm. These were identified as early as \citet{Wei90}, but did not receive systematic treatment until later. We here give a brief overview of different authors' approaches to solving these two problems, and spend the rest of this section going into more detail on each method individually. \citet{Wei90} suggest examining a plot of the parameter estimates across iterations, and either terminating or increasing the Monte Carlo size when the plot appears to stabilize. \citet{Cha95} use a pilot study to choose the Monte Carlo sample size, and terminate when a confidence interval for the improvement of the observed data log-likelihood between successive iterations contains zero. \citet{Boo99} frame each MCEM iteration as an M-estimation problem targeting the deterministic EM update. They increase the Monte Carlo size if an asymptotic confidence interval for the EM update contains the previous iteration's parameter estimate, and terminate when multiple successive iterations' estimates have sufficiently small relative error. \citet{Caf05} build confidence bounds for the increment in the EM objective function at each iteration of the MCEM algorithm. They increase the Monte Carlo size until the lower bound is positive and terminate when the upper bound is sufficiently small.
 
-In the rest of this section, we give more detail on each of the implementations introduced above.
+In the rest of this section, we give more detail on each of the implementations introduced above. In each subsection, we also describe how the method being discussed can be used to analyze the blood type dataset described in Section \ref{sec:eg-genes}. The relevant conditional distribution and likelihood calculations are described in Appendix \ref{app:blood_miss}.
 
 \subsection{Early Work (\citealp{Wei90})}
 
 In their seminal work, \citet{Wei90} propose the MCEM algorithm and present a simple implementation. They illustrate that the complete data gradient and Hessian are easily obtained at each iteration from the Monte Carlo sample and, following \citet{Lou82}, give an estimator for the observed data information matrix. Regarding convergence, \citeauthor{Wei90} recommend plotting the parameter estimates across iterations and stopping when the estimates appear to stabilize around some constant. When this stabilization is detected, one can either declare convergence and stop, or increase the Monte Carlo size and continue iterating until the estimate trajectory again stabilizes.
+
+In order to apply the MCEM algorithm to estimate allele frequencies in the blood type problem, we must specify the number of iterations and the Monte Carlo size for each iteration. Starting conservatively, we use 50 iterations and an MC size of 100. Figure \ref{fig:blood_naive_MCEM_traj} gives trajectories of the MCEM estimates for $p$ and $q$. These estimates appear to stabilize quickly, and with a high degree of precision. Taking the output from the final iteration as our estimate, we get $\hat{p} = 0.315$ and $\hat{q} = 0.170$.
+
+\begin{figure}
+    \centering
+    \caption{Trajectory of MCEM estimates for $p$ and $q$ for the blood type example.}
+    \label{fig:blood_naive_MCEM_traj}
+    \includegraphics[width=0.5\textwidth]{../plots/Blood_Type/naive_MCEM_traj.pdf}
+\end{figure}
 
 \subsection{Running a Pilot Study}
 
