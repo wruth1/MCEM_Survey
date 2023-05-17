@@ -77,6 +77,7 @@ theta_init = [1/3, 1/3]
 # ---------------------------------------------------------------------------- #
 
 theta_MLE = obs_data_MLE(Y)
+obs_info = obs_data_obs_info(theta_MLE,Y)
 cov_MLE = obs_data_MLE_Cov(theta_MLE, Y)
 
 
@@ -118,17 +119,31 @@ M = 100
 # Preliminary number of iterations
 K = 50
 
-theta_hat_MCEM, theta_hat_traj_MCEM = run_MCEM_fixed_iteration_count(theta_init, Y, M, K; return_trajectory=true)
-cov_MCEM = MCEM_cov_formula_iid(theta_hat_MCEM, Y, M, false)
+theta_hat_MCEM1, theta_hat_traj_MCEM1 = run_MCEM_fixed_iteration_count(theta_init, Y, M, K; return_trajectory=true)
+cov_MCEM1 = MCEM_cov_formula_iid(theta_hat_MCEM1, Y, M, false)
 
 # ----------------------------- Plot Trajectories ---------------------------- #
-p_hat_traj = getindex.(theta_hat_traj_MCEM, 1)
-q_hat_traj = getindex.(theta_hat_traj_MCEM, 2)
+p_hat_traj1 = getindex.(theta_hat_traj_MCEM1, 1)
+q_hat_traj1 = getindex.(theta_hat_traj_MCEM1, 2)
 
-naive_MCEM_plot = plot(p_hat_traj, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
-plot!(naive_MCEM_plot, q_hat_traj, label = "q")
-savefig(naive_MCEM_plot, plotsdir("Blood_Type", "naive_MCEM_traj.pdf"))
+naive_MCEM_plot1 = plot(p_hat_traj1, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
+plot!(naive_MCEM_plot1, q_hat_traj1, label = "q")
+savefig(naive_MCEM_plot1, plotsdir("Blood_Type", "naive_MCEM_traj1.pdf"))
 
+
+# --------------------------- Re-Run With Larger M --------------------------- #
+M_large = 1000
+K_new = 20
+
+theta_hat_MCEM2, theta_hat_traj_MCEM2 = run_MCEM_fixed_iteration_count(theta_hat_MCEM1, Y, M_large, K_new; return_trajectory=true)
+cov_MCEM2 = MCEM_cov_formula_iid(theta_hat_MCEM2, Y, M, false)
+
+p_hat_traj2 = getindex.(theta_hat_traj_MCEM2, 1)
+q_hat_traj2 = getindex.(theta_hat_traj_MCEM2, 2)
+
+naive_MCEM_plot2 = plot(p_hat_traj2, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
+plot!(naive_MCEM_plot2, q_hat_traj2, label = "q")
+savefig(naive_MCEM_plot2, plotsdir("Blood_Type", "naive_MCEM_traj2.pdf"))
 
 
 # ---------------------------------------------------------------------------- #

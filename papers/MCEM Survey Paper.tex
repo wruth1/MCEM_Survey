@@ -277,12 +277,12 @@ Maximizing the likelihood in this model involves solving the score equation, a s
 %
 \begin{align}
     I(\hat{\theta}) &= \begin{bmatrix}
-        3.94 \cdot 10^7 & 1.20 \cdot 10^7\\
-        1.20 \cdot 10^7 & 5.95 \cdot 10^7
+        276 & 84.8\\
+        84.8 & 584
     \end{bmatrix}\\
     \hat{\Sigma}_\mathrm{MLE} &= \begin{bmatrix}
-        2.70 \cdot 10^{-8} & -5.46 \cdot 10^{-9}\\
-        -5.46 \cdot 10^{-9} & 1.79 \cdot 10^{-8}
+        3.79 \cdot 10^{-3} & -5.49 \cdot 10^{-4}\\
+        -5.49 \cdot 10^{-4} & 1.79 \cdot 10^{-3}
     \end{bmatrix}
 \end{align}
 
@@ -332,7 +332,7 @@ where $nu^{(k)}_O$, $\nu^{(k)}_A$ and $\nu^{(k)}_B$ are the expected number of O
     \end{pmatrix}
 \end{align}
 %
-Starting with $\theta_0 = (1/3, 1/3)$ corresponding to equal proportions of the three alleles, Figure \ref{fig:blood_EM_traj} gives trajectories of the EM estimates for $p$ and $q$ using the data in Figure \ref{tab:blood_type}. These estimates converge quite quickly the maximizer of the observed data likelihood.
+Starting with $\theta_0 = (1/3, 1/3)$ corresponding to equal proportions of the three alleles, Figure \ref{fig:blood_EM_traj} gives trajectories of the EM estimates for $p$ and $q$ using the data in Figure \ref{tab:blood_type}. These estimates converge quite quickly to the maximizer of the observed data likelihood.
 %
 \begin{figure}
     \centering
@@ -378,13 +378,26 @@ In the rest of this section, we give more detail on each of the implementations 
 
 In their seminal work, \citet{Wei90} propose the MCEM algorithm and present a simple implementation. They illustrate that the complete data gradient and Hessian are easily obtained at each iteration from the Monte Carlo sample and, following \citet{Lou82}, give an estimator for the observed data information matrix. Regarding convergence, \citeauthor{Wei90} recommend plotting the parameter estimates across iterations and stopping when the estimates appear to stabilize around some constant. When this stabilization is detected, one can either declare convergence and stop, or increase the Monte Carlo size and continue iterating until the estimate trajectory again stabilizes.
 
-In order to apply the MCEM algorithm to estimate allele frequencies in the blood type problem, we must specify the number of iterations and the Monte Carlo size for each iteration. Starting conservatively, we use 50 iterations and an MC size of 100. Figure \ref{fig:blood_naive_MCEM_traj} gives trajectories of the MCEM estimates for $p$ and $q$. These estimates appear to stabilize quickly, and with a high degree of precision. Taking the output from the final iteration as our estimate, we get $\hat{p} = 0.315$ and $\hat{q} = 0.170$.
+In order to apply the MCEM algorithm to estimate allele frequencies in the blood type problem, we must specify the number of iterations, $K$, and the Monte Carlo size for each iteration, $M$. Starting conservatively, we use $K=50$ and $M=100$. Figure \ref{fig:blood_naive_MCEM_traj1} gives trajectories of the MCEM estimates for $p$ and $q$. These estimates appear to converge quickly to a stationary mean, but there is still some uncertainty around this mean. As such, we run MCEM for another 20 iterations with $M=1000$, staring with the final value from our first run. See Figure \ref{fig:blood_naive_MCEM_traj2}. The trajectories from our second run are much more stable around their means. We use the final values from these trajectories as our estimates: $\hat{p} = 0.298$ and $\hat{q} = 0.128$. These values closely match the maximizer of the observed data likelihood.
 
 \begin{figure}
     \centering
     \caption{Trajectory of MCEM estimates for $p$ and $q$ for the blood type example.}
     \label{fig:blood_naive_MCEM_traj}
-    \includegraphics[width=0.5\textwidth]{../plots/Blood_Type/naive_MCEM_traj.pdf}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width = 1\textwidth]{../plots/Blood_Type/naive_MCEM_traj1.pdf}
+        \caption{$M=100$}
+        \label{fig:blood_naive_MCEM_traj1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width = 1\textwidth]{../plots/Blood_Type/naive_MCEM_traj2.pdf}
+        \caption{$M=1000$}
+        \label{fig:blood_naive_MCEM_traj2}
+    \end{subfigure}
+   
 \end{figure}
 
 \subsection{Running a Pilot Study}
