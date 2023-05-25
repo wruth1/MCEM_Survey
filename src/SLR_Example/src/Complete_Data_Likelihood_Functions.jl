@@ -1,7 +1,7 @@
 
 export num_O_alleles, num_A_alleles, num_B_alleles, num_OAB_alleles
 
-export complete_data_log_lik
+export complete_data_log_lik, complete_data_log_lik_increment
 export complete_data_score
 export complete_data_Hessian
 
@@ -63,6 +63,15 @@ function complete_data_log_lik(theta, Y, X)
 
     output = num_O * log(r) + num_A * log(p) + num_B * log(q)    
     return output
+end
+
+"""
+Change in the log-likelihood from theta_old to theta_new.
+"""
+function complete_data_log_lik_increment(theta_new, theta_old, Y, X)
+    A = complete_data_log_lik(theta_new, Y, X)
+    B = complete_data_log_lik(theta_old, Y, X)
+    return A - B
 end
 
 

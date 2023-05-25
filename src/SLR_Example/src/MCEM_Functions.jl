@@ -155,7 +155,7 @@ function conditional_complete_sq_score_iid(theta, Y, M, return_X)
     else
         return conditional_complete_sq_score_iid(theta, Y, all_Xs)
     end
-end
+end    
 
 
 """

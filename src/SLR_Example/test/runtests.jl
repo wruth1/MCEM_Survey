@@ -40,6 +40,10 @@ theta_old = theta1
 all_thetas = [theta0, theta1]
 
 
+M = 100
+all_Xs = sample_X_given_Y_iid(M, theta1, Y)
+
+
 
 # include("src\\SLR_Example\\test\\Tests-Low_Level_Functions.jl")
 include("Tests-Low_Level_Functions.jl")

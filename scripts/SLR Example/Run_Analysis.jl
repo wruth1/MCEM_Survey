@@ -128,6 +128,7 @@ q_hat_traj1 = getindex.(theta_hat_traj_MCEM1, 2)
 
 naive_MCEM_plot1 = plot(p_hat_traj1, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
 plot!(naive_MCEM_plot1, q_hat_traj1, label = "q")
+# hline!(naive_MCEM_plot1, [theta_MLE], label = nothing)
 savefig(naive_MCEM_plot1, plotsdir("Blood_Type", "naive_MCEM_traj1.pdf"))
 
 
@@ -152,15 +153,24 @@ savefig(naive_MCEM_plot2, plotsdir("Blood_Type", "naive_MCEM_traj2.pdf"))
 
 alpha1 = 0.2
 alpha2 = 0.2
-alpha3 = 0.3
+alpha3 = 0.1
 k = 2
-atol = 1e-2
+atol = 1e-1
 AMCEM_control = Ascent_MCEM_Control(alpha1, alpha2, alpha3, k, atol)
+ascent_MCEM_control = AMCEM_control
 
-M_init = 500
+M_init = 10
 
 
 some_theta_AMCEMs = []
 
-theta_AMCEM = run_ascent_MCEM([0.1, 0.1], Y, theta_fixed, M_init, AMCEM_control)
-push!(some_theta_AMCEMs, theta_AMCEM)
+theta_AMCEM, all_theta_hat_AMCEMs = run_ascent_MCEM([0.1, 0.1], Y, M_init, AMCEM_control; diagnostics=true)
+
+
+
+p_hat_traj_AMCEM = getindex.(all_theta_hat_AMCEMs, 1)
+q_hat_traj_AMCEM = getindex.(all_theta_hat_AMCEMs, 2)
+
+AMCEM_plot = plot(p_hat_traj_AMCEM, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20));
+plot!(AMCEM_plot, q_hat_traj_AMCEM, label = "q");
+hline!(AMCEM_plot, [theta_MLE], label = nothing)
