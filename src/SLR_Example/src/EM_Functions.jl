@@ -1,7 +1,7 @@
 
 export EM_update, run_EM
 export expected_complete_info
-export get_allele_weights, get_M_score, expected_squared_score
+export get_allele_weights, get_M_score, expected_squared_score, cov_score
 export EM_obs_data_information_formula, EM_COV_formula, EM_SE_formula
 export Q_EM
 
@@ -123,6 +123,19 @@ function expected_squared_score(theta, Y)
     cond_sq_X = mu2_X_given_Y(theta, Y)
 
     cov_score = M * cond_sq_X * M'
+    return cov_score
+end
+
+
+"""
+Conditional covariance of the score function given Y.
+"""
+function cov_score(theta, Y)
+    M = get_M_score(theta)
+
+    cov_X = cov_X_given_Y(theta, Y)
+
+    cov_score = M * cov_X * M'
     return cov_score
 end
 

@@ -1,6 +1,7 @@
 
 export get_alpha1, get_alpha2, get_beta1, get_beta2
 export mu_X_given_Y, cov_X_given_Y, mu2_X_given_Y
+export cov_X_given_Y
 
 
 # ---------------------------------------------------------------------------- #

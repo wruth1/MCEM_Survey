@@ -3,7 +3,7 @@
 export one_X_given_Y_iid, sample_X_given_Y_iid
 export MCEM_update_iid
 
-export conditional_complete_information_iid, conditional_complete_sq_score_iid
+export conditional_complete_information_iid, conditional_complete_sq_score_iid, conditional_complete_score_cov_iid
 export obs_information_formula_iid, MCEM_cov_formula_iid
 
 export Q_MCEM_iid, Q_MCEM_increment_iid
@@ -127,20 +127,12 @@ end
 
 
 """
-Empirical conditional expectation of outer product of complete data score with itself.
+Empirical covariance matrix of complete data score.
 MC sample provided as argument.
 """
-function conditional_complete_sq_score_iid(theta, Y, all_Xs)
-    sum_sq_score = zeros(2,2)
-
-    for X in all_Xs
-        this_score = complete_data_score(theta, Y, X)
-        this_sq_score = this_score * this_score'
-        sum_sq_score += this_sq_score
-    end
-
-    mean_sq_score = sum_sq_score / length(all_Xs)
-    return mean_sq_score
+function conditional_complete_score_cov_iid(theta, Y, all_Xs)
+    all_scores = [complete_data_score(theta, Y, X) for X in all_Xs]
+    return cov(all_scores)
 end
 
 
@@ -148,12 +140,12 @@ end
 Empirical conditional expectation of outer product of complete data score with itself.
 MC sample computed internally.
 """
-function conditional_complete_sq_score_iid(theta, Y, M, return_X)
+function conditional_complete_score_cov_iid(theta, Y, M, return_X)
     all_Xs = sample_X_given_Y_iid(M, theta, Y)
     if return_X
-        return conditional_complete_sq_score_iid(theta, Y, all_Xs), all_Xs
+        return conditional_complete_score_cov_iid(theta, Y, all_Xs), all_Xs
     else
-        return conditional_complete_sq_score_iid(theta, Y, all_Xs)
+        return conditional_complete_score_cov_iid(theta, Y, all_Xs)
     end
 end    
 
@@ -164,7 +156,7 @@ MC sample provided as argument.
 """
 function obs_information_formula_iid(theta, Y, all_Xs)
     A = conditional_complete_information_iid(theta, Y, all_Xs)
-    B = conditional_complete_sq_score_iid(theta, Y, all_Xs)
+    B = conditional_complete_score_cov_iid(theta, Y, all_Xs)
 
     return A - B
 end

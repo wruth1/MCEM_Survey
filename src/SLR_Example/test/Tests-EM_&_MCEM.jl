@@ -291,13 +291,13 @@
                     @test (MCEM_cond_exp ≈ EM_cond_exp) (rtol = rtol)
                 end
 
-                @testset "Conditional expectation of squared score" begin
+                @testset "Conditional covariance of score" begin
                     # Relative tolerance
                     rtol = 0.01
 
-                    MCEM_cond_exp = conditional_complete_sq_score_iid(theta_hat_EM, Y, all_Xs)
+                    MCEM_cond_exp = conditional_complete_score_cov_iid(theta_hat_EM, Y, all_Xs)
 
-                    EM_cond_exp = expected_squared_score(theta_hat_EM, Y)
+                    EM_cond_exp = cov_score(theta_hat_EM, Y)
 
                     norm(MCEM_cond_exp - EM_cond_exp) / max(norm(MCEM_cond_exp), norm(EM_cond_exp))
 

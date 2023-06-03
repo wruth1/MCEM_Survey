@@ -95,10 +95,11 @@ r_hat_EM = 1 - p_hat_EM - q_hat_EM
 p_hat_traj = getindex.(theta_hat_traj_EM, 1)
 q_hat_traj = getindex.(theta_hat_traj_EM, 2)
 
-EM_plot = plot(p_hat_traj, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
+EM_plot = plot(p_hat_traj, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))#, xticks=[1, 5, 10, 15], xlims = (0,15))#length(p_hat_traj)])
 plot!(EM_plot, q_hat_traj, label = "q")
 scatter!(EM_plot, p_hat_traj, label = nothing)
 scatter!(EM_plot, q_hat_traj, label = nothing)
+hline!(EM_plot, [theta_MLE], label = nothing, linewidth=2, linecolor=:black)
 savefig(EM_plot, plotsdir("Blood_Type", "EM_traj.pdf"))
 
 # -------------------------------- Estimate SE ------------------------------- #
@@ -162,9 +163,8 @@ ascent_MCEM_control = AMCEM_control
 M_init = 10
 
 
-some_theta_AMCEMs = []
 
-theta_AMCEM, all_theta_hat_AMCEMs = run_ascent_MCEM([0.1, 0.1], Y, M_init, AMCEM_control; diagnostics=true)
+theta_AMCEM, all_theta_hat_AMCEMs = run_ascent_MCEM([0.3, 0.3], Y, M_init, AMCEM_control; diagnostics=true)
 
 
 
@@ -174,3 +174,6 @@ q_hat_traj_AMCEM = getindex.(all_theta_hat_AMCEMs, 2)
 AMCEM_plot = plot(p_hat_traj_AMCEM, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20));
 plot!(AMCEM_plot, q_hat_traj_AMCEM, label = "q");
 hline!(AMCEM_plot, [theta_MLE], label = nothing)
+
+
+
