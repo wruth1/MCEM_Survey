@@ -1,9 +1,20 @@
 
+export cov2cor
 export get_eta
 export get_ESS
 export get_complete_cell_probs
 export Y_from_X
 export ispossemidef
+
+
+
+"""
+Converts a covariance matrix to the corresponding correlation matrix.
+"""
+function cov2cor(cov_mat)
+    D = diagm(1 ./ sqrt.(abs.(diag(cov_mat))))
+    return D * cov_mat * D
+end
 
 
 """

@@ -224,7 +224,7 @@ An alternative to Proposition \ref{thm:EM_decomp} part \ref{eq:obs_info_identity
     In particular, if $\hat{\theta}$ is a stationary point of the observed data log-likelihood, then
     %
     \begin{align}
-        I(\hat{\theta}) = \mathcal{I}_c(\hat{\theta})  - \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta})^T | Y=y]
+        I(\hat{\theta}) = \mathcal{I}_c(\hat{\theta})  - \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta})^T | Y=y] \label{eq:info_at_MLE}
     \end{align}
 \end{proposition}
 
@@ -797,6 +797,22 @@ Note that, so far, our discussion of how to compute the mean-field approximate d
     where a superscript $k-1$ denotes that the quantity is computed by taking an expectation under $\theta_{k-1}$. Note that the equation for a stationary point of the EM algorithm, $M(\theta) = \theta$, has identical roots to the observed data score equation, $S(\theta) = 0$ \hl{(confirm this)}.
 
     \subsubsection{Asymptotic Standard Error}
+
+    Recall that the EM algorithm computes the MLE, which has asymptotic covariance matrix equal to the inverse Fisher information matrix evaluated at the true parameter value. In practice, we estimate this covariance with the inverse of the observed information matrix evaluated at the MLE. Using Proposition \ref{thm:info_decomp}, we can calculate the observed information matrix using conditional expectations of quantities derived from the complete data likelihood. 
+    
+    To this end, we need to evaluate the conditional expectations in expression (\ref{eq:info_at_MLE}) of Proposition \ref{thm:info_decomp}. It will be convenient for us to write $S_c(\theta) =: \mathscr{S}(\theta) X$. Then 
+    %
+    \begin{align}
+        \mathcal{I}_c(\hat{\theta}) &= \begin{bmatrix}
+            \frac{\nu_A}{p^2} + \frac{\nu_O}{r^2} & \frac{\nu_O}{r^2}\\
+            \frac{\nu_O}{r^2} & \frac{\nu_B}{q^2} + \frac{\nu_O}{r^2}
+        \end{bmatrix} \mathrm{, and}\\
+        \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta})^T | Y=y] &= \mathscr{S}(\hat{\theta}) \bE_{\hat{\theta}} \left[ X X^T | Y=y \right] \mathscr{S}(\hat{\theta}) \\
+        &= \mathscr{S}(\hat{\theta}) (\Sigma_m + \mu_M \mu_M^T) \mathscr{S}(\hat{\theta})\\
+    \end{align}
+    %
+    While it is possible to expand the above expressions, they quickly become too long to easily interpret. We instead leave these as computational formulas and use them as a guide for writing \texttt{R} or \texttt{Julia} code.
+
 
     \subsection{Monte Carlo EM}
 

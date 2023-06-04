@@ -79,6 +79,7 @@ theta_init = [1/3, 1/3]
 theta_MLE = obs_data_MLE(Y)
 obs_info = obs_data_obs_info(theta_MLE,Y)
 cov_MLE = obs_data_MLE_Cov(theta_MLE, Y)
+cor_MLE = cov2cor(cov_MLE)
 
 
 
@@ -146,6 +147,17 @@ q_hat_traj2 = getindex.(theta_hat_traj_MCEM2, 2)
 naive_MCEM_plot2 = plot(p_hat_traj2, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
 plot!(naive_MCEM_plot2, q_hat_traj2, label = "q")
 savefig(naive_MCEM_plot2, plotsdir("Blood_Type", "naive_MCEM_traj2.pdf"))
+
+
+# ---------------------------------------------------------------------------- #
+#                             Booth and Hobert MCEM                            #
+# ---------------------------------------------------------------------------- #
+
+M_init = 10
+
+alpha_BH = 0.2  # Significance level for CI at each iteration
+
+
 
 
 # ---------------------------------------------------------------------------- #
