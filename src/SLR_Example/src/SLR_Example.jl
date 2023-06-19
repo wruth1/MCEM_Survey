@@ -16,6 +16,8 @@ include("Conditional_Distribution_Functions.jl")
 include("EM_Functions.jl")
 include("MCEM_Functions.jl")
 include("Ascent_MCEM_Functions.jl")
+include("Booth_Hobert.jl")
+include("Chan_Ledolter.jl")
 
 
 

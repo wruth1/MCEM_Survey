@@ -11,6 +11,7 @@ using Random
 using Distributions
 using LinearAlgebra
 using ProgressMeter
+using LogExpFunctions
 
 using Plots
 using Measures  # For plot margins
@@ -147,6 +148,35 @@ q_hat_traj2 = getindex.(theta_hat_traj_MCEM2, 2)
 naive_MCEM_plot2 = plot(p_hat_traj2, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20));
 plot!(naive_MCEM_plot2, q_hat_traj2, label = "q")
 savefig(naive_MCEM_plot2, plotsdir("Blood_Type", "naive_MCEM_traj2.pdf"))
+
+
+
+# ---------------------------------------------------------------------------- #
+#                            Chan and Ledolter MCEM                            #
+# ---------------------------------------------------------------------------- #
+
+M_pilot = 10    # MC size for MCEM iterations in pilot study
+K_max = 20      # Number of MCEM iterations to use in pilot study
+
+R_keep = 5      # Numer of estimates after maximizer to keep from pilot study
+B = 5           # Number of replicate updates to take at each kept estimate
+
+delta = 1e-6    # Allowable SE for estimate of observed data log lik rat
+
+Random.seed!(1)
+theta_hat_traj_CL, _= run_MCEM_Chan_Ledolter(Y, theta_init, M_pilot, K_max, R_keep, B, delta; diagnostics=true)
+
+
+# ----------------------------- Plot Trajectories ---------------------------- #
+p_hat_traj_CL = getindex.(theta_hat_traj_CL, 1)
+q_hat_traj_CL = getindex.(theta_hat_traj_CL, 2)
+
+CL_plot = plot(p_hat_traj_CL, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20));
+plot!(CL_plot, q_hat_traj_CL, label = "q");
+scatter!(CL_plot, p_hat_traj_CL, label = nothing);
+scatter!(CL_plot, q_hat_traj_CL, label = nothing);
+hline!(CL_plot, [theta_MLE], label = nothing, linewidth=2, linecolor=:black)
+
 
 
 # ---------------------------------------------------------------------------- #
