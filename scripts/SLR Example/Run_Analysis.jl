@@ -128,7 +128,7 @@ cov_MCEM1 = MCEM_cov_formula_iid(theta_hat_MCEM1, Y, M, false)
 p_hat_traj1 = getindex.(theta_hat_traj_MCEM1, 1)
 q_hat_traj1 = getindex.(theta_hat_traj_MCEM1, 2)
 
-naive_MCEM_plot1 = plot(p_hat_traj1, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
+naive_MCEM_plot1 = plot(p_hat_traj1, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20));
 plot!(naive_MCEM_plot1, q_hat_traj1, label = "q")
 # hline!(naive_MCEM_plot1, [theta_MLE], label = nothing)
 savefig(naive_MCEM_plot1, plotsdir("Blood_Type", "naive_MCEM_traj1.pdf"))
@@ -144,7 +144,7 @@ cov_MCEM2 = MCEM_cov_formula_iid(theta_hat_MCEM2, Y, M, false)
 p_hat_traj2 = getindex.(theta_hat_traj_MCEM2, 1)
 q_hat_traj2 = getindex.(theta_hat_traj_MCEM2, 2)
 
-naive_MCEM_plot2 = plot(p_hat_traj2, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20))
+naive_MCEM_plot2 = plot(p_hat_traj2, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20));
 plot!(naive_MCEM_plot2, q_hat_traj2, label = "q")
 savefig(naive_MCEM_plot2, plotsdir("Blood_Type", "naive_MCEM_traj2.pdf"))
 
@@ -153,10 +153,40 @@ savefig(naive_MCEM_plot2, plotsdir("Blood_Type", "naive_MCEM_traj2.pdf"))
 #                             Booth and Hobert MCEM                            #
 # ---------------------------------------------------------------------------- #
 
-M_init = 10
+# # Default values for my implementation
+# alpha = 0.25    # Confidence level for building intervals used to check for augmenting MC size
+# k = 3   # Fraction by which to augment the MC sample size when necessary
+# tau = 0.002   # Relative error threshold for terminating.
+# delta = 0.001   # Additive constant for denominator of relative error
+# M_init = 10  # Initial MC sample size
 
-alpha_BH = 0.2  # Significance level for CI at each iteration
+# Run algorithm
+theta_hat_traj_BH , n_iter_BH, M_traj_BH = run_MCEM_Booth_Hobert(theta_init, Y; return_trajectory=true, return_diagnostics=true)
 
+# Extract final estimate
+theta_hat_BH = theta_hat_traj_BH[end]
+
+# ----------------------------- Plot trajectories ---------------------------- #
+# Note: This plot is a little weird, because I want to include the MC size at each iteration. This is accomplished with the twinx() function. It's not obvious to me which Y-axis to put on which side, so I did it both ways.
+
+p_hat_traj_BH = getindex.(theta_hat_traj_BH, 1)
+q_hat_traj_BH = getindex.(theta_hat_traj_BH, 2)
+
+# Estimate on left, MC size on right
+BH_plot = plot(p_hat_traj_BH, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:left, legendfont=font(20), guidefont=font(20));
+plot!(BH_plot, q_hat_traj_BH, label = "q")
+plot!(BH_plot, [10000], color=:black, xlims=xlims(BH_plot), ylims=ylims(BH_plot), label = "MC Size", legendfont=font(20))
+rhs = twinx()
+plot!(rhs, M_traj_BH, label = nothing, color=:black, linetype=:steppost, ylabel="MC Sample Size", guidefont=font(20))
+
+
+# MC size on left, estimate on right
+BH_plot2 = plot(M_traj_BH, label = nothing, color=:black, linetype=:steppost, ylabel="MC Sample Size", guidefont=font(20), xlabel = "Iteration", margin=10mm, size=(800, 600), xtickfont=font(16), ytickfont=font(16))
+rhs = twinx()
+plot!(rhs, p_hat_traj_BH,  label = "p", ylabel = "Estimate", legend=:left, legendfont=font(20), guidefont=font(20), xtickfont=font(16), ytickfont=font(16))
+plot!(rhs, q_hat_traj_BH, label = "q")
+plot!(rhs, [10000], color=:black, xlims=xlims(rhs), ylims=ylims(rhs), label = "MC Size", legendfont=font(20))
+savefig(BH_plot2, plotsdir("Blood_Type", "Booth_Hobert_Traj.pdf"))
 
 
 
