@@ -15,7 +15,7 @@ export run_MCEM_Chan_Ledolter
 
 # delta = 0.01    # Allowable SE for estimate of observed data log lik rat
 
-using SLR_Example
+# using SLR_Example
 
 
 # ---------------------------------------------------------------------------- #
@@ -121,7 +121,7 @@ function process_pilot_Chan_Ledolter(Y, all_theta_hats, all_log_lik_rats, M_pilo
         theta_hats_pilot = all_theta_hats[ind_max_pilot:K_max]
     end
 
-    diagnostic_log_lik_updates = Vector(undef, R_keep)
+    diagnostic_log_lik_updates = Vector(undef, length(theta_hats_pilot))
     for r in eachindex(theta_hats_pilot)
         this_log_lik_updates = Vector(undef, B)
         theta_hat = theta_hats_pilot[r]
@@ -141,11 +141,14 @@ function process_pilot_Chan_Ledolter(Y, all_theta_hats, all_log_lik_rats, M_pilo
 
     M_final = ceil(Int, M_pilot * SE_log_lik_updates / delta)   # First argument converts output to integer
 
+    SE_final = SE_log_lik_updates * M_pilot / M_final   # Asymptotics are order M, not order sqrt(M)
 
-    MOE_final = 2 * SE_log_lik_updates * M_pilot / M_final  # Asymptotics are order M, not order sqrt(M)
+    # compute the 97.5th percentile of the standard normal distribution
+    wald_mult = quantile(Normal(), 0.975)
+    MOE_final =  wald_mult * SE_final 
 
 
-    return theta_max_pilot, M_final, MOE_final
+    return theta_max_pilot, M_final, MOE_final, SE_log_lik_updates, SE_final
 end
 
 
@@ -213,20 +216,21 @@ end
 function run_MCEM_Chan_Ledolter(Y, theta_init, M_pilot, K_max, R_keep, B, delta; diagnostics = false)
     all_theta_hats, all_log_lik_rats, _ = run_pilot_Chan_Ledolter(theta_init, Y, M_pilot, K_max)
 
-    theta_max_pilot, M_final, MOE_final = process_pilot_Chan_Ledolter(Y, all_theta_hats, all_log_lik_rats, M_pilot, R_keep, B, delta)
+    theta_max_pilot, M_final, MOE_final, SE_pilot, SE_final = process_pilot_Chan_Ledolter(Y, all_theta_hats, all_log_lik_rats, M_pilot, R_keep, B, delta)
 
-    all_final_theta_hats, all_final_log_lik_rats, _ = run_final_Chan_Ledolter(theta_max_pilot, Y, M_final, MOE_final)
+    all_final_theta_hats, all_final_log_lik_rat_updates, _ = run_final_Chan_Ledolter(theta_max_pilot, Y, M_final, MOE_final)
+    all_final_log_lik_rats = all_log_lik_rats[end] .+ all_final_log_lik_rat_updates
 
     push!.(Ref(all_theta_hats), all_final_theta_hats)
     push!.(Ref(all_log_lik_rats), all_final_log_lik_rats)
     # push!.(Ref(all_log_lik_updates), all_final_log_lik_updates)
 
     if diagnostics
-        return all_theta_hats, all_log_lik_rats
+        return all_theta_hats, all_log_lik_rats, SE_pilot, SE_final
     else
         return all_theta_hats[end]
     end
 end
 
 
-# theta_hat_CL = run_MCEM_Chan_Ledolter(Y, theta_init, M_pilot, K_max, R_keep, B, delta)
+# theta_hat_traj_CL, lik_rat_traj_CL = run_MCEM_Chan_Ledolter(Y, theta_init, M_pilot, K_max, R_keep, B, delta; diagnostics=true)

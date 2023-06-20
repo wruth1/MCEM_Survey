@@ -155,6 +155,9 @@ savefig(naive_MCEM_plot2, plotsdir("Blood_Type", "naive_MCEM_traj2.pdf"))
 #                            Chan and Ledolter MCEM                            #
 # ---------------------------------------------------------------------------- #
 
+
+# using SLR_Example
+
 M_pilot = 10    # MC size for MCEM iterations in pilot study
 K_max = 20      # Number of MCEM iterations to use in pilot study
 
@@ -164,19 +167,48 @@ B = 5           # Number of replicate updates to take at each kept estimate
 delta = 1e-6    # Allowable SE for estimate of observed data log lik rat
 
 Random.seed!(1)
-theta_hat_traj_CL, _= run_MCEM_Chan_Ledolter(Y, theta_init, M_pilot, K_max, R_keep, B, delta; diagnostics=true)
+theta_hat_traj_CL, lik_rat_traj_CL, SE_pilot, SE_final = run_MCEM_Chan_Ledolter(Y, theta_init, M_pilot, K_max, R_keep, B, delta; diagnostics=true)
 
 
 # ----------------------------- Plot Trajectories ---------------------------- #
 p_hat_traj_CL = getindex.(theta_hat_traj_CL, 1)
 q_hat_traj_CL = getindex.(theta_hat_traj_CL, 2)
 
+# Plot trajectories
 CL_plot = plot(p_hat_traj_CL, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(20), guidefont=font(20));
 plot!(CL_plot, q_hat_traj_CL, label = "q");
+# Add points for clarity
 scatter!(CL_plot, p_hat_traj_CL, label = nothing);
 scatter!(CL_plot, q_hat_traj_CL, label = nothing);
+# Add horizontal line for MLEs
 hline!(CL_plot, [theta_MLE], label = nothing, linewidth=2, linecolor=:black)
+# Add vertical line for end of pilot study
+vline!(CL_plot, [K_max], label = nothing, linewidth=2, linecolor=:black, linestyle=:dash)
+savefig(CL_plot, plotsdir("Blood_Type", "Chan_Ledolter_Traj.pdf"))
 
+
+# Compute bounds of pointwise 95% confidence band for log-likelihood ratio
+# Note: SE changes after end of pilot study. For nicer plotting, we include the transition point in both regions
+wald_mult = quantile(Normal(), 0.975)
+ucls_pilot = deepcopy(lik_rat_traj_CL[1:K_max]) .+ wald_mult .* SE_pilot
+lcls_pilot = deepcopy(lik_rat_traj_CL[1:K_max]) .- wald_mult .* SE_pilot
+ucls_final = deepcopy(lik_rat_traj_CL[K_max:end]) .+ wald_mult .* SE_final
+lcls_final = deepcopy(lik_rat_traj_CL[K_max:end]) .- wald_mult .* SE_final
+ucls_CL = [ucls_pilot; ucls_final]
+lcls_CL = [lcls_pilot; lcls_final]
+
+pilot_iterations = collect(eachindex(ucls_pilot))
+final_iterations = collect(K_max:K_max+length(ucls_final)-1)
+CI_iterations = [pilot_iterations; final_iterations]
+
+
+
+CL_lik_rat_plot = plot(lik_rat_traj_CL, label = "Estimate", xlabel = "Iteration", ylabel = "Log-Likelihood Ratio", size=(800, 600), margin=10mm, legendfont=font(20), guidefont=font(20))
+vline!(CL_lik_rat_plot, [K_max], label = nothing, linewidth=2, linecolor=:black, linestyle=:dash)
+# Add confidence band
+plot!(CL_lik_rat_plot, CI_iterations, ucls_CL, linecolor=:red, linestyle=:dashdot, label = "95% Confidence Band");
+plot!(CL_lik_rat_plot, CI_iterations, lcls_CL, linecolor=:red, linestyle=:dashdot, label = nothing)
+savefig(CL_lik_rat_plot, plotsdir("Blood_Type", "Chan_Ledolter_lik_ratio_Traj.pdf"))
 
 
 # ---------------------------------------------------------------------------- #

@@ -382,7 +382,7 @@ In order to apply the MCEM algorithm to estimate allele frequencies in the blood
 
 \begin{figure}
     \centering
-    \caption{Trajectory of MCEM estimates for $p$ and $q$ for the blood type example.}
+    \caption{Trajectory of MCEM estimates of $p$ and $q$ for the blood type example. The horizontal lines correspond to maximum likelihood estimates.}
     \label{fig:blood_naive_MCEM_traj}
     \begin{subfigure}{0.45\textwidth}
         \centering
@@ -402,8 +402,52 @@ In order to apply the MCEM algorithm to estimate allele frequencies in the blood
 
 \subsection{Running a Pilot Study \citep{Cha95}}
 
-Building on the ideas of \citeauthor{Wei90}, \citet{Cha95} develop a method for both choosing the Monte Carlo size and deciding when to terminate the MCEM algorithm
+Building on the ideas of \citeauthor{Wei90}, \citet{Cha95} develop a method for both choosing the Monte Carlo size and deciding when to terminate the MCEM algorithm. This method is based on an identity which allows us to estimate observed data likelihood ratios by Monte Carlo averages of complete data likelihood ratios. More precisely, we write
+%
+\begin{align}
+	\frac{\mathcal{L}(\theta_1; y)}{\mathcal{L}(\theta_2; y)} &= \bE_{\theta_2} \left[ \left. \frac{\mathcal{L}_c(\theta_1; y, X)}{\mathcal{L}_c(\theta_2; y, X)} \right| Y=y \right] \label{eq:Cha95}
+\end{align}
+%
+The proof consists simply of expanding the complete data densities into the marginal density for $Y$ times a conditional density, then multiplying both sides by the conditional density in the denominator and integrating over the missing data. To apply Equation \ref{eq:Cha95} to the MCEM algorithm, we replace the conditional expectation on the right-hand side with a Monte Carlo average from the corresponding conditional distribution. This adjustment allows us to estimate log-likelihood ratios from the observed data distribution, without ever directly evaluating the observed data likelihood. 
 
+
+
+The method of \citeauthor{Cha95} can be divided into two parts. The first part is a pilot study, in which we compute a standard error for our log-likelihood ratio estimator near the MLE, and determine what Monte Carlo size is required to get this standard error below a pre-specified threshold. In the second part, we increase the Monte Carlo size appropriately, and continue iterating until a confidence interval for the true observed data log-likelihood ratio contains zero. This two-part procedure reflects the suggestion of \citet{Wei90} to run MCEM until it appears to stabilize, then increase the Monte Carlo sample size to get a more precise estimate.
+
+
+The pilot study portion of \citeauthor{Cha95}'s method proceeds with a fixed, ``moderately large'' Monte Carlo size.  In addition to tracking the parameter estimates across iterations, we also record the estimated log-likelihood ratio of the current estimate relative to the starting point of the algorithm. This ratio is computed by keeping a running cumulative sum of all one-step log-likelihood ratios. 
+
+Note that the observed data log-likelihood ratio is estimated by a Monte Carlo average. In order to avoid bias, we do not use the same Monte Carlo sample to estimate this ratio as we used to compute the current parameter update. Instead, we generate the Monte Carlo sample which will be used to compute the next iteration's parameter update, and use this new sample to estimate the log-likelihood ratio\footnotemark. Since Monte Carlo variability is independent across the two iterations' samples \hl{(something, something, conditional independence)}, we remove any possible bias from our estimate of the log-likelihood ratio. We are then free to use this new Monte Carlo sample to compute the next iteration's parameter update.
+
+\footnotetext{Due to our Monte Carlo sample using the new parameter estimate rather than the old, we must actually estimate the reciprocal of the likelihood ratio which we want, then multiply its log by $-1$. This is reflected in the formulas of \citeauthor{Cha95} but not discussed explicitly.}
+
+Upon completion of the pilot study (i.e., after a pre-specified number of iterations), we select the estimate with maximal estimated observed data likelihood. We also select a few nearby estimates (\citeauthor{Cha95} suggest the 10 which follow the maximizer), and perform a small number of single-iteration MCEM runs from each of the chosen estimates. We compute the estimated observed data log-likelihood ratio for each of these MCEM updates, and get the variance of these updates for each parameter estimate. We then pool variances across parameter estimates into a standard error for our log-likelihood ratio estimator. Finally, we use this standard error, along with its known scaling rate with the Monte Carlo sample size\footnotemark, to determine what size is needed to get our standard error below the pre-specified threshold.
+
+\footnotetext{Provided that the parameter estimates used to compute our standard error are close enough to the MLE, \citeauthor{Cha95} show that the standard error scales like $1/M$ rather than the usual $1 / \sqrt{M}$, where $M$ is the Monte Carlo size.}
+
+With this newly determined Monte Carlo size, we return to the optimal parameter estimate from our pilot study and continue iterating the MCEM algorithm. At each step now, we also construct a confidence interval for the true observed data log-likelihood ratio corresponding to the current parameter update (i.e., between two consecutive parameter values, not from the starting point to the current estimate). We terminate the algorithm when such a confidence interval contains zero. This corresponds to no evidence of an improvement in the observed data likelihood.
+
+Applying \citeauthor{Cha95}'s method to our blood-type dataset, we get the parameter estimate trajectory shown in Figure \ref{fig:blood_CL_MCEM_estimates}. Figure \ref{fig:blood_CL_MCEM_likelihoods} gives the trajectory of estimated observed data log-likelihood ratios relative to the starting point of the algorithm ($\hat{p}_0 = \hat{q}_0 = 1/3$), along with pointwise $95\%$ Wald-type confidence bands using the standard error computed after the pilot study and scaled appropriately for the Monte Carlo sample size. We use a stopping rule of $10^{-6}$. Note that this standard error only applies near the maximizer of the observed data MLE.
+
+\begin{figure}
+    \centering
+    \caption{MCEM estimates of $p$ and $q$ for the blood type example, based on the method of \citet{Cha95}. The vertical dashed line shows the end of the pilot study. The horizontal lines correspond to maximum likelihood estimates.}
+    \label{fig:blood_CL_MCEM_traj}
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width = 1\textwidth]{../plots/Blood_Type/Chan_Ledolter_Traj.pdf}
+        \caption{Estimate trajectories}
+        \label{fig:blood_CL_MCEM_estimates}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
+        \centering
+        \includegraphics[width = 1\textwidth]{../plots/Blood_Type/Chan_Ledolter_lik_ratio_Traj.pdf}
+        \caption{Estimated log-likelihood ratio trajectory}
+        \label{fig:blood_CL_MCEM_likelihoods}
+    \end{subfigure}
+   
+\end{figure}
 
 \subsection{Uncertainty Quantification for the Parameter Estimate (\citealp{Boo99})}
 
