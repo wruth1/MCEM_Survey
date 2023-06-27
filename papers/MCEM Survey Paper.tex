@@ -408,7 +408,7 @@ Building on the ideas of \citeauthor{Wei90}, \citet{Cha95} develop a method for 
 	\frac{\mathcal{L}(\theta_1; y)}{\mathcal{L}(\theta_2; y)} &= \bE_{\theta_2} \left[ \left. \frac{\mathcal{L}_c(\theta_1; y, X)}{\mathcal{L}_c(\theta_2; y, X)} \right| Y=y \right] \label{eq:Cha95}
 \end{align}
 %
-The proof consists simply of expanding the complete data densities into the marginal density for $Y$ times a conditional density, then multiplying both sides by the conditional density in the denominator and integrating over the missing data. To apply Equation \ref{eq:Cha95} to the MCEM algorithm, we replace the conditional expectation on the right-hand side with a Monte Carlo average from the corresponding conditional distribution. This adjustment allows us to estimate log-likelihood ratios from the observed data distribution, without ever directly evaluating the observed data likelihood. 
+See \citet{Cha95} for a derivation. To apply Equation \ref{eq:Cha95} to the MCEM algorithm, we replace the conditional expectation on the right-hand side with a Monte Carlo average from the corresponding conditional distribution. This adjustment allows us to estimate log-likelihood ratios from the observed data distribution, without ever directly evaluating the observed data likelihood. 
 
 
 
@@ -563,11 +563,16 @@ A further obstacle to implementing the MCEM algorithm which was not addressed in
 
 \subsection{Importance Sampling}
 
-\hl{The beginning of this section is pretty rambly. It will need to be tightened-up.}
+In this section, we give a brief overview of importance sampling, with a focus on how it can be applied to the MCEM algorithm. We point to several references where the interested reader can find more details (see especially the references contained therein).
 
-Importance sampling is a general framework for approximating expectations under an intractable distribution. The key idea is to replace the $d \bF$ integral of a function, $\phi$, with the $d \bG$ integral of $\phi \cdot (d \bF / d\bG)$. We call $\bF$ the target distribution and $\bG$ the proposal distribution. For ease of exposition, we assume that both $\bF$ and $\bG$ have densities with respect to a common base measure; call these densities $f$ and $g$ respectively.
+Broadly speaking, importance sampling is a framework for approximating intractable expectations. A typical use case is when we want to evaluate the expected value of some function, $\bF h$, and this expectation is not just analytically intractable, but the distribution $bF$ is impossible (or impractical) to sample from. The latter restriction prevents us from using ordinary Monte Carlo integration. Instead, we re-write $\bF h$ as $\bG [h \cdot (f/g)]$ for some new distribution, $\bG$, where $f$ and $g$ are the densities of $\bF$ and $\bG$ respectively. Provided that $\bG$ is easy to sample from, we can estimate this alternative expression for our target expectation via Monte Carlo integration with samples drawn from $\bG$. We call $\bF$ the target distribution and $\bG$ the proposal distribution.  
 
-The importance sampling literature is vast, and we cannot hope to summarize it here in its entirety. A classic reference on importance sampling and other Monte Carlo methods is the book by \citet{Rob04}; particularly Chapters 3 and 4. Chapter 8 of the book by \citet{Cho20} gives a more current overview of importance sampling, with a focus on its application to Sequential Monte Carlo. \citet{Aga17} give a survey paper level treatment of some more theoretical considerations of importance sampling.
+The importance sampling literature is vast, and we cannot hope to summarize it here in its entirety. A classic reference on importance sampling and other Monte Carlo methods is the book by \citet{Rob04}; particularly Chapters 3 and 4. Chapter 8 of the book by \citet{Cho20} gives a more current overview of importance sampling, with a focus on its application to Sequential Monte Carlo. \citet{Elv22} give a survey of modern methods for extending the importance sampling framework, with an emphasis on two main approaches: multiple importance sampling and adaptive importance sampling. See \citet{Elv19} for a review of multiple importance sampling methods, and \citet{Bug17} for more on adaptive importance sampling. \citet{Aga17} give a survey paper level treatment of some more theoretical considerations of importance sampling.
+
+
+\textbf{START HERE}
+
+
 
 \hl{Re-write intro after writing body}. In this section, we focus on the problem of choosing a proposal distribution, $\bG$. We begin with a more formal description of the importance sampling estimator some theory which helps inform the choice of $\bG$, then give some practical guidance. 
 
