@@ -346,6 +346,7 @@ Beyond computing the observed data MLE, we also need the standard error of this 
 
 
 \section{The Monte Carlo EM Algorithm}
+\label{sec:MCEM}
 
 The Monte Carlo EM, or MCEM, algorithm was first proposed by \citet{Wei90}. This method proceeds by replacing the conditional expectation in the E-step of the EM algorithm with a Monte Carlo average. More precisely, at each iteration we generate observations from the conditional distribution of the missing data given the observed data, and average the complete data likelihood over this Monte Carlo sample. Formally, at a given iteration of the MCEM algorithm, let $X_1,\ldots, X_M$ be a Monte Carlo sample from the law of $X|Y=y$ with $\theta$ set to the value from the previous iteration, say $\theta_0$. Write
 %
@@ -557,104 +558,8 @@ The method of \citet{Boo99} centers on treating each iteration of the MCEM algor
 \footnotetext{For myself: As far as I can tell, in their paper, \citeauthor{Boo99} don't suggest that you check whether augmenting the Monte Carlo size produces a confidence set which does not contain the previous iteration's estimate. I think they're just suggesting you increase M and proceed with the next iteration. This differs from \citet{Caf05} who require that we keep checking and augmenting M until the condition is satisfied. \hl{I don't think this needs to go in the paper, but it's of some interest if you want to implement the method of} \citeauthor{Boo99}}
 \end{comment}
 
-\section{Simulation}
-
-A further obstacle to implementing the MCEM algorithm which was not addressed in the previous section, is how to generate the Monte Carlo sample. It is in general a hard problem to simulate from arbitrary conditional distributions. In fact, much of the Bayesian Computation literature centers around this problem (see, e.g., \citealp{Gel13}). In this section, we discuss several methods for simulating the necessary observations at each step of the MCEM algorithm.
-
-\subsection{Importance Sampling}
-
-In this section, we give a brief overview of importance sampling, with a focus on how it can be applied to the MCEM algorithm. We point to several references where the interested reader can find more details (see especially the references contained therein).
-
-Broadly speaking, importance sampling is a framework for approximating intractable expectations. A typical use case is when we want to evaluate the expected value of some function, $\bF h$, and this expectation is not just analytically intractable, but the distribution $bF$ is impossible (or impractical) to sample from. The latter restriction prevents us from using ordinary Monte Carlo integration. Instead, we re-write $\bF h$ as $\bG [h \cdot (f/g)]$ for some new distribution, $\bG$, where $f$ and $g$ are the densities of $\bF$ and $\bG$ respectively. Provided that $\bG$ is easy to sample from, we can estimate this alternative expression for our target expectation via Monte Carlo integration with samples drawn from $\bG$. We call $\bF$ the target distribution and $\bG$ the proposal distribution.  
-
-The importance sampling literature is vast, and we cannot hope to summarize it here in its entirety. A classic reference on importance sampling and other Monte Carlo methods is the book by \citet{Rob04}; particularly Chapters 3 and 4. Chapter 8 of the book by \citet{Cho20} gives a more current overview of importance sampling, with a focus on its application to Sequential Monte Carlo. \citet{Elv22} give a survey of modern methods for extending the importance sampling framework, with an emphasis on two main approaches: multiple importance sampling and adaptive importance sampling. See \citet{Elv19} for a review of multiple importance sampling methods, and \citet{Bug17} for more on adaptive importance sampling. \citet{Aga17} give a survey paper level treatment of some more theoretical considerations for importance sampling.
-
-In the rest of this section, we describe a few simple modifications which can ease implementation and improve performance when using importance sampling with the MCEM algorithm.
-
-When using importance sampling with the MCEM algorithm, our target distribution is the missing data distribution. In some settings, this distribution may be difficult to describe exactly. However, the integrand is the (log-)likelihood for the complete data distribution, so it is reasonable to expect that we can evaluate this complete data density. From the definition of conditional probability, the missing data density is proportional to the complete data density, provided that we treat the latter as a function of the missing data and hold the observed data fixed. The proportionality constant here is the observed data density, so it is unlikely that we will be able to normalize the missing data density exactly (otherwise, we could just work directly with the observed data likelihood). 
-
-A simple modification of importance sampling, which circumvents the need for normalized densities, is to compute the importance weights as normal, then normalize them to sum to one. This is referred to as ``auto-normalized'', or ``self-normalized'', importance sampling \citep[see, e.g.,][]{Elv22}. The reason self-normalized importance sampling works is that the unknown normalizing constant cancels in the numerator and denominator of our normalized weights. In fact, our proposal distribution can also be un-normalized, and the ratio of the two normalizing constants cancels when we normalize our weights.
-
-There are, however, disadvantages of self-normalized importance sampling compared to the exact importance sampling which we can do when both target and proposal densities are known exactly. One important limitation is that our estimator of $\bF h$ is no longer unbiased, and is instead only asymptotically unbiased. In fact, as a ratio estimator, the standard error of a self-normalized importance sampling estimator can only be determined asymptotically. This is fine in problems where it is easy to sample from our proposal distribution, $\bG$, but in high dimensional problems for example, even simulating from $\bG$ may be costly, and more care must be taken with the discrepancy between asymptotic results and finite-sample behaviour.
-
-It is well-known that the performance of an importance sampling estimator depends on how closely the proposal distribution matches the target \citep{Rob04}. One thing that can go wrong is if the importance weight (i.e.\ the likelihood ratio between these two distributions) does not have sufficiently many finite moments \citep{Aga17}. A simple modification to our importance weights which guarantees infinitely many finite moments is to specify a threshold value, and truncate any weights which fall above the threshold (i.e., set weights which fall above the threshold equal to the threshold value). This ``truncated importance sampling'' method is proposed and analyzed by \citet{Ion08}. Two strategies are proposed in this work for selecting the threshold: the first is to simply use the square root of the Monte Carlo size, $\sqrt{M}$, while the latter is based on unbiased risk estimation and gives a value better tailored to the specific problem. Note that these recommendations are based on exact importance sampling. If self-normalization is used, the general recommendation is instead to truncate at $\sqrt{M}$ times the mean of the un-normalized weights. Truncated importance sampling represents an example of the bias-variance trade-off. Truncating weights at some threshold reduces the variance of our importance sampling estimator, but also introduces bias. This trade-off highlights the importance of selecting an appropriate threshold value: too large and the variance reduction will be negligible, but too small and the bias will be unacceptable.
-
-\citet{Veh22} propose an alternative method for handling large importance weights, called Pareto Smoothed Importance Sampling (PSIS). The idea of this method is to fit a Generalized Pareto Distribution to the largest importance weights, then replace those large weights with quantiles of the fitted distribution. One of the parameter's fitted values also serves as a useful diagnostic for how closely our proposal distribution matches the target. An advantage of PSIS over the truncated importance sampling method of \citet{Ion08} is that the bias here is smaller, although it is not clear in general which method has better mean-squared error \citep[see][for extensive numerical comparisons]{Veh22}.  
-
-
-\textbf{START HERE}
-
-
-
-\hl{Re-write intro after writing body}. In this section, we focus on the problem of choosing a proposal distribution, $\bG$. We begin with a more formal description of the importance sampling estimator some theory which helps inform the choice of $\bG$, then give some practical guidance. 
-
-When doing importance sampling, we seek to estimate $\phi = \int h f $, for some test function, $h$. To do so, observe that we can re-write $\phi = \int h (f/g) g$, for any proposal density $g$, such that the integral is finite. Typically, we choose $g$ so that it is easy to sample from; let $X_1,\ldots,X_M$ be such a sample. We estimate $\phi$ by $\hat{\phi} = \hat{\bG} h := (1/M) \sum_{i=1}^M w_i h(X_i)$, where $w_i = f(X_i)/g(X_i)$ is referred to as the importance weight for observation $i$. Note that $\bG \hat{\phi} = \int (f/g) h g = \phi$, so  $\hat{\phi}$ is unbiased. It is similarly straightforward to show that the variance of $\hat{\phi}$ is $M^{-1} \bG w^2 h^2$. 
-
-It is often the case that we only know the target density, $f$, up to a proportionality constant, $\alpha_f$. The same may also be true of the proposal density, $g$, where we may have a desirable proposal distribution in mind but may only be able to compute its density up to a proportionality constant, $\alpha_g$. Write $\tilde{f}$ and $\tilde{g}$ for the un-normalized densities. Paralleling our previous development, we write $\tilde{w} = \tilde{f} / \tilde{g}$ for the ratio of the un-normalized densities. Note that $\tilde{w}$ differs from the true likelihood ratio by a third proportionality constant, $\alpha = \alpha_f / \alpha_g$. In order to estimate $\phi$, we must also estimate the constant $\alpha$. To this end, note the following two identities:
-%
-\begin{align}
-    \bG h \tilde{w} &= \frac{\phi}{\alpha}\\
-    \bG \tilde{w} &= \frac{1}{\alpha}
-\end{align}
-%
-This suggests using a ratio estimator for $\phi$:
-%
-\begin{align}
-    \tilde{\phi} &:= \frac{\hat{\bG} h \tilde{w}}{\hat{\bG} \tilde{w}} \label{eq:SNIS}
-\end{align}
-%
-The estimator in (\ref{eq:SNIS}) is referred to as the self-normalized importance sampling (SNIS)\index{Self-Normalized Importance Sampling} estimator of $\tilde{\phi}$. Although the numerator and denominator of (\ref{eq:SNIS}) are perfectly well-behaved objects, the full SNIS estimator is best studied in general terms using asymptotic methods. Specifically, noting that $\tilde{\phi}$ is a ratio of averages, a routine analysis using the CLT, LLN and Slutsky's Theorem \citep[p.91]{Cho20} gives (under the usual regularity conditions\footnotemark):
-%
-\begin{align}
-    \sqrt{M} (\tilde{\phi} - \phi) \rightsquigarrow N(0, \sigma^2_{SNIS})
-\end{align}
-%
-where $\sigma^2_{SNIS} = \bG ((h - \phi)^2 \tilde{w}^2) / (\bG \tilde{w})^2 =\alpha^2 \bG ((h - \phi)^2 \tilde{w}^2)$. It is common to define the normalized weights as $\tilde{w}_i / \hat{\bG} \tilde{w}$\index{Normalized Importance Weights}, which I denote (non-standardly) by $\mathring{w}_i$. Thus, we can define $\tilde{\bG} h := \tilde{\phi} = \sum \mathring{w}_i h(X_i)$.
-
-\footnotetext{\textbf{Finite second moment assumptions à la CLT.}}
-
-One way to assess the performance of an importance sample is by computing the so-called ``effective sample size''\index{Effective Sample Size}. This quantity is defined as $\mathrm{ESS} := (\sum \wcirc_i^{2})^{-1}$.
-
-\subsection{Choosing a Proposal Distribution}
-
-When designing an importance sampling scheme to solve a particular problem, it is important to choose an appropriate proposal distribution. The sense in which a proposal distribution should be appropriate can be understood in a few different ways. If multiple test functions must be integrated using the same proposal distribution, or even the same sample, it makes sense to consider a worst-case error analysis over some class of test functions and to choose a proposal for which the bound is not too large. In contrast, if the goal is to estimate the expectation of a single test function, the proposal can be chosen to better facilitate estimation of the particular integrand. In the former case, we choose our proposal distribution based on its relationship with the target distribution alone, while in the latter case we make our choice based on the target distribution and the test function.
-
-\citet{Aga17} give a very readable overview of some bounds for the worst-case error of an importance sampling scheme. These error bounds are simpler if we restrict attention only to bounded test functions, although similar error bounds also exist for unbounded test functions, provided that certain integrability criteria are met. Focusing on bounded test functions for simplicity, the fundamental quantity for the error bounds in \citeauthor{Aga17} is $\rho := \bG \tilde{w}^2 / (\bG \tilde{w})^2$. Specifically, for test functions bounded in absolute value by 1, the worst-case $\mathcal{L}^2$ error is less than $4 \rho / M$, where $M$ is the size of the importance sample. 
-
-When approximating the $\bF$-expectation of a single test function, it is possible to choose the proposal distribution based on this test function for increased performance. In particular, given a target density, $f$, and a test function, $\phi$, there is an optimal proposal density given by the following proposition.
-%
-\begin{proposition}
-    \label{thm:imp_samp}
-    Let $f$ be a density and $\phi$ be a test function. Let $g_* = f |\phi| / \bF |\phi|$, and $g$ be any other proposal density. Then $\bV_{g_*} w_* \phi \leq \bV_g w \phi$, where $w_* = f/g_*$ and $w = f/g$.
-\end{proposition}
-
-\begin{proof}
-    See the proof of Proposition 8.2 in \citet{Cho20}.
-\end{proof}
-%
-Unfortunately, this optimal proposal density is rarely useful in practice, since evaluating $g_*$ requires computing $\bF |\phi|$. While it's not exactly equal to the quantity we are trying to approximate, $\bF |\phi|$ is unlikely to be much easier to compute.
-
-Although Proposition \ref{thm:imp_samp} does not tell us exactly what to do in practice, this result does offer some guidance on how to choose proposal distributions. Specifically, we should choose $g$ to be positively correlated with $f |\phi|$. That is, $g$ should place most of its mass in regions where $f \phi$ is large in magnitude.
-
-\hl{Maybe write something about exponential tilting, although that might be mostly for rare event simulation.}
-
-\hl{Add some discussion around what importance sampling looks like in MCEM.}
-
-\subsection{Particle-Based Methods}
-
-\subsection{Markov Chain Monte Carlo}
-
-The literature on Markov Chain Monte Carlo, or MCMC, is vast. We cover only the basics here and refer the reader to any number of excellent introductions, such as \citet{Gel13} or \citet{Rob04}. The core idea is to construct a Markov Chain from which we can simulate, and which has stationary distribution equal to the target distribution. Popular methods to construct such a Markov Chain are Gibbs sampling and the Metropolis-Hastings algorithm. 
-
-Both Gibbs sampling and \mh start with a random variable, $X = (X_1, \ldots, X_d)$, which we wish to simulate. Let $f$ be the density of $X$. These methods proceed by iteratively simulating draws of the vector $X$ from some distribution based on the draw from the previous iteration. 
-
-Gibbs sampling\index{Gibbs Sampling} is based on successively sampling each component of $X$ conditional on all the other components. The order in which this conditioning is performed is a bit subtle, however. When generating $X_i$, we condition on the values of $X_1,\ldots, X_{i-1}$ from the current iteration and the values of $X_{i+1}, \ldots, X_d$ from the previous iteration. Once we reach the end of $X$, we start a new iteration.  More generally, we can group the components of $X$, and simulate an entire group conditional on the others, provided that we follow the structure outlined above \hl{(awk)}.
-
-The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely resembles rejection sampling. We start each iteration by generating a candidate value of $X$ from some proposal distribution (this distribution may depend on the previous iteration's value of $X$). Write $J(x | x_0)$ for the proposal density, where $x_0$ is the value of $X$ from the previous iteration. Next, we define an acceptance probability, $r := f(x) J(x_0 | x) / f(x_0) J(x | x_0)$, and accept the proposed value of $X$ with probability $r \wedge 1$. With probability $(1-r) \vee 0$, we reject the proposed $x$ and instead set the current iteration's value to $x_0$. We then proceed to the next iteration. Note that rejecting still adds an observation to our Monte Carlo sample, this value just happens to be identical to the one proceeding it.
-
-
-
 \section{Alternatives to the MCEM Algorithm}
+\label{sec:alternatives}
 
 In this section, we outline a few alternatives to the MCEM algorithm for maximizing the likelihood of an incomplete dataset. Examples include the Monte Carlo Maximum Likelihood method of \citet{Gey94}, and Variational Inference \citep{Ble17, Tsi08}.
 
@@ -699,6 +604,52 @@ A major advantage of the mean-field approximation is that an iterative algorithm
 where $X_{-j}$ is all the missing variables other than $X_j$. See Section 2.4 of \citet{Ble17} for a derivation of (\ref{eq:var_inf_update}). The overall algorithm consists of repeatedly cycling through updating each coordinate's distribution until some convergence criterion is met (\hl{how is convergence assessed?}).
 
 Note that, so far, our discussion of how to compute the mean-field approximate density for $X$ has not addressed $\theta$. To apply mean-field variational inference to EM-type problems, we substitute the mean-field density into the ELBO and maximize over $\theta$. This new value of $\theta$ is fed back into ($\ref{eq:var_inf_update}$), giving us a different complete data likelihood function and, hence, a new optimal density.
+
+
+\section{Simulation}
+\label{sec:simulation}
+
+An obstacle to implementing the MCEM algorithm which was not addressed in Section \ref{sec:MCEM}, and which is also relevant to many of the methods described in Section \ref{sec:alternatives}, is how to generate the necessary Monte Carlo samples. It is in general a hard problem to simulate from arbitrary conditional distributions. In this section, we discuss several methods for simulating the required observations at each step of the MCEM algorithm. All the topics that we cover here have their own vast literature, which we cannot hope to cover in their entirety. We instead give only a brief overview, focusing on aspects which are particularly relevant to use with the MCEM algorithm, and direct the reader to other, more focused, reviews.
+
+\subsection{Importance Sampling}
+
+Broadly speaking, importance sampling is a framework for approximating intractable expectations. A typical use case is when we want to evaluate the expected value of some function, $\bF h$, and this expectation is not just analytically intractable, but the distribution $bF$ is impossible (or impractical) to sample from. The latter restriction prevents us from using ordinary Monte Carlo integration. Instead, we re-write $\bF h$ as $\bG [h \cdot (f/g)]$ for some new distribution, $\bG$, where $f$ and $g$ are the densities of $\bF$ and $\bG$ respectively. Provided that $\bG$ is easy to sample from, we can estimate this alternative expression for our target expectation via Monte Carlo integration with samples drawn from $\bG$. We call $\bF$ the target distribution and $\bG$ the proposal distribution.  
+
+A classic reference on importance sampling and other Monte Carlo methods is the book by \citet{Rob04}; particularly Chapters 3 and 4. Chapter 8 of the book by \citet{Cho20} gives a more current overview of importance sampling, with a focus on its application to Sequential Monte Carlo. \citet{Elv22} give a survey of modern methods for extending the importance sampling framework, with an emphasis on two main approaches: multiple importance sampling and adaptive importance sampling. See \citet{Elv19} for a review of multiple importance sampling methods, and \citet{Bug17} for more on adaptive importance sampling. \citet{Aga17} give a survey paper level treatment of some more theoretical considerations for importance sampling.
+
+In the rest of this section, we describe a few simple modifications which can ease implementation and improve performance when using importance sampling with the MCEM algorithm.
+
+When using importance sampling with the MCEM algorithm, our target distribution is the missing data distribution. In some settings, this distribution may be difficult to describe exactly. However, the integrand is the (log-)likelihood for the complete data distribution, so it is reasonable to expect that we can evaluate this complete data density. From the definition of conditional probability, the missing data density is proportional to the complete data density, provided that we treat the latter as a function of the missing data and hold the observed data fixed. The proportionality constant here is the observed data density, so it is unlikely that we will be able to normalize the missing data density exactly (otherwise, we could just work directly with the observed data likelihood). 
+
+A simple modification of importance sampling, which circumvents the need for normalized densities, is to compute the importance weights as normal, then normalize them to sum to one. This is referred to as ``auto-normalized'', or ``self-normalized'', importance sampling \citep[see, e.g.,][]{Elv22}. The reason self-normalized importance sampling works is that the unknown normalizing constant cancels in the numerator and denominator of our normalized weights. In fact, our proposal distribution can also be un-normalized, and the ratio of the two normalizing constants cancels when we normalize our weights.
+
+There are, however, disadvantages of self-normalized importance sampling compared to the exact importance sampling which we can do when both target and proposal densities are known exactly. One important limitation is that our estimator of $\bF h$ is no longer unbiased, and is instead only asymptotically unbiased. In fact, as a ratio estimator, the standard error of a self-normalized importance sampling estimator can only be determined asymptotically. This is fine in problems where it is easy to sample from our proposal distribution, $\bG$, but in high dimensional problems for example, even simulating from $\bG$ may be costly, and more care must be taken with the discrepancy between asymptotic results and finite-sample behaviour.
+
+It is well-known that the performance of an importance sampling estimator depends on how closely the proposal distribution matches the target \citep{Rob04}. One thing that can go wrong is if the importance weight (i.e.\ the likelihood ratio between these two distributions) does not have sufficiently many finite moments \citep{Aga17}. A simple modification to our importance weights which guarantees infinitely many finite moments is to specify a threshold value, and truncate any weights which fall above the threshold (i.e., set weights which fall above the threshold equal to the threshold value). This ``truncated importance sampling'' method is proposed and analyzed by \citet{Ion08}. Two strategies are proposed in this work for selecting the threshold: the first is to simply use the square root of the Monte Carlo size, $\sqrt{M}$, while the latter is based on unbiased risk estimation and gives a value better tailored to the specific problem. Note that these recommendations are based on exact importance sampling. If self-normalization is used, the general recommendation is instead to truncate at $\sqrt{M}$ times the mean of the un-normalized weights. Truncated importance sampling represents an example of the bias-variance trade-off. Truncating weights at some threshold reduces the variance of our importance sampling estimator, but also introduces bias. This trade-off highlights the importance of selecting an appropriate threshold value: too large and the variance reduction will be negligible, but too small and the bias will be unacceptable.
+
+\citet{Veh22} propose an alternative method for handling large importance weights, called Pareto Smoothed Importance Sampling (PSIS). The idea of this method is to fit a Generalized Pareto Distribution to the largest importance weights, then replace those large weights with quantiles of the fitted distribution. One of the parameter's fitted values also serves as a useful diagnostic for how closely our proposal distribution matches the target. An advantage of PSIS over the truncated importance sampling method of \citet{Ion08} is that the bias here is smaller, although it is not clear in general which method has better mean-squared error \citep[see][for extensive numerical comparisons]{Veh22}.  
+
+\hl{Further discuss application to MCEM? Illustrate application to MCEM?}
+
+\subsection{Particle-Based Methods}
+
+It might be worth cutting this section. I can describe SMC, but I can't say much about how it relates to MCEM besides being another Monte Carlo algorithm. That being said, the work of \citet{Gol16} is worth mentioning in the context of MCEM. Also, the work of \citet{Mof14}, which is cited by \citeauthor{Gol16}. I will need to re-read both of these and look into who they are cited by.
+
+\subsection{Markov Chain Monte Carlo}
+
+The core idea of Markov Chain Monte Carlo (MCMC) sampling is to construct a Markov Chain from which we can simulate, and which has stationary distribution equal to the target distribution. Popular methods to construct such a Markov Chain are Gibbs sampling and the Metropolis-Hastings algorithm. See \citet{Gel13} or \citet{Rob04} for excellent textbook-length overviews. A popular implementation of MCMC sampling is the \texttt{Stan} programming language \citep{Sta22}, and its \texttt{R} interface, \texttt{RStan} \citep{Sta23}.
+
+Both Gibbs sampling and \mh start with a random variable, $X = (X_1, \ldots, X_d)$, which we wish to simulate. Let $f$ be the density of $X$. These methods proceed by iteratively simulating draws of the vector $X$ from some distribution based on the draw from the previous iteration. 
+
+Gibbs sampling\index{Gibbs Sampling} is based on successively sampling each component of $X$ conditional on all the other components. The order in which this conditioning is performed is a bit subtle, however. When generating $X_i$, we condition on the values of $X_1,\ldots, X_{i-1}$ from the current iteration and the values of $X_{i+1}, \ldots, X_d$ from the previous iteration. Once we reach the end of $X$, we start a new iteration.  More generally, we can group the components of $X$, and simulate an entire group conditional on the others, provided that we follow the structure outlined above \hl{(awk)}.
+
+The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely resembles rejection sampling. We start each iteration by generating a candidate value of $X$ from some proposal distribution (this distribution may depend on the previous iteration's value of $X$). Write $J(x | x_0)$ for the proposal density, where $x_0$ is the value of $X$ from the previous iteration. Next, we define an acceptance probability, $r := f(x) J(x_0 | x) / f(x_0) J(x | x_0)$, and accept the proposed value of $X$ with probability $r \wedge 1$. With probability $(1-r) \vee 0$, we reject the proposed $x$ and instead set the current iteration's value to $x_0$. We then proceed to the next iteration. Note that rejecting still adds an observation to our Monte Carlo sample, this value just happens to be identical to the one proceeding it.
+
+\hl{I'm not super comfortable with this material. I want to acknowledge it and use it to motivate the more complicated adjustments to make MCEM work with MCMC, but I also don't want to say anything silly.} Limit theory for estimators based on MCMC sampling are more complicated than the similar theory for estimators based on iid or importance sampling (\hl{SMC?}). This additional complexity stems from the dependence between draws from an MCMC sampler. While convergence for iid and importance sampling can be established using the Law of Large Numbers and the classical Central Limit Theorem, similar results for MCMC sampling make use of the Ergodic Theorem and Markov Chain Central Limit Theorem. 
+
+Efforts have been made in the MCEM literature to address this additional complexity and account for dependence in our Monte Carlo sample.
+
+
 
 
 \newpage
