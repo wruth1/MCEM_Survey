@@ -16,3 +16,8 @@ integrand
 MLE
 componentwise
 Ergodic
+covariances
+spacings
+subsample
+subsampling
+subsampled

@@ -489,9 +489,6 @@ Alternatively, since \citeauthor{Boo99} apply their method to the analysis of ge
 
 \hl{How do we estimate the variance here?} The purpose of condition (\ref{eq:Boo99_tol2}) is to detect when estimated variance components are very close to zero and the numerical precision needed to satisfy condition (\ref{eq:Boo99_tol}) requires a prohibitive amount of computation.
 
-
-\textcolor{red}{I have tested the covariance formula from \citet{Boo99} against an empirically derived covariance matrix. They seem to match tolerably well. A better implementation would involve further testing, but I don't think that's worth the time or effort right now.}
-
 We apply the method of \citet{Boo99} to our blood type example, with the settings recommended in their paper. Specifically, they suggest setting $\alpha = 0.25$, $k = 3$ (alternatively, $4$ or $5$), $\delta_1 = 0.001$, and $\delta_2 = 0.002$ (or as high as $0.005$). We also start with a Monte Carlo size of 10. Figure \ref{fig:blood_BH_traj} gives trajectories of the MCEM estimates, as well as the Monte Carlo size used to obtain each of these estimates. Note how the trajectory stabilizes as the MC size increases. The final estimate from this method is $\hat{p} = 0.299$, $\hat{q} = 0.128$; again, very close to the MLE.
 
 
@@ -504,6 +501,13 @@ We apply the method of \citet{Boo99} to our blood type example, with the setting
 \end{figure}
 
 
+\subsection{\citep{Lev01}}
+
+\textcolor{red}{I don't think there is enough innovation on the MCEM algorithm in this paper. Their real contributions are on a way to apply importance sample (\ref{sec:imp_samp}) and a way to do UQ with MCMC sampling (\ref{sec:MCMC}). These can both just be mentioned in their respective sections.}
+
+The method of \citet{Lev01} has two main innovations. First is a way to save computation time by sharing a single Monte Carlo sample across all MCEM iterations. Second is a way to apply the uncertainty quantification ideas of \citet{Boo99} when using Markov Chain Monte Carlo sampling (see Section \ref{sec:MCMC}). 
+
+Importance sampling is a method for computing 
 
 
 \subsection{Uncertainty Quantification for the Objective Function \citep{Caf05}}
@@ -631,11 +635,14 @@ It is well-known that the performance of an importance sampling estimator depend
 
 \hl{Further discuss application to MCEM? Illustrate application to MCEM?}
 
+An approach proposed by \citet{Lev01} seeks to use importance sampling to save computing time when running the MCEM algorithm. This computational efficiency is especially important in their context where Markov Chain Monte Carlo sampling is used (see \ref{sec:MCMC}), so generating a single sample takes quite some time. Their idea is to generate a single sample from the missing data distribution with some reference value for $\theta$, $\theta_{ref}$. This sample is then re-used at every MCEM iteration, with conditional expectations under the current parameter value computed by taking importance ratios with respect to $\theta_{ref}$. This raises the question of whether a single proposal distribution can be adequate for every target distribution along the MCEM trajectory. To address this concern, \citeauthor{Lev01} suggest running MCEM for a few iterations with fresh importance samples and only drawing the sample which will be used for their method after a sufficiently long ``burn-in'' period (they suggest running for one minute). 
+
 \subsection{Particle-Based Methods}
 
 It might be worth cutting this section. I can describe SMC, but I can't say much about how it relates to MCEM besides being another Monte Carlo algorithm. That being said, the work of \citet{Gol16} is worth mentioning in the context of MCEM. Also, the work of \citet{Mof14}, which is cited by \citeauthor{Gol16}. I will need to re-read both of these and look into who they are cited by.
 
 \subsection{Markov Chain Monte Carlo}
+\label{sec:MCMC}
 
 The core idea of Markov Chain Monte Carlo (MCMC) sampling is to construct a Markov Chain from which we can simulate, and which has stationary distribution equal to the target distribution. Popular methods to construct such a Markov Chain are Gibbs sampling and the Metropolis-Hastings algorithm. See \citet{Gel13} or \citet{Rob04} for excellent textbook-length overviews. A popular implementation of MCMC sampling is the \texttt{Stan} programming language \citep{Sta22}, and its \texttt{R} interface, \texttt{RStan} \citep{Sta23}.
 
@@ -645,10 +652,9 @@ Gibbs sampling\index{Gibbs Sampling} is based on successively sampling each comp
 
 The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely resembles rejection sampling. We start each iteration by generating a candidate value of $X$ from some proposal distribution (this distribution may depend on the previous iteration's value of $X$). Write $J(x | x_0)$ for the proposal density, where $x_0$ is the value of $X$ from the previous iteration. Next, we define an acceptance probability, $r := f(x) J(x_0 | x) / f(x_0) J(x | x_0)$, and accept the proposed value of $X$ with probability $r \wedge 1$. With probability $(1-r) \vee 0$, we reject the proposed $x$ and instead set the current iteration's value to $x_0$. We then proceed to the next iteration. Note that rejecting still adds an observation to our Monte Carlo sample, this value just happens to be identical to the one proceeding it.
 
-\hl{I'm not super comfortable with this material. I want to acknowledge it and use it to motivate the more complicated adjustments to make MCEM work with MCMC, but I also don't want to say anything silly.} Limit theory for estimators based on MCMC sampling are more complicated than the similar theory for estimators based on iid or importance sampling (\hl{SMC?}). This additional complexity stems from the dependence between draws from an MCMC sampler. While convergence for iid and importance sampling can be established using the Law of Large Numbers and the classical Central Limit Theorem, similar results for MCMC sampling make use of the Ergodic Theorem and Markov Chain Central Limit Theorem. 
+\hl{I'm not super comfortable with this material. I want to acknowledge it and use it to motivate the more complicated adjustments to make MCEM work with MCMC, but I also don't want to say anything silly. I'm also going to need references.} Limit theory for estimators based on MCMC sampling are more complicated than the similar theory for estimators based on iid or importance sampling (\hl{SMC?}). This additional complexity stems from the dependence between draws from an MCMC sampler. While convergence for iid and importance sampling can be established using the Law of Large Numbers and the classical Central Limit Theorem, similar results for MCMC sampling make use of the Ergodic Theorem and Markov Chain Central Limit Theorem. A challenge in implementing the Markov Chain Central Limit Theorem is that the asymptotic variance depends on pairwise covariances between points in the chain which are arbitrarily far apart. Estimation of this asymptotic variance is therefore challenging in practice. 
 
-Efforts have been made in the MCEM literature to address this additional complexity and account for dependence in our Monte Carlo sample.
-
+\citet{Lev01} propose a method to simplify the analysis of estimates based on MCMC sampling. Their approach consists of subsampling the original chain using Poisson spacings with increasing mean. The result is that a target function averaged over the subsampled chain satisfies a classical Central Limit Theorem (i.e. one with no covariance terms in the asymptotic variance). We can estimate the mean and standard error of our subsample estimator using the entire chain and construct confidence intervals for the mean of the target function. \citeauthor{Lev01} apply this strategy for constructing confidence intervals along the same lines as \citet{Boo99}. Here, we construct a confidence interval for the gradient in the EM objective function, and increase the Monte Carlo size if the confidence interval for the current iteration contains the subsample estimate from the previous iteration. \hl{There's still something here I don't understand. What parameter is this CI for? In the paper, the CI is given by Equation 2.8 and justified by Theorem 1. A problem I'm having is that the thing which Theorem 1 asserts is asymptotically normal does not contain any parameters.}
 
 
 
