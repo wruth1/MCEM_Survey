@@ -213,7 +213,7 @@ Under regularity conditions, it is possible to compute both the score vector and
 
 An alternative to Proposition \ref{thm:EM_decomp} part \ref{eq:obs_info_identity} which involves only conditional expectations of complete data quantities is given in the following proposition.
 
-\begin{proposition}
+\begin{proposition}[Louis' Identity]
     \label{thm:info_decomp}
     Let $\hat{\theta}$ be a stationary point of the observed data log-likelihood. \hl{Assuming regularity conditions,} we can write the observed information of the observed data distribution at $\hat{\theta}$ as
     %
@@ -501,13 +501,8 @@ We apply the method of \citet{Boo99} to our blood type example, with the setting
 \end{figure}
 
 
-\subsection{\citep{Lev01}}
 
-\textcolor{red}{I don't think there is enough innovation on the MCEM algorithm in this paper. Their real contributions are on a way to apply importance sample (\ref{sec:imp_samp}) and a way to do UQ with MCMC sampling (\ref{sec:MCMC}). These can both just be mentioned in their respective sections.}
 
-The method of \citet{Lev01} has two main innovations. First is a way to save computation time by sharing a single Monte Carlo sample across all MCEM iterations. Second is a way to apply the uncertainty quantification ideas of \citet{Boo99} when using Markov Chain Monte Carlo sampling (see Section \ref{sec:MCMC}). 
-
-Importance sampling is a method for computing 
 
 
 \subsection{Uncertainty Quantification for the Objective Function \citep{Caf05}}
@@ -565,13 +560,32 @@ The method of \citet{Boo99} centers on treating each iteration of the MCEM algor
 \section{Alternatives to the MCEM Algorithm}
 \label{sec:alternatives}
 
-In this section, we outline a few alternatives to the MCEM algorithm for maximizing the likelihood of an incomplete dataset. Examples include the Monte Carlo Maximum Likelihood method of \citet{Gey94}, and Variational Inference \citep{Ble17, Tsi08}.
+In this section, we outline some alternatives to the MCEM algorithm for maximizing the likelihood of an incomplete dataset. Examples include stochastic approximation \citep{Lai03}, the Monte Carlo maximum likelihood method of \citet{Gey94}, and variational inference \citep{Ble17, Tsi08}.
+
+
+
+\subsection{Stochastic Approximation}
+
+Stochastic approximation (SA) is a method originally proposed by \citet{Rob51} for finding roots of functions which can only be evaluated with noise. This method was expanded upon rapidly by, for example, \citet{Rob51} into a method for derivative-free optimization, and by \citet{Dvo56} with a systematic theoretical framework. Since the mid-20th century, SA methods have grown into a thriving research area. See, e.g., \citet{Kus97} or \citet{Bor22} for textbook-length treatments, and \citet{Lai03} for a survey paper which focuses on applications to statistics.
+
+The core idea of SA is to iteratively update our estimate of the root, $\theta_*$, of some unobservable function, $\phi$, based on the value of a noisy realization of that function at the current estimate. Specifically, if $\theta_k$ is our estimate at iteration $k$ and $\hat{\phi} \approx \phi$, then our estimate at iteration $k+1$ is $\theta_{k+1} = \theta_k - \alpha_k \hat{\phi}(\theta_k)$, where $\alpha_k$ is a sequence which goes to zero at a particular rate. Since our sequence of weights goes to zero with $k$, the update terms become negligible in the limit and our estimate of $\theta_*$ stabilizes. The precise requirement for these weights is that $\sum_{k=1}^\infty \alpha_k = \infty$ and $\sum_{k=1}^\infty \alpha_k^2 < \infty$. A common choice is $\alpha_k = k^{-1}$. Numerous authors have studied convergence of the SA method in probability, almost surely and in $\mathcal{L}^1$ under various regularity conditions. See \citet{Lai03} for an excellent review of the history of stochastic approximation convergence theory.
+
+There are a few specific applications of the general stochastic approximation which merit special attention. First, suppose that we want to optimize a function, $f$, which we can only evaluate approximately. Assume further that we are able to approximately evaluate the gradient of $f$, $\nabla f$. Setting $\phi = \nabla f$ and running the SA algorithm with $\hat{\phi} \approx \nabla f$ gives us a critical point for $f$. We can therefore use SA to optimize functions which cannot be evaluated exactly. This version of SA sees considerable use in the Machine Learning community under the name Stochastic Gradient Descent \citep{Bot10}.
+
+Another specific instance of the SA method is when computing fixed points. For example, suppose that we want to find a point, $\theta_*$, such that $f(\theta_*) = \theta_*$. In this case, we set $\phi(\theta) = f(\theta) - \theta$ and run SA. The update equation in this case becomes a convex combination of the previous iteration's estimate and the current function value: $\theta_{k+1} = (1 - \alpha_k) \theta_k + \alpha_k \hat{f}(\theta_k)$. 
+
+Several authors have investigated the use of SA with incomplete data. We refer to such an application as a stochastic approximation EM (SAEM) algorithm. Both cases of the SA method described above find use in constructing particular SAEM algorithms. An advantage of the SAEM algorithm over MCEM is that in SAEM we choose the Monte Carlo size once at the beginning and leave it fixed for every iteration. We can think of the method as automatically increasing the MC size since the estimate at each iteration is a weighted sum of all the estimates which came before it. A disadvantage of SAEM is that it requires us to select the sequence $\{ \alpha_k \}$, commonly referred to as the ``step size''. Choosing $\alpha_k$ too large will mean the algorithm takes a long time to stabilize, while choosing $\alpha_k$ too small causes the algorithm to stabilize before it reaches its limiting value (and will therefore take a long time to reach this limit). \citet{Jan06} gives some guidance on choosing this step size based on the goal of balancing bias with variance. This work also presents a convergence diagnostic based on the ideas of \citet{Caf05} which allows for a posteriori assessment of whether the step size was too small. 
+
+A particular implementation of the SAEM method by \citet{Gu98I} suggests setting $\phi$ to the observed data score, $\phi(\theta) = S(\theta; y)$. This function can be estimated using Proposition \ref{thm:EM_decomp} (i) and the same Monte Carlo approach we use with MCEM. In the case of a vector-valued parameter, \citeauthor{Gu98I} also recommend pre-multiplying $\hat{\phi}$ by a matrix which converges to the inverse of the observed data information matrix. Such a sequence of matrices can be constructed using Louis' Identity (Proposition \ref{thm:info_decomp}) and Monte Carlo. Note that we use the same sample of missing data to update our estimates of the parameter and the observed data information matrix at each iteration. Similar work by \citet{Gu98II} extend the same SAEM construction to accommodate Markov Chain Monte Carlo sampling. \citet{Gu01} discuss how to apply the above methodology to the analysis of spatial models, and incorporate a second stage to the method in which estimates are averaged across iterations. This averaging has been found to improve performance of SAEM, and of stochastic approximation more generally \citep{Del99,Pol92}.
+
+\citet{Jan06} presents an SAEM implementation in which $\phi(\theta)$ is the EM objective function (i.e., the conditional expectation of the complete data log-likelihood) minus $\theta$. Thus, the limit of such an algorithm is a fixed-point of the EM update. This ties convergence of \citeauthor{Jan06}'s method more closely to the convergence theory of the original EM algorithm \citep{Wu83}. In fact, \citeauthor{Jan06} leverages this connection to exploit the relationship between the EM algorithm's convergence rate and certain information matrices \citep{Men94}. This connection allows \citeauthor{Jan06} to estimate the bias and variance of the SAEM estimates, which are then used to calibrate the step size, $\alpha_k$.
+
+A subtly different line of research on the SAEM method has been developed by a group at the National Institute for Research in Digital Science and Technology (INRIA) in France \citep[see, e.g.,][for a discussion of some of their methods]{Cel95}. The goal here is to augment the EM algorithm, rather than to facilitate the application of EM-type methods when ordinary EM is intractable. More precisely, methods from this group introduce a stochastic perturbation to the EM algorithm, with the goal of escaping fixed points which are locally, but not globally, optimal. Early work centered around a Stochastic EM (SEM) algorithm, which is equivalent to the MCEM algorithm with a Monte Carlo size of one \citep{Cel87,Cel95}. Later, they also propose a method which they refer to as SAEM (although it does not quite fit into our above framework), in which each iteration's parameter update is a convex combination of the EM and MCEM updates from the previous iteration's estimate. Here, as with the SEM algorithm, the MCEM update is computed with a Monte Carlo size of one \citep{Cel92, Cel95}.
 
 \subsection{Monte Carlo Maximum Likelihood}
 
 
 
-\subsection{Stochastic Approximation}
 
 \subsection{Variational Methods}
 
@@ -654,7 +668,7 @@ The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely r
 
 \hl{I'm not super comfortable with this material. I want to acknowledge it and use it to motivate the more complicated adjustments to make MCEM work with MCMC, but I also don't want to say anything silly. I'm also going to need references.} Limit theory for estimators based on MCMC sampling are more complicated than the similar theory for estimators based on iid or importance sampling (\hl{SMC?}). This additional complexity stems from the dependence between draws from an MCMC sampler. While convergence for iid and importance sampling can be established using the Law of Large Numbers and the classical Central Limit Theorem, similar results for MCMC sampling make use of the Ergodic Theorem and Markov Chain Central Limit Theorem. A challenge in implementing the Markov Chain Central Limit Theorem is that the asymptotic variance depends on pairwise covariances between points in the chain which are arbitrarily far apart. Estimation of this asymptotic variance is therefore challenging in practice. 
 
-\citet{Lev01} propose a method to simplify the analysis of estimates based on MCMC sampling. Their approach consists of subsampling the original chain using Poisson spacings with increasing mean. The result is that a target function averaged over the subsampled chain satisfies a classical Central Limit Theorem (i.e. one with no covariance terms in the asymptotic variance). We can estimate the mean and standard error of our subsample estimator using the entire chain and construct confidence intervals for the mean of the target function. \citeauthor{Lev01} apply this strategy for constructing confidence intervals along the same lines as \citet{Boo99}. Here, we construct a confidence interval for the gradient in the EM objective function, and increase the Monte Carlo size if the confidence interval for the current iteration contains the subsample estimate from the previous iteration. \hl{There's still something here I don't understand. What parameter is this CI for? In the paper, the CI is given by Equation 2.8 and justified by Theorem 1. A problem I'm having is that the thing which Theorem 1 asserts is asymptotically normal does not contain any parameters.}
+\citet{Lev01} propose a method to simplify the analysis of estimates based on MCMC sampling. Their approach consists of subsampling the original chain using Poisson spacings with increasing mean. The result is that a target function averaged over the subsampled chain satisfies a classical Central Limit Theorem (i.e. one with no covariance terms in the asymptotic variance). We can estimate the mean and standard error of our subsample estimator using the entire chain and construct confidence intervals for the mean of the target function. \citeauthor{Lev01} apply this strategy for constructing confidence intervals along the same lines as \citet{Boo99}. Here, we construct a confidence interval for the gradient in the EM objective function, and increase the Monte Carlo size if the confidence interval for the current iteration contains the subsample estimate from the previous iteration. \hl{There's still something here I don't understand. What parameter is this CI for? In the paper, the CI is given by Equation 2.8 and justified by Theorem 1. A problem I'm having is that the thing which Theorem 1 asserts is asymptotically normal does not contain any parameters.} This work is further extended to provide uncertainty quantification for the MCEM update based on MCMC sampling by \citet{Lev04}. Furthermore, \citeauthor{Lev04} give a principled argument for how much to increase the Monte Carlo sample size when doing so is deemed necessary \hl{something about two MCEM updates. I didn't follow closely, but I'm not sure that it's critical to do so}.
 
 
 
