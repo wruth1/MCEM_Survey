@@ -100,24 +100,19 @@
 % \doublespacing
 
 \begin{abstract}
-    We survey the EM algorithm and its Monte Carlo-based extensions.
+    We survey the Monte Carlo EM algorithm, focusing on its implementation and a few alternative methods.
 \end{abstract}
 
 \begin{itemize}
     \color{red}
-    \item Replace ``conditional distribution of the missing data given the observed data'' with ``missing data distribution''
-    \item \citet{Caf05} use $M_k$ for the Monte Carlo size at iteration $k$. This is a useful definition for discussing other papers too.
     \item I have changed my iteration labels. $\hat{\theta}_{k-1}$ is now the maximizer of the current MCEM objective function, and $\hat{\theta}_{k-1}$ was used to construct that objective function. Watch for this when editing.
-    \item Parameter space has not yet been defined.
-    \item Is the ``a'' in EM algorithm capitalized or not?
+    \item Set standard terminology for the observed information matrix of the observed data likelihood. I think it's best to just call this the observed data information.
 \end{itemize}
 
 \section{The EM Algorithm}
+\label{sec:EM}
 
-%todo - Define observed, complete and missing data distributions
-%todo - Define parameter space.
-
-We define three distributions which will be central to our study of missing data problems. Let $Y$ be the observed data and $X$ be the missing data. Note that $X$ need not correspond to any actual real-world process, but may instead be a conceptual device which facilitates analysis of the data which were actually observed. We refer to the distribution of $Y$ as the ``observed data distribution''\index{Observed Data Distribution}, and write $f$ for its density (or mass function). We refer to the joint distribution of $Y$ and $X$ as the ``complete data distribution''\index{Complete Data Distribution}, and write $f_c$ for its density. We refer to the conditional distribution of $X$ given $Y$ as the ``missing data distribution''\index{Missing Data Distribution}, and write $f_m$ for its density. Note that the missing data distribution is not the marginal distribution of the missing data, but rather its conditional distribution given the observed data.
+We define three distributions which will be central to our study of missing data problems. Let $Y$ be the observed data and $X$ be the missing data. Note that $X$ need not correspond to any actual real-world process, but may instead be a conceptual device which facilitates analysis of the data which were actually observed. We refer to the distribution of $Y$ as the ``observed data distribution''\index{Observed Data Distribution}, and write $f$ for its density (or mass function). We refer to the joint distribution of $Y$ and $X$ as the ``complete data distribution''\index{Complete Data Distribution}, and write $f_c$ for its density. We refer to the conditional distribution of $X$ given $Y$ as the ``missing data distribution''\index{Missing Data Distribution}, and write $f_m$ for its density. Note that the missing data distribution is not the marginal distribution of the missing data, but rather its conditional distribution given the observed data. We also write $\ell$, $\ell_c$ and $\ell_m$ for the log-likelihoods based on the observed, complete and missing data distributions respectively. Similar with $S$, $S_c$, $S_m$ for the scores (gradients of the matching $\ell$'s) and $I$, $I_c$, $I_m$ for the observed information matrices (negative Hessians of the matching $\ell$'s). We emphasize that, in our notation, a subscript $c$ denotes ``complete'' rather than ``conditional'', and a subscript $m$ denotes ``missing'' rather than ``marginal''. We write $\theta \in \Theta \subseteq \bR^p$ for the parameter of interest, and note that $f$, $f_c$ and $f_m$ are parameterized by the same $\theta$ (although in principle they need not all depend on every component of $\theta$)
 
 The EM algorithm is a method for analyzing incomplete data which was formalized by \citet{Dem77}. See \citet{McL08} for an excellent book-length overview of the EM algorithm. We begin by discussing a probabilistic framework within which the EM algorithm is often applied. We then present the EM algorithm in detail. Finally, we discuss some limitations of this method. Throughout, we illustrate our presentation with a toy problem based on linear regression with a single, unobserved, covariate.
 
@@ -142,7 +137,7 @@ We can combine the E- and M-steps of the EM algorithm into a single ``update fun
 \subsubsection{Ascent Property and Generalized EM}
 \label{sec:GEM}
 
-An important feature of the EM algorithm is its so-called ``ascent property''. This property says that an iteration of the EM algorithm (\hl{have I explicitly defined ``EM iteration''? Do I need to?}) never decreases the observed data likelihood. This is somewhat surprising, since EM updates are computed without ever evaluating the observed data likelihood. 
+An important feature of the EM algorithm is its so-called ``ascent property''. This property says that an iteration of the EM algorithm never decreases the observed data likelihood. This is somewhat surprising, since EM updates are computed without ever evaluating the observed data likelihood. 
 
 \begin{proposition}[Ascent Property of EM]
     Let $\theta \in \Theta$, and $\theta' = M(\theta)$ be the EM update from $\theta$. Then $\ell(\theta') \geq \ell(\theta)$.
@@ -159,10 +154,10 @@ An important feature of the EM algorithm is its so-called ``ascent property''. T
     %
     \begin{align}
         \ell(\theta'; y) - \ell(\theta; y) &= Q(\theta'|\theta) - Q(\theta|\theta) + \bE_{\theta}[\ell_m(\theta; y, x) - \ell_m(\theta'; y, x)]\\
-        &= Q(\theta'|\theta) - Q(\theta|\theta) + \mathrm{KL}(\theta || \theta') \label{eq:asc_KL}
+        &= Q(\theta'|\theta) - Q(\theta|\theta) + \mathrm{KL}(\theta \rightarrow \theta') \label{eq:asc_KL}
     \end{align}
     %
-    where the last term in line \ref{eq:asc_KL} is the Kullback-Leibler (KL) divergence from the missing data distribution with $\theta = \theta$ to the same distribution with $\theta = \theta'$. Note that KL divergences are always non-negative, so we get
+    where the last term in line \ref{eq:asc_KL} is the Kullback-Leibler (KL) divergence from the missing data distribution with $\theta = \theta$ to the same distribution with $\theta = \theta'$ \citep{van98}. Note that KL divergences are always non-negative, so we get
     %
     \begin{align}
     \ell(\theta'; y) - \ell(\theta; y) &\geq Q(\theta'|\theta) - Q(\theta|\theta)    
@@ -177,11 +172,11 @@ In our proof of the ascent property, we only required that $Q(\theta'|\theta) \g
 
 \subsubsection{Recovering Observed Data Likelihood Quantities}
 
-Under regularity conditions, it is possible to compute both the score vector and the observed information matrix of the observed data likelihood using complete data quantities. These regularity conditions consist of being able to interchange the order of differentiation and integration for various functions (\hl{awk? I wasn't feeling well when I wrote this.}). \hl{Does it make sense to define $\mathcal{I}_c$ and $\mathcal{I}_m$ in the following proposition?}
+Under regularity conditions \citet[see][]{McL08}, it is possible to compute both the score vector and the observed information matrix of the observed data likelihood using complete data quantities. These regularity conditions consist of being able to interchange the order of differentiation and integration for various functions.
 
 \begin{proposition}
     \label{thm:EM_decomp}
-    The following identities hold (\hl{regularity conditions!}):
+    Provided that differentiation and integration can be exchanged and that all given expectations are finite, the following identities hold:
     \begin{enumerate}[label=(\roman*)]
         \item $S(\theta; y) = \bE_\theta [S_c(\theta; y, X)|Y=y]$ \label{eq:obs_score_identity}
         \item $I(\theta) = \mathcal{I}_c(\theta) - \mathcal{I}_m(\theta)$ \label{eq:obs_info_identity}\\
@@ -211,20 +206,21 @@ Under regularity conditions, it is possible to compute both the score vector and
     Differentiating twice and taking conditional expectations of both sides yields the required result.
 \end{proof}
 
+Note that the matrices $\mathcal{I}_c$ and $\mathcal{I}_m$ are not observed information matrices (negative Hessians), but conditional expectations of observed information matrices. 
 An alternative to Proposition \ref{thm:EM_decomp} part \ref{eq:obs_info_identity} which involves only conditional expectations of complete data quantities is given in the following proposition.
 
 \begin{proposition}[Louis' Identity]
     \label{thm:info_decomp}
-    Let $\hat{\theta}$ be a stationary point of the observed data log-likelihood. \hl{Assuming regularity conditions,} we can write the observed information of the observed data distribution at $\hat{\theta}$ as
+    Let $\hat{\theta}$ be a critical point of the observed data log-likelihood. Assuming that differentiation and integration can be exchanged and that all given expectations are finite, we can write the observed information of the observed data distribution at $\hat{\theta}$ as
     %
     \begin{align}
         I(\theta) = \mathcal{I}_c(\theta) - \bE_{\theta} [ S_c(\theta) S_c(\theta)^T | Y=y] + S(\theta) S(\theta)^T
     \end{align}
     %
-    In particular, if $\hat{\theta}$ is a stationary point of the observed data log-likelihood, then
+    In particular, if $\hat{\theta}$ is a critical point of the observed data log-likelihood, then
     %
     \begin{align}
-        I(\hat{\theta}) = \mathcal{I}_c(\hat{\theta})  - \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta})^T | Y=y] \label{eq:info_at_MLE}
+        I(\hat{\theta}) = \left. \left(\mathcal{I}_c(\theta)  -  \bE_{\theta} [ S_c(\theta) S_c(\theta)^T | Y=y]\right) \right|_{\theta = \hat{\theta}} \label{eq:info_at_MLE}
     \end{align}
 \end{proposition}
 
@@ -319,7 +315,7 @@ The EM objective function at iteration $k+1$ is
     &=: \nu^{(k)}_O \log r + \nu^{(k)}_A \log p + \nu^{(k)}_B \log q
 \end{align}
 %
-where $nu^{(k)}_O$, $\nu^{(k)}_A$ and $\nu^{(k)}_B$ are the expected number of O, A and B alleles respectively given $Y=y$ and $\theta = \theta_k$. Maximizing this objective function in $p$ and $q$ gives the following EM update function:
+where $\nu^{(k)}_O$, $\nu^{(k)}_A$ and $\nu^{(k)}_B$ are the expected number of O, A and B alleles respectively given $Y=y$ and $\theta = \theta_k$. See Appendix \ref{app:blood_miss} for explicit formulas. Maximizing this objective function in $p$ and $q$ gives the following EM update function:
 %
 \begin{align}
     M(\theta_k) &= \begin{pmatrix}
@@ -348,28 +344,17 @@ Beyond computing the observed data MLE, we also need the standard error of this 
 \section{The Monte Carlo EM Algorithm}
 \label{sec:MCEM}
 
-The Monte Carlo EM, or MCEM, algorithm was first proposed by \citet{Wei90}. This method proceeds by replacing the conditional expectation in the E-step of the EM algorithm with a Monte Carlo average. More precisely, at each iteration we generate observations from the conditional distribution of the missing data given the observed data, and average the complete data likelihood over this Monte Carlo sample. Formally, at a given iteration of the MCEM algorithm, let $X_1,\ldots, X_M$ be a Monte Carlo sample from the law of $X|Y=y$ with $\theta$ set to the value from the previous iteration, say $\theta_0$. Write
+The Monte Carlo EM, or MCEM, algorithm was first proposed by \citet{Wei90}. See also Section 4.5 of \citet{Tan96} for a textbook-level treatment of the basic idea with multiple examples. This method proceeds by replacing the conditional expectation in the E-step of the EM algorithm with a Monte Carlo average. More precisely, at each iteration we generate observations from the missing data distribution (i.e.\ the conditional distribution of the missing data given the observed data), and average the complete data likelihood over this Monte Carlo sample. Formally, at a given iteration of the MCEM algorithm, let $X_1,\ldots, X_M$ be a Monte Carlo sample from the law of $X|Y=y$ with $\theta$ set to the value from the previous iteration, say $\theta_0$. Write
 %
 \begin{align}
-    \hat{Q}(\theta|\theta_0) &= \sum_{i=1}^M w_i \ell_c(\theta; y, X_i)\\
-    &:= \hat{\bE} \ell_c (\theta; y, X)
+    \hat{Q}(\theta|\theta_0) &= \sum_{i=1}^M w_i \ell_c(\theta; y, X_i)
 \end{align}
 %
-where the $w_i$ are sampling weights. \hl{Confirm that this operator notation isn't contradicted elsewhere.} Under iid sampling we simply get $w_i = M^{-1}$ for every $i$, but more intricate sampling schemes may have more complicated weights. The estimate of $\theta$ is then the maximizer of the MCEM objective function: $\hat{\theta} = \argmax_\theta \hat{Q}(\theta|\theta_0)$. Write $\hat{\theta}_{k-1}$ for the $k$th MCEM estimate. 
+where the $w_i$ are sampling weights. We write $\hat{\bE} \phi$ \index{$\hat{\bE}$} for the weighted average of a function $\phi$ based on an importance sample, so $\hat{Q}(\theta|\theta_0)$ can be re-written as $\hat{\bE} \ell_c (\theta; y, X)$. Under iid sampling we simply get $w_i = M^{-1}$ for every $i$, but more intricate sampling schemes may have more complicated weights. In this section, we focus only on iid sampling. See Section \ref{sec:simulation} for discussions of some alternative sampling methods. The estimate of $\theta$ is then the maximizer of the MCEM objective function: $\hat{\theta} = \argmax_\theta \hat{Q}(\theta|\theta_0)$. Write $\hat{\theta}_{k-1}$ for the $k$th MCEM estimate. 
 
-Provided that a valid sampling scheme is available for the missing data distribution, we can use Proposition \ref{thm:info_decomp} to estimate the observed data information matrix. 
+Provided that the MCEM algorithm converges to a critical point of the observed data likelihood, we can use Proposition \ref{thm:info_decomp} to estimate the observed data information matrix. Specifically, after declaring convergence, we generate a new Monte Carlo sample and use it to approximate all conditional expectations in Equation (\ref{eq:info_at_MLE}).
 
-\begin{proposition}
-    Under the conditions of Proposition \ref{thm:info_decomp}, \hl{as well as any required for the sampler,} we get
-    %
-    \begin{align}
-        - \hat{\bE}_{\hat{\theta}} \nabla^2 \ell_c(\hat{\theta}) - \hat{\bE}_{\hat{\theta}} S_c(\hat{\theta}) S_c(\hat{\theta})^T \rightarrow I(\theta)
-    \end{align}
-    %
-    \hl{Under stronger conditions,} we also get asymptotic normality with variance obtained from importance sampling analysis.
-\end{proposition}
-
-The MCEM algorithm has the advantage of circumventing the challenge of computing potentially intractable conditional expectations for the EM algorithm. However, this analytical simplification does come at the cost of introducing some new computational problems. In this section, we outline the main problems faced by the MCEM algorithm and present various solutions which have been proposed in the literature. We focus primarily on practical aspects of the MCEM algorithm; see \citet{Nea13} for a survey of theoretical considerations.
+The MCEM algorithm has the advantage of circumventing the challenge of computing potentially intractable conditional expectations for the EM algorithm. However, this analytical simplification does come at the cost of introducing some new computational problems. In this section, we outline the main problems faced by the MCEM algorithm and present various solutions which have been proposed in the literature. We focus primarily on practical aspects of the MCEM algorithm; see \citet{For03} for a thorough analysis of the convergence properties of MCEM, and \citet{Nea13} for a survey of this and other theoretical considerations.
 
 Two problems which have received considerable attention in the literature are how to choose the Monte Carlo sample size at each iteration, and when to terminate the MCEM algorithm. These were identified early by \citet{Wei90}, but did not receive systematic treatment until later. We here give a brief overview of different authors' approaches to solving these two problems. The rest of this section goes into more detail on each of the methods. \citet{Wei90} suggest examining a plot of the parameter estimates across iterations, and either terminating or increasing the Monte Carlo size when the plot appears to stabilize. \citet{Cha95} use a pilot study to choose the Monte Carlo sample size, and terminate when a confidence interval for the improvement of the observed data log-likelihood between successive iterations contains zero. \citet{Boo99} frame each MCEM iteration as an M-estimation problem targeting the deterministic EM update. They increase the Monte Carlo size if an asymptotic confidence interval for the EM update contains the previous iteration's parameter estimate, and terminate when multiple consecutive iterations' estimates have sufficiently small relative error. \citet{Caf05} build confidence bounds for the increment in the EM objective function at each iteration of the MCEM algorithm. They increase the Monte Carlo size until the lower bound is positive and terminate when the upper bound is sufficiently small.
 
@@ -403,7 +388,9 @@ In order to apply the MCEM algorithm to estimate allele frequencies in the blood
 
 \subsection{Running a Pilot Study \citep{Cha95}}
 
-Building on the ideas of \citeauthor{Wei90}, \citet{Cha95} develop a method for both choosing the Monte Carlo size and deciding when to terminate the MCEM algorithm. This method is based on an identity which allows us to estimate observed data likelihood ratios by Monte Carlo averages of complete data likelihood ratios. More precisely, we write
+Building on the ideas of \citeauthor{Wei90}, \citet{Cha95} develop a method for both choosing the Monte Carlo size and deciding when to terminate the MCEM algorithm. The method of \citeauthor{Cha95} includes numerous choices for which they do not give specific guidance. We describe the procedure in general terms, but details of any particular implementation will need to be explored in the context of the dataset being investigated. 
+
+The algorithm presented by \citeauthor{Cha95} is based on an identity which allows us to estimate observed data likelihood ratios by Monte Carlo averages of complete data likelihood ratios. More precisely, we write
 %
 \begin{align}
 	\frac{\mathcal{L}(\theta_1; y)}{\mathcal{L}(\theta_2; y)} &= \bE_{\theta_2} \left[ \left. \frac{\mathcal{L}_c(\theta_1; y, X)}{\mathcal{L}_c(\theta_2; y, X)} \right| Y=y \right] \label{eq:Cha95}
@@ -422,13 +409,14 @@ Note that the observed data log-likelihood ratio is estimated by a Monte Carlo a
 
 \footnotetext{Due to our Monte Carlo sample using the new parameter estimate rather than the old, we must actually estimate the reciprocal of the likelihood ratio which we want, then multiply its log by $-1$. This is reflected in the formulas of \citeauthor{Cha95} but not discussed explicitly.}
 
-Upon completion of the pilot study (i.e., after a pre-specified number of iterations), we select the estimate with maximal estimated observed data likelihood. We also select a few nearby estimates (\citeauthor{Cha95} suggest the 10 which follow the maximizer), and perform a small number of single-iteration MCEM runs from each of the chosen estimates. We compute the estimated observed data log-likelihood ratio for each of these MCEM updates, and get the variance of these updates for each parameter estimate. We then pool variances across parameter estimates into a standard error for our log-likelihood ratio estimator. Finally, we use this standard error, along with its known scaling rate with the Monte Carlo sample size\footnotemark, to determine what size is needed to get our standard error below the pre-specified threshold.
+Upon completion of the pilot study (i.e., after a pre-specified number of iterations), we select the estimate with maximal estimated observed data likelihood. We also select a few nearby estimates (\citeauthor{Cha95} suggest the 10 which follow the maximizer but give no justification for this number), and perform a small number of single-iteration MCEM runs from each of the chosen estimates. We compute the estimated observed data log-likelihood ratio for each of these MCEM updates, and get the variance of these updates for each parameter estimate. We then pool variances across parameter estimates into a standard error for our log-likelihood ratio estimator. Finally, we use this standard error, along with its known scaling rate with the Monte Carlo sample size\footnotemark, to determine what size is needed to get our standard error below the pre-specified threshold. Note that, if a more complicated sampling scheme is being used (e.g. importance sampling, see Section \ref{sec:imp_samp}), then the formula given by \citeauthor{Cha95} for the new Monte Carlo size may not apply.
 
-\footnotetext{Provided that the parameter estimates used to compute our standard error are close enough to the MLE, \citeauthor{Cha95} show that the standard error scales like $1/M$ rather than the usual $1 / \sqrt{M}$, where $M$ is the Monte Carlo size.}
+\footnotetext{Provided that the parameter estimates used to compute our standard error are close enough to the MLE, \citeauthor{Cha95} show that the standard error scales like $1/M$ rather than the usual $1 / \sqrt{M}$, where $M$ is the Monte Carlo size. }
 
 With this newly determined Monte Carlo size, we return to the optimal parameter estimate from our pilot study and continue iterating the MCEM algorithm. At each step now, we also construct a confidence interval for the true observed data log-likelihood ratio corresponding to the current parameter update (i.e., between two consecutive parameter values, not from the starting point to the current estimate). We terminate the algorithm when such a confidence interval contains zero. This corresponds to no evidence of an improvement in the observed data likelihood.
 
-Applying \citeauthor{Cha95}'s method to our blood-type dataset, we get the parameter estimate trajectory shown in Figure \ref{fig:blood_CL_MCEM_estimates}. Figure \ref{fig:blood_CL_MCEM_likelihoods} gives the trajectory of estimated observed data log-likelihood ratios relative to the starting point of the algorithm ($\hat{p}_0 = \hat{q}_0 = 1/3$), along with pointwise $95\%$ Wald-type confidence bands using the standard error computed after the pilot study and scaled appropriately for the Monte Carlo sample size. We use a stopping rule of $10^{-6}$. Note that this standard error only applies near the maximizer of the observed data MLE.
+
+Applying \citeauthor{Cha95}'s method to our blood-type dataset, we get the parameter estimate trajectory shown in Figure \ref{fig:blood_CL_MCEM_estimates}. Figure \ref{fig:blood_CL_MCEM_likelihoods} gives the trajectory of estimated observed data log-likelihood ratios relative to the starting point of the algorithm ($\hat{p}_0 = \hat{q}_0 = 1/3$), along with pointwise $95\%$ Wald-type confidence bands using the standard error computed after the pilot study and scaled appropriately for the Monte Carlo sample size. We require that the standard error of our estimated log-likelihood increment be at most $10^{-6}$. Note that this standard error only applies near the maximizer of the observed data MLE.
 
 \begin{figure}
     \centering
@@ -456,22 +444,22 @@ Applying \citeauthor{Cha95}'s method to our blood-type dataset, we get the param
 
 The confidence interval used to quantify Monte Carlo uncertainty within an iteration is obtained by framing each step of the MCEM algorithm as the solution of an M-estimation problem. This allows us to inherit the desirable properties of M-estimators; specifically, asymptotic normality (see, e.g. \citealp{van98}). Following the usual M-estimator construction and assuming that the relevant regularity conditions hold, we are able to estimate the asymptotic variance of the MCEM parameter estimator at each iteration. Note that this standard error is based on the Monte Carlo variability within an iteration; it does not measure sampling variability due to the observed data. 
 
-More formally, write $\tilde{\theta}_k$ for the EM update based on $\hat{\theta}_{k-1}$. Note that $\hat{\theta}_{k-1}$ is held fixed. \hl{Analysis of a single MCEM iteration is done conditional on the previous iteration (awk?).} Unless stated otherwise, all expectations are taken with $\theta = \hat{\theta}_{k-1}$. Assuming sufficient smoothness and moment conditions, we get the following expression for the MCEM update:
+More formally, write $\tilde{\theta}_k$ for the EM update based on $\hat{\theta}_{k-1}$. Note that $\hat{\theta}_{k-1}$ is held fixed. Analysis of an MCEM update is done conditional on the previous iteration's estimate. Unless stated otherwise, all expectations are taken with $\theta = \hat{\theta}_{k-1}$. Assuming sufficient smoothness and moment conditions, we get the following expression for the MCEM update:
 %
 \begin{align}
-    \sqrt{M}(\hat{\theta}_k - \tilde{\theta}_k) &= - \sqrt{M} \left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \left[\nabla \hq(\tilde{\theta}_k|\hat{\theta}_{k-1}) \right] + o_p(1) \label{eq:th_as_dist}
+    \sqrt{M_k}(\hat{\theta}_k - \tilde{\theta}_k) &= - \sqrt{M_k} \left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \left[\nabla \hq(\tilde{\theta}_k|\hat{\theta}_{k-1}) \right] + o_p(1) \label{eq:th_as_dist}
 \end{align}
 %
-where $M$ is the Monte Carlo size and $\nabla$ denotes differentiation with respect to the left argument of $Q$ or $\hat{Q}$. Note that the first expression on the right-hand side is the inverse Hessian of the EM objective function (fixed) while the second is the gradient of the MCEM objective function (an average). Thus, $\hat{\theta}_k$ is asymptotically normal with asymptotic variance
+as $M_k \rightarrow \infty$, where $M_k$ is the Monte Carlo size used to compute $\hat{\theta}_k$ and $\nabla$ denotes differentiation with respect to the left argument of $Q$ or $\hat{Q}$. Note that the first expression on the right-hand side is the inverse Hessian of the EM objective function (fixed) while the second is the gradient of the MCEM objective function (an average). Thus, $\hat{\theta}_k$ is asymptotically normal with asymptotic variance
 %
 \begin{align}
     &\left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \bV \left[ S_c (\tilde{\theta}_k) | Y=y \right] \left[ \nabla^2 Q(\tilde{\theta}_k|\hat{\theta}_{k-1})\right]^{-1}\\
     &\approx \left[ \nabla^2 \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} \hat{\bE} \left[ S_c(\hat{\theta}_k) S_c(\hat{\theta}_k)^T | Y=y \right] \left[ \nabla^2 \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1})\right]^{-1} 
 \end{align}
 %
-where $S_c$ is the complete data score vector, and $\hat{\bE}$ is the Monte Carlo average over the missing data, with $\hat{\theta}_k$ held fixed \hl{(remove comma?)}. Note that there is no first moment term in the conditional variance of $S_c$ because $\hat{\theta}_k$ is a maximizer of $\hat{\bE} [\ell_c |Y=y]$.
+where $S_c$ is the complete data score vector, and $\hat{\bE}$ is the Monte Carlo average over the missing data with $\hat{\theta}_k$ held fixed. Note that there is no first moment term in the conditional variance of $S_c$ because $\hat{\theta}_k$ is a maximizer of $\hat{\bE} [\ell_c |Y=y]$.
 
-Based on the above discussion, we can build an asymptotic confidence interval for $\tilde{\theta}_k$, the EM update based on the MCEM estimate from iteration $k$. \citeauthor{Boo99} recommend checking whether this interval contains $\hat{\theta}_{k-1}$ and, if so, increasing $M$ for the next iteration. Specifically, they suggest starting the next iteration with $M/r$ more points, with $r = 3,4$ or $5$ working well in their examples \hl{(this whole discussion is pretty awkward)}.
+Based on the above discussion, we can build an asymptotic confidence interval for $\tilde{\theta}_k$, the EM update based on the MCEM estimate from iteration $k$. \citeauthor{Boo99} recommend checking whether this interval contains $\hat{\theta}_{k-1}$ and, if so, increasing the Monte Carlo size for the next iteration. Specifically, they suggest starting the next iteration with $M_{k+1} = M_k ( 1 + 1/r)$, with $r = 3,4$ or $5$ working well in their examples.
 
 To assess convergence of the MCEM algorithm, \citeauthor{Boo99} present two criteria. The first is a familiar measure of relative error in parameter estimates between consecutive iterations:
 %
@@ -479,7 +467,7 @@ To assess convergence of the MCEM algorithm, \citeauthor{Boo99} present two crit
     \max_j \left( \frac{\left| \hat{\theta}_{k, j} - \hat{\theta}_{k-1,j} \right|}{\left| \hat{\theta}_{k-1,j} \right| + \delta_1} \right) < \delta_2 \label{eq:Boo99_tol}
 \end{align}
 %
-where $\delta_1$ and $\delta_2$ are small positive constants, and the subscript $j$ ranges over components of $\theta$. \citeauthor{Boo99} suggest using $\delta_1 = 10^{-3}$ and $\delta_2$ between $2 \cdot 10^{-3}$ and $5 \cdot 10^{-3}$. See \citep{need} (probably \citealp{Sea06}, p.\ 436, or \citealp{Mar63}) for why condition (\ref{eq:Boo99_tol}) has this particular form.
+where $\delta_1$ and $\delta_2$ are small positive constants, and the subscript $j$ ranges over components of $\theta$. \citeauthor{Boo99} suggest using $\delta_1 = 10^{-3}$ and $\delta_2$ between $2 \cdot 10^{-3}$ and $5 \cdot 10^{-3}$. See p.\ 436 of \citetext{Sea06} and the references therein for a discussion of the form of Equation \ref{eq:Boo99_tol}.
 
 Alternatively, since \citeauthor{Boo99} apply their method to the analysis of generalized linear mixed models, where pathologies may arise due to parameter estimates being too close to a boundary, they propose a second stopping rule:
 %
@@ -487,7 +475,7 @@ Alternatively, since \citeauthor{Boo99} apply their method to the analysis of ge
     \max_j \left( \frac{\left| \hat{\theta}_{k, j} - \hat{\theta}_{k-1,j} \right|}{\sqrt{\bV \hat{\theta}_{k-1,j}} + \delta'_1} \right) < \delta'_2 \label{eq:Boo99_tol2}
 \end{align}
 
-\hl{How do we estimate the variance here?} The purpose of condition (\ref{eq:Boo99_tol2}) is to detect when estimated variance components are very close to zero and the numerical precision needed to satisfy condition (\ref{eq:Boo99_tol}) requires a prohibitive amount of computation.
+The purpose of condition (\ref{eq:Boo99_tol2}) is to detect when estimated variance components are very close to zero and the numerical precision needed to satisfy condition (\ref{eq:Boo99_tol}) requires a prohibitive amount of computation.
 
 We apply the method of \citet{Boo99} to our blood type example, with the settings recommended in their paper. Specifically, they suggest setting $\alpha = 0.25$, $k = 3$ (alternatively, $4$ or $5$), $\delta_1 = 0.001$, and $\delta_2 = 0.002$ (or as high as $0.005$). We also start with a Monte Carlo size of 10. Figure \ref{fig:blood_BH_traj} gives trajectories of the MCEM estimates, as well as the Monte Carlo size used to obtain each of these estimates. Note how the trajectory stabilizes as the MC size increases. The final estimate from this method is $\hat{p} = 0.299$, $\hat{q} = 0.128$; again, very close to the MLE.
 
@@ -517,31 +505,18 @@ The approach of \citet{Caf05} is similar in spirit to that of \citet{Boo99}. Bot
         \sqrt{M_k} \left[ \Delta \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1}) - \Delta Q(\hat{\theta}_k|\hat{\theta}_{k-1}) \right] \rightsquigarrow N(0, \Sigma_k)
     \end{align}
     %
-    As $M_k \rightarrow \infty$, where $\Sigma_k$ is an asymptotic covariance matrix.
+    as $M_k \rightarrow \infty$, where $\Sigma_k$ is an asymptotic covariance matrix.
 \end{proposition}
 
-\begin{proof}
-    Following \citet{Caf05}, we write
-    %
-    \begin{align}
-        \sqrt{M_k} \left[ \Delta \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1}) - \Delta Q(\hat{\theta}_k|\hat{\theta}_{k-1}) \right] &= \sqrt{M_k} \left[ \Delta \hat{Q}(\theta_k|\hat{\theta}_{k-1}) - \Delta Q(\theta_k|\hat{\theta}_{k-1}) \right] \nonumber \\
-        & + \sqrt{M_k} \left[ \Delta \hat{Q}(\hat{\theta}_k|\hat{\theta}_{k-1}) - \Delta Q(\theta_k|\hat{\theta}_{k-1}) \right]\\
-        & + \sqrt{M_k} \left[ \Delta \hat{Q}(\theta_k|\hat{\theta}_{k-1}) - \Delta Q(\hat{\theta}_k|\hat{\theta}_{k-1}) \right]\\
-        &=: A_k + B_k + C_k
-    \end{align}
-    %
-    First, note that $A_k$ depends on the current Monte Carlo sample only through $\hat{Q}$, and is thus asymptotically normal by the ordinary Central Limit Theorem. However, $B_k$ and $C_k$ require a more careful analysis.
+See \citeauthor{Caf05} for a proof. Provided that we are able to estimate $\Sigma_k$, Proposition \ref{thm:Caf_normality} allows us to build asymptotic confidence intervals for the EM increment, $\Delta Q$. Recall that in Section \ref{sec:GEM}, we defined the Generalized EM algorithm by requiring that $\Delta Q \geq 0$, and showed that this requirement guarantees the ascent property. While the stochastic nature of the MCEM algorithm makes it impossible to guarantee that the EM increment is positive, we are able to use Proposition \ref{thm:Caf_normality} to construct asymptotic confidence bounds for $\Delta Q$. Provided that we can estimate $\Sigma_k$, we can then be reasonably confident that $\Delta Q > 0$.
 
-    \textbf{Use Taylor's Theorem when you're more awake.}
-\end{proof}
+Estimating the asymptotic variance under iid or rejection sampling is fairly straightforward. Importance sampling however, is somewhat more complicated; particularly when a normalizing constant must be estimated. \citeauthor{Caf05} give a formula for importance sampling based on the Delta Method. They also give some guidance for calculating standard errors based on Markov chain Monte Carlo sampling, which we do not go into here. See Section \ref{sec:imp_samp} and \ref{sec:MCMC} for more details on importance sampling and Markov chain Monte Carlo respectively. 
 
-Provided that we are able to estimate $\Sigma_k$, Proposition \ref{thm:Caf_normality} allows us to build asymptotic confidence intervals for the EM increment, $\Delta Q$. Recall that in Section \ref{sec:GEM}, we defined the Generalized EM algorithm by requiring that $\Delta Q \geq 0$, and showed that this requirement guarantees the ascent property. While the stochastic nature of the MCEM algorithm makes it impossible to guarantee that the EM increment is positive, we are able to use Proposition \ref{thm:Caf_normality} to construct asymptotic confidence bounds for $\Delta Q$. Provided that we can estimate $\Sigma_k$, we can then \hl{be reasonably confident that $\Delta Q > 0$ (awk)}.
-
-Estimating the asymptotic variance under iid or importance sampling is fairly straightforward. Importance sampling however, is somewhat more complicated; particularly when a normalizing constant must be estimated. \citeauthor{Caf05} give a formula for importance sampling based on the Delta Method. They also give some guidance for calculating standard errors based on MCMC sampling, \hl{which we do not go into here. See Section XX for some details}. 
-
-We now return to the key MCEM problems of choosing the Monte Carlo size and when to terminate. For the former, \citeauthor{Caf05} advise constructing a lower confidence limit for the EM increment, $\Delta Q$. If this limit is positive, then we proceed to the next iteration. If not, then we augment the Monte Carlo sample at the current iteration (with, say, $M_k/r$, with $r$ some small positive integer as in \citealp{Boo99}), and compute a new confidence bound. At the next iteration, \citeauthor{Caf05} advise using a starting Monte Carlo sample which is at least as large as the final sample from the previous iteration. \hl{In fact, a larger sample may be required based on extrapolating the MC variability from the previous iteration (clarify; I don't fully understand what they're doing here).}
+We now return to the key MCEM problems of choosing the Monte Carlo size and when to terminate. For the former, \citeauthor{Caf05} advise constructing a lower confidence limit for the EM increment, $\Delta Q$. If this limit is positive, then we proceed to the next iteration. If not, then we augment the Monte Carlo sample at the current iteration (with, say, $M_k/r$, with $r$ some small positive integer as in \citealp{Boo99}), and compute a new confidence bound. At the next iteration, \citeauthor{Caf05} advise using a starting Monte Carlo sample which is at least as large as the final sample from the previous iteration. In fact, a larger sample may be required based on extrapolating the MC variability from the previous iteration. The paper gives a formula for this updated size based on a normal approximation to increments in the MCEM objective function.
 
 \citeauthor{Caf05} base their termination criterion on stopping when there is evidence that the algorithm is no longer yielding sufficient improvement in the EM objective function. Specifically, they start by choosing a tolerance, $\tau>0$, then calculate an upper confidence limit for the EM increment at each iteration. If this upper confidence limit is below $\tau$, then we declare that there is little room for improvement left in the EM objective, and terminate our algorithm.
+
+\hl{Still need to apply this method to the blood type dataset.}
 
 \begin{comment}
 \subsection{Quantifying Monte Carlo Uncertainty}
@@ -560,13 +535,16 @@ The method of \citet{Boo99} centers on treating each iteration of the MCEM algor
 \section{Alternatives to the MCEM Algorithm}
 \label{sec:alternatives}
 
-In this section, we outline some alternatives to the MCEM algorithm for maximizing the likelihood of an incomplete dataset. Examples include stochastic approximation \citep{Lai03}, the Monte Carlo maximum likelihood method of \citet{Gey94}, and variational inference \citep{Ble17, Tsi08}.
+In this section, we outline some alternatives to the MCEM algorithm for maximizing the likelihood of an incomplete dataset. Examples include stochastic approximation \citep{Lai03}, the Monte Carlo maximum likelihood method \citep{Gel93, Gey94}, and variational inference \citep{Ble17, Tsi08}. 
+
+\hl{I haven't yet applied any of these methods on the blood type dataset. I wasn't planning on doing so, but I actually don't think it will be too hard. I've already got most of the infrastructure code written and most of these methods are not very complicated. The possible exception is variational inference, but I've never really tried to implement that one. Maybe it won't be too bad.}
 
 
 
 \subsection{Stochastic Approximation}
+\label{sec:SAEM}
 
-Stochastic approximation (SA) is a method originally proposed by \citet{Rob51} for finding roots of functions which can only be evaluated with noise. This method was expanded upon rapidly by, for example, \citet{Rob51} into a method for derivative-free optimization, and by \citet{Dvo56} with a systematic theoretical framework. Since the mid-20th century, SA methods have grown into a thriving research area. See, e.g., \citet{Kus97} or \citet{Bor22} for textbook-length treatments, and \citet{Lai03} for a survey paper which focuses on applications to statistics.
+Stochastic approximation (SA) is a method originally proposed by \citet{Rob51} for finding roots of functions which can only be evaluated with noise. This method was expanded upon rapidly by, for example, \citet{Kie52} into a method for derivative-free optimization, and by \citet{Dvo56} with a systematic theoretical framework. Since the mid-20th century, SA methods have grown into a thriving research area. See, e.g., \citet{Kus97} or \citet{Bor22} for textbook-length treatments, and \citet{Lai03} for a survey paper which focuses on applications to statistics.
 
 The core idea of SA is to iteratively update our estimate of the root, $\theta_*$, of some unobservable function, $\phi$, based on the value of a noisy realization of that function at the current estimate. Specifically, if $\theta_k$ is our estimate at iteration $k$ and $\hat{\phi} \approx \phi$, then our estimate at iteration $k+1$ is $\theta_{k+1} = \theta_k - \alpha_k \hat{\phi}(\theta_k)$, where $\alpha_k$ is a sequence which goes to zero at a particular rate. Since our sequence of weights goes to zero with $k$, the update terms become negligible in the limit and our estimate of $\theta_*$ stabilizes. The precise requirement for these weights is that $\sum_{k=1}^\infty \alpha_k = \infty$ and $\sum_{k=1}^\infty \alpha_k^2 < \infty$. A common choice is $\alpha_k = k^{-1}$. Numerous authors have studied convergence of the SA method in probability, almost surely and in $\mathcal{L}^1$ under various regularity conditions. See \citet{Lai03} for an excellent review of the history of stochastic approximation convergence theory.
 
@@ -574,30 +552,55 @@ There are a few specific applications of the general stochastic approximation wh
 
 Another specific instance of the SA method is when computing fixed points. For example, suppose that we want to find a point, $\theta_*$, such that $f(\theta_*) = \theta_*$. In this case, we set $\phi(\theta) = f(\theta) - \theta$ and run SA. The update equation in this case becomes a convex combination of the previous iteration's estimate and the current function value: $\theta_{k+1} = (1 - \alpha_k) \theta_k + \alpha_k \hat{f}(\theta_k)$. 
 
-Several authors have investigated the use of SA with incomplete data. We refer to such an application as a stochastic approximation EM (SAEM) algorithm. Both cases of the SA method described above find use in constructing particular SAEM algorithms. An advantage of the SAEM algorithm over MCEM is that in SAEM we choose the Monte Carlo size once at the beginning and leave it fixed for every iteration. We can think of the method as automatically increasing the MC size since the estimate at each iteration is a weighted sum of all the estimates which came before it. A disadvantage of SAEM is that it requires us to select the sequence $\{ \alpha_k \}$, commonly referred to as the ``step size''. Choosing $\alpha_k$ too large will mean the algorithm takes a long time to stabilize, while choosing $\alpha_k$ too small causes the algorithm to stabilize before it reaches its limiting value (and will therefore take a long time to reach this limit). \citet{Jan06} gives some guidance on choosing this step size based on the goal of balancing bias with variance. This work also presents a convergence diagnostic based on the ideas of \citet{Caf05} which allows for a posteriori assessment of whether the step size was too small. 
+We now discuss application of stochastic approximation to the missing data problem. We refer to such an application as a stochastic approximation EM (SAEM) algorithm. Both cases of the SA method described above find use in constructing particular SAEM algorithms. An advantage of the SAEM algorithm over MCEM is that in SAEM we choose the Monte Carlo size once at the beginning and leave it fixed for every iteration. We can think of the method as automatically increasing the MC size since the estimate at each iteration is a weighted sum of all the estimates which came before it. A disadvantage of SAEM is that it requires us to select the sequence $\{ \alpha_k \}$, commonly referred to as the ``step size''. Choosing $\alpha_k$ too large will mean the algorithm takes a long time to stabilize, while choosing $\alpha_k$ too small causes the algorithm to stabilize before it reaches its limiting value (and will therefore take a long time to reach this limit). \citet{Jan06} gives some guidance on choosing this step size based on the goal of balancing bias with variance. This work also presents a convergence diagnostic based on the ideas of \citet{Caf05} which allows for a posteriori assessment of whether the step size was too small. 
 
-A particular implementation of the SAEM method by \citet{Gu98I} suggests setting $\phi$ to the observed data score, $\phi(\theta) = S(\theta; y)$. This function can be estimated using Proposition \ref{thm:EM_decomp} (i) and the same Monte Carlo approach we use with MCEM. In the case of a vector-valued parameter, \citeauthor{Gu98I} also recommend pre-multiplying $\hat{\phi}$ by a matrix which converges to the inverse of the observed data information matrix. Such a sequence of matrices can be constructed using Louis' Identity (Proposition \ref{thm:info_decomp}) and Monte Carlo. Note that we use the same sample of missing data to update our estimates of the parameter and the observed data information matrix at each iteration. Similar work by \citet{Gu98II} extend the same SAEM construction to accommodate Markov Chain Monte Carlo sampling. \citet{Gu01} discuss how to apply the above methodology to the analysis of spatial models, and incorporate a second stage to the method in which estimates are averaged across iterations. This averaging has been found to improve performance of SAEM, and of stochastic approximation more generally \citep{Del99,Pol92}.
+A particular implementation of the SAEM method by \citet{Gu98I} suggests setting $\phi$ to the observed data score, $\phi(\theta) = S(\theta; y)$. This function can be estimated using Proposition \ref{thm:EM_decomp} (i) and the same Monte Carlo approach we use with MCEM. In the case of a vector-valued parameter, \citeauthor{Gu98I} also recommend pre-multiplying $\hat{\phi}$ by a matrix which converges to the inverse of the observed data information matrix. Such a sequence of matrices can be constructed using Louis' Identity (Proposition \ref{thm:info_decomp}) and Monte Carlo. Note that we use the same sample of missing data to update our estimates of the parameter and the observed data information matrix at each iteration. Similar work by \citet{Gu98II} extend the same SAEM construction to accommodate Markov chain Monte Carlo sampling. \citet{Gu01} discuss how to apply the above methodology to the analysis of spatial models, and incorporate a second stage to the method in which estimates are averaged across iterations. This averaging has been found to improve performance of SAEM, and of stochastic approximation more generally \citep{Del99,Pol92}.
 
-\citet{Jan06} presents an SAEM implementation in which $\phi(\theta)$ is the EM objective function (i.e., the conditional expectation of the complete data log-likelihood) minus $\theta$. Thus, the limit of such an algorithm is a fixed-point of the EM update. This ties convergence of \citeauthor{Jan06}'s method more closely to the convergence theory of the original EM algorithm \citep{Wu83}. In fact, \citeauthor{Jan06} leverages this connection to exploit the relationship between the EM algorithm's convergence rate and certain information matrices \citep{Men94}. This connection allows \citeauthor{Jan06} to estimate the bias and variance of the SAEM estimates, which are then used to calibrate the step size, $\alpha_k$.
+\citet{Jan06} presents an SAEM implementation in which $\phi(\theta)$ is the EM update function (see Section \ref{sec:EM}) minus $\theta$ \citep[see also][]{Dey99}. Thus, the limit of such an algorithm is a fixed-point of the EM update. This ties convergence of \citeauthor{Jan06}'s method more closely to the convergence theory of the original EM algorithm \citep{Wu83}. In fact, \citeauthor{Jan06} leverages this connection to exploit the relationship between the EM algorithm's convergence rate and certain information matrices \citep{Men94}. This connection allows \citeauthor{Jan06} to estimate the bias and variance of the SAEM estimates, which are then used to calibrate the step size, $\alpha_k$.
 
-A subtly different line of research on the SAEM method has been developed by a group at the National Institute for Research in Digital Science and Technology (INRIA) in France \citep[see, e.g.,][for a discussion of some of their methods]{Cel95}. The goal here is to augment the EM algorithm, rather than to facilitate the application of EM-type methods when ordinary EM is intractable. More precisely, methods from this group introduce a stochastic perturbation to the EM algorithm, with the goal of escaping fixed points which are locally, but not globally, optimal. Early work centered around a Stochastic EM (SEM) algorithm, which is equivalent to the MCEM algorithm with a Monte Carlo size of one \citep{Cel87,Cel95}. Later, they also propose a method which they refer to as SAEM (although it does not quite fit into our above framework), in which each iteration's parameter update is a convex combination of the EM and MCEM updates from the previous iteration's estimate. Here, as with the SEM algorithm, the MCEM update is computed with a Monte Carlo size of one \citep{Cel92, Cel95}.
+A subtly different line of research on the SAEM method has been developed by a group at the National Institute for Research in Digital Science and Technology (INRIA) in France \citep[see, e.g.,][for a comparison of some of their methods]{Cel95}. The goal here is to augment the EM algorithm, rather than to facilitate the application of EM-type methods when ordinary EM is intractable. More precisely, methods from this group introduce a stochastic perturbation to the EM algorithm, with the goal of escaping fixed points which are locally, but not globally, optimal. Early work centered around a Stochastic EM (SEM) algorithm, which is equivalent to the MCEM algorithm with a Monte Carlo size of one (\citealp{Cel87,Cel95}; see also \citealp{Nie00II}). Later, they also propose a method which they refer to as SAEM (although it does not quite fit into our framework), in which each iteration consists of first computing both the EM and MCEM updates from the previous iteration's estimate, then combining these two updates in a convex combination as the estimate for the current iteration. Here, as with the SEM algorithm, the MCEM update is computed with a Monte Carlo size of one \citep{Cel92, Cel95}.
 
 \subsection{Monte Carlo Maximum Likelihood}
+\label{sec:MCML}
 
+The Monte Carlo maximum likelihood (MCML) method was developed to handle settings when the likelihood function cannot be evaluated exactly. The idea is to approximate the whole likelihood surface (up to an additive constant) using a single Monte Carlo sample. This approximate likelihood is then maximized, either numerically or analytically. The core idea of MCML is to choose a fixed reference parameter value, $\theta_*$, and estimate likelihood ratios relative to $\theta_*$. The likelihood ratio is written as an expectation with respect to the fixed reference value, and this expectation is approximated by Monte Carlo. A key feature of this methodology is that a single Monte Carlo sample can be re-used to estimate the likelihood ratio at any number of target parameter values. Finally, we maximize our estimated likelihood ratio as a proxy of the unknown likelihood function.
 
+The most basic form of Monte Carlo maximum likelihood \citep{Gey91} applies when we only know the likelihood up to a normalizing constant, say $f(y; \theta) = h(y; \theta) / c(\theta)$, where $h$ is known but $c$ is not. We note that $\int h(y; \theta) dy = c(\theta)$, and write
+%
+\begin{align}
+    \log \frac{f(y; \theta)}{f(y; \theta_*)} &= \log \frac{h(y; \theta)}{h(y; \theta_*)} - \log \frac{c(\theta)}{c(\theta_*)}\\
+    &= \log \frac{h(y; \theta)}{h(y; \theta_*)} - \log \int \frac{f(y; \theta)}{c(\theta_*)} dy\\
+    &= \log \frac{h(y; \theta)}{h(y; \theta_*)} - \log \int \frac{h(y; \theta)}{h(y; \theta_*)} f(y; \theta_*) dy\\
+    &= \log \frac{h(y; \theta)}{h(y; \theta_*)} - \log \bE_{\theta_*} \frac{h(y; \theta)}{h(y; \theta_*)}\\
+    & \approx \log \frac{h(y; \theta)}{h(y; \theta_*)} - \log \frac{1}{M} \sum_{i=1}^M \frac{h(y_i; \theta)}{h(y_i; \theta_*)} \label{eq:MCML_simp}
+\end{align}
+%
+where the $y_i$ are sampled iid from $f(y; \theta_*)$. The second term in line \ref{eq:MCML_simp} may need to be modified if an alternative sampling scheme is used.
+
+An alternative formulation of the MCML method given by \citet{Gel93} is more relevant for use with missing data \citep[see also,][]{Gey94}. A similar derivation to the one given above shows that, in the presence of missing data, $X$,
+%
+\begin{align}
+    \log \frac{f(y; \theta)}{f(y; \theta_*)} &= \log \bE_{\theta_*} \left[ \left. \frac{h(y, X; \theta)}{h(y, X; \theta_*)} \right| Y=y \right] - \log \bE_{\theta_*} \left[\frac{h(Y, X; \theta)}{h(Y, X; \theta_*)}\right]\\
+    & \approx \log \left[\frac{1}{M_1} \sum_{i=1}^{M_1} \frac{h(y, X_i; \theta)}{h(y, X_i; \theta_*)}\right] - \log \left[\frac{1}{M_2} \sum_{j = 1}^{M_2} \frac{h(Y_j, X_j; \theta)}{h(Y_j, X_j; \theta_*)}\right] \label{eq:MCML_miss}
+\end{align}
+%
+where the $X_i$ are generated from the conditional distribution of $X|Y=y$, the $(Y_j, X_j)$ pairs are generated from the joint distribution of $Y$ and $X$, and $h(y, x; \theta)$ is proportional to this joint distribution. Note that two Monte Carlo samples are required to evaluate \ref{eq:MCML_miss}.
+
+Note that the MCML procedure closely resembles importance sampling, with $f(y; \theta_*)$, $f_c(y, x; \theta_*)$ or $f_m(y, x; \theta_*)$ being the proposal distribution (see Section \ref{sec:imp_samp} for a discussion of importance sampling). \citet{Jan03} take this idea further, and suggest directly estimating $f(y; \theta)$ from the complete data density, $f_c(y, x; \theta)$, using importance sampling. That is, they write $f(y; \theta) = \int f_c(y, x; \theta) dx = \int [ f_c(y, x; \theta) / g(x)] g(x) dx$, where $g$ is an arbitrary density function. The final integral is then approximated by an average of samples drawn iid from $g$. While the method of \citeauthor{Jan03} does present an interesting direction in which to generalize MCML, unfortunately, it is only applicable if $f_c$ is known exactly.
 
 
 \subsection{Variational Methods}
+\label{sec:variational}
 
 \textbf{This section was written by memory (i.e. without looking anything up). The idea is to more efficiently get words on the page, then I can fix things later.}
 
-Variational inference is a set of methods for approximating intractable densities \citep{need}. The literature on variational inference is vast. See \citet{Ble17} for a recent survey paper. \citet[Section 13.7]{Gel13} give a textbook-level overview focusing on applications to Bayesian inference. Numerous authors have discussed the connection between variational inference and the EM algorithm; see, e.g., \citet{Nea98,Tsi08}.
+Variational inference is a set of methods for approximating intractable densities \citep{need}. The literature on variational inference is vast. See \citet{Ble17} for a recent survey paper. \citet[Section 13.7]{Gel13} give a textbook-level overview focusing on applications to Bayesian inference. Numerous authors have discussed the connection between variational inference and the EM algorithm; see, e.g., \citet{Nea98,Tsi08,Ble17}.
 
 The central idea of variational inference is to frame the target density as the exact solution of a functional optimization problem, where the decision variable typically ranges over densities. The domain of functions is then restricted to some set which is easier to work with. Finally, optimization is performed over this restricted class of functions. The result of this optimization is then our approximation to the target density. \hl{This discussion doesn't make it clear whether our estimator is the optimizer or the optimal objective function.} 
 
 More generally, the optimization problem described above may be just one in a sequence of problems which may form part of an iterative algorithm. Herein lies the connection to the EM algorithm. In the M-step of EM, we compute expectations with respect to a particular conditional distribution. To embed this procedure in the variational inference framework, we define an optimization problem whose solution is the same conditional distribution.
 
-We now give some details. First, let $q$ be some probability density for the missing data, $X$. We can write the observed data log-likelihood as:
+We now give some details. First, let $q$ be some plausible marginal probability density for the missing data, $X$. We can write the observed data log-likelihood as:
 %
 \begin{align}
     \ell(\theta; y) &= \log f_c(y, x; \theta) - \log f_m(y, x; \theta)\\
@@ -607,39 +610,65 @@ We now give some details. First, let $q$ be some probability density for the mis
     & \geq F(q, \theta)
 \end{align}
 %
-where line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $x$, and the last line follows from non-negativity of the KL divergence. The first term in line (\ref{eq:variational_decomp}) is called the ``evidence lower-bound'' (ELBO), as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood can be seen as an evidence if we take $Y$ to be the data and $X$ to be the parameters. 
+where $\mathrm{KL}(q \rightarrow f_m(\theta))$ is the KL divergence from $q$ to $f_m(\theta)$. Line (\ref{eq:variational_expectation}) holds because the left-hand side does not depend on $x$, and the last line follows from non-negativity of the KL divergence. We refer to the first term in line (\ref{eq:variational_decomp}) as the ``evidence lower-bound'' (ELBO), as well as the ``variational free energy'', depending on the field of application \citep{need}. The latter name comes from an analogue in physics \citep{need}. The former name comes from applications to Bayesian inference, where the observed data log-likelihood can be seen as an evidence if we take $Y$ to be the data and $X$ to be the parameters. 
 
 The EM algorithm can be re-framed as alternately maximizing $F$ with respect to $q$ and $\theta$. To see why, first recall that the KL divergence between two distributions is non-negative, and is zero if and only if the two distributions are equal. Starting at a fixed parameter value, $\theta_0$, maximizing $F$ with respect to $q$ is accomplished by setting $q(x) = f_m(y, x; \theta_0)$, as this minimizes the KL divergence in (\ref{eq:variational_decomp}) and the left-hand side is constant in $q$. The resulting ELBO is equal to $Q(\theta|\theta_0) + \xi$, where $Q$ is the EM objective function and $\xi$ is constant in $\theta$. Maximizing the ELBO in $\theta$ is therefore equivalent to maximizing the EM objective function. This maximization gives a new parameter value, which is used as input to the next iteration. See Theorem 1 of \citet{Nea98} for a more formal proof.
 
-While the EM algorithm is obtained by maximizing $q$ over an unrestricted class of densities, other procedures can be formulated by restricting this class. One popular example is the ``mean-field'' approximation, which involves optimizing over the class of densities which factor over their arguments. That is, the class of functions $\mathcal{Q}_{MF}:=\{ \mathrm{Densities\ } q: q(X_1, \ldots, X_p) = \prod_{j=1}^p q_j(X_j) \}$. 
+While the EM algorithm is obtained by maximizing $q$ over an unrestricted class of densities, other procedures can be formulated by restricting this class. One popular example is the ``mean-field'' approximation, which involves optimizing over the class of densities which factor over their arguments. I.e., the class of functions $\mathcal{Q}_{MF}:=\{ \mathrm{Densities\ } q: q(X_1, \ldots, X_p) = \prod_{j=1}^p q_j(X_j) \}$. 
 
-A major advantage of the mean-field approximation is that an iterative algorithm exists for finding the density, $q$, which maximizes the ELBO. This algorithm performs coordinate ascent, and the coordinate updates are closely related to computation of the full conditional distributions in Gibbs sampling \citep{need}. Write $q^{(k)} = \prod q_j^{(k)}$ for the current value of $q$, and $\bQ^{(k)}_{-j}$ for expectation with respect to all the missing variables except $j$, with distributions from $q^{(k)}$ (\hl{awk?}). The update formula is
+A major advantage of the mean-field approximation is that an iterative algorithm exists for finding the density, $q$, which maximizes the ELBO. This algorithm performs coordinate ascent, and the coordinate updates are closely related to computation of the full conditional distributions in Gibbs sampling \citep{need}. Write $q^{(k)} = \prod q_j^{(k)}$ for the current value of $q$, and $\bQ^{(k)}_{-j}$ for expectation with respect to all the missing variables except $j$, under $q^{(k)}$. The update formula is
 %
 \begin{align}
     q_j^{(k+1)} &\propto \exp \left[ \bQ^{(k)}_{-j} \ell_c(y, x_j, X_{-j}) \right] \label{eq:var_inf_update}
 \end{align}
 %
-where $X_{-j}$ is all the missing variables other than $X_j$. See Section 2.4 of \citet{Ble17} for a derivation of (\ref{eq:var_inf_update}). The overall algorithm consists of repeatedly cycling through updating each coordinate's distribution until some convergence criterion is met (\hl{how is convergence assessed?}).
+where $X_{-j}$ is all the missing variables other than $X_j$. See Section 2.4 of \citet{Ble17} for a derivation of (\ref{eq:var_inf_update}). The overall algorithm consists of repeatedly cycling through updating each coordinate's distribution until some convergence criterion is met.
 
 Note that, so far, our discussion of how to compute the mean-field approximate density for $X$ has not addressed $\theta$. To apply mean-field variational inference to EM-type problems, we substitute the mean-field density into the ELBO and maximize over $\theta$. This new value of $\theta$ is fed back into ($\ref{eq:var_inf_update}$), giving us a different complete data likelihood function and, hence, a new optimal density.
+
+
+\section{Comparisons Between Methods}
+
+Several authors have performed comparisons between methods discussed in Sections \ref{sec:MCEM} and \ref{sec:alternatives}. In this section, we discuss these comparisons and their findings.
+
+\citet{McC97} use a simulation study to compares the MCEM and MCML methods, along with a Monte Carlo version of the Newton-Raphson algorithm (MCNR). Their MCEM implementation starts with fixed Monte Carlo size, then increases this size at iterations 20 and 40. It is not clear how these jump points were selected, nor how convergence was assessed beyond examining plots. Their MCEM implementation thus most closely resembles that of \citet{Wei90}. A similar schedule of Monte Carlo sizes and termination was used for MCNR, whereas MCML used a much larger Monte Carlo size (the sample size for MCML was not increased). \citeauthor{McC97} also considers MCEM and MCNR followed by MCML (i.e. using MCEM or MCNR to choose the reference parameter for MCML). This comparison is made using a logit-normal mixed-effects model with one random effect and one fixed effect. \citeauthor{McC97} found that MCEM and MCNR perform better than MCML alone, but that following either MCEM or MCNR with MCML was even better. They did not find that following-up with multiple iterations of MCML was preferable to a single run of MCML.
+
+In addition to presenting their SAEM method, \citet{Gu98I} compare this method with MCEM. They give a comparative analysis on a dataset of mororette failure times \citep[see][for a diagram and explanation of what a motorette is]{Rai16}. The model being fit is a linear regression with right-censoring. Their MCEM implementation ``is from \citet{Tan93}'', which I do not have access to. However, based on the third edition of this book \citep{Tan96}, the implementation in \citeauthor{Gu98I} is the same as that of \citet{Wei90}. It is not clear what Monte Carlo size they use to start, and it appears that this size is ever augmented. Their SAEM implementation is as previously described in their paper, with an MC size of 1, step size at iteration $k$ (i.e., $\alpha_k$) of $1/k$, and pre-multiplying matrix chosen adaptively based on the current iteration as given by Equation (13) of their paper. \citeauthor{Gu98I} find that SAEM converges much more quickly than MCEM. In fact, based on their Figure 1, it is not clear that MCEM is converging to the MLE at all. These authors also give a heuristic argument that SAEM should converge much more quickly than MCEM based on the number of MC samples used at each iteration and the number of iterations required to converge to the MLE. However, this argument is based on a fixed Monte Carlo size at each iteration and is thus not directly relevant to the MCEM implementations discussed in Section \ref{sec:MCEM}.
+
+\citet{Boo01} compare the MCEM, SAEM and MCML (referred to as stochastic maximum likelihood, or SML) methods. They perform their comparison on a simple one-way mixed-effects linear model, with known variance component and error variance. Their MCEM implementation matches that of \citet{Boo99}, while their SAEM implementation is that of \citet{Jan06} (or \citealp{Dey99}). Note that although the presentation of SAEM in \citeauthor{Boo01} appears different from ours, it is not hard to show that the two are equivalent. Their MCML implementation uses the missing data distribution with a fixed value for the unknown parameter as reference distribution. The comparison between these methods is done partly analytically and partly by simulation. The mean squared errors (MSEs) of MCEM and SAEM for estimating the unknown parameter can be obtained analytically. \citeauthor{Boo01} thus compare these two methods directly and find that MCEM performs better when the problem is harder (i.e. larger mean and variance component). The MSE of MCML however must be approximated by simulation. This MSE is approximated using 500 replicates, and a $95\%$ Wald-type confidence interval is constructed. The upper and lower bounds of this confidence interval are then compared to the analytical MSE of MCEM (the authors do not compare MCML with SAEM). The result is that MCML is competitive with MCEM, and that MCML even performs better for some parameter settings (typically, when the variance component is small). \citeauthor{Boo01} point out that the comparison between MCEM and MCML is not entirely fair here, because taking the variance component as known makes simulation for MCML unrealistically easy. In more serious problems, difficulty in choosing a proposal distribution for MCML will likely lead to worse performance.
+
+\citet{Boo01} also extend the heuristic argument in \citet{Gu98I} to account for Monte Carlo sizes changing with MCEM iteration. They argue that, in the scalar case, MCEM should converge more quickly than SAEM when the ``fraction of missing information'' is larger than $\exp(-1)$. The fraction of missing information is defined as $\mathcal{I}_c(\hat{\theta})^{-1} \mathcal{I}_m(\hat{\theta})$, where $\hat{\theta}$ is the observed data MLE (see Proposition \ref{thm:EM_decomp} for definitions of $\mathcal{I}_m$ and $\mathcal{I}_c$). This quantity is closely related to the convergence rate of the EM algorithm \citep{Men94,McL08}.
+
+\citet{Jan03} extend the work of \citet{Boo01}, specifically the comparison between MCEM and MCML. \citeauthor{Jan03} focus on analytical comparisons; as such, they use a fixed Monte Carlo size across iterations to make their calculations more tractable. They also an unrealistic proposal distribution for MCML which requires that we know the observed data MLE. The authors derive the asymptotic variance of MCEM and MCML, and investigate their asymptotic relative efficiency (ARE). It turns out that the ARE depends directly on the eigenvalues of the fraction of missing information defined above. In particular, the relative efficiency of MCEM relative to MCML goes to $\infty$ as the fraction of missing information goes to 1. That is, as a problem gets harder in the sense that less information is available in the observed data, we expect MCEM to perform better relative to MCML. We also expect MCML to perform worse on real problems, since the above analysis is based on an inaccessible proposal distribution. \citeauthor{Jan03} illustrate their analytical calculations on the one-way mixed-effects linear model from \citet{Boo01} and a logistic-normal generalized linear mixed-effects model. The latter consists of a simulation study which compares, among other things, the effect of the choice of proposal distribution on MCML. They found that the average estimates from MCEM and MCML (i.e. averaged over simulation replicates) are fairly consistent, but that variability of the MCML estimates is much higher. In particular, entries in the empirical covariance matrix for MCML grow rapidly as the reference parameter value for the proposal distribution moves away from the MLE.
+
+\subsection{Synthesis}
+Many of the comparisons we have discussed \citep{McC97, Gu98I,Jan03} use unsophisticated implementations of MCEM. In particular, as far as I can tell, \citet{Gu98I} use a poor implementation which never increases the Monte Carlo size, so it is unsurprising that they found MCEM performs poorly. \citet{Jan03} also uses a fixed Monte Carlo size, but theirs is sufficiently large that we can expect the behaviour of MCEM to be close to that of the deterministic EM algorithm. Similarly, \citet{McC97} increase the Monte Carlo size at fixed iterations, and the final size is quite large (5000 for the final ten iterations). Only \citet{Boo99} use an adaptive rule for choosing the Monte Carlo size.
+
+Despite the above concerns about Monte Carlo size, MCEM tends to perform quite well in simulations and analytical comparisons. Only \citet{Gu98I} found that MCEM performed substantially worse than another method, although \citealp{McC97} did find that following MCEM with MCML tends to improve performance. These findings suggest that the MCEM algorithm should be one of the first methods considered when approaching a missing data problem in which the calculations required to implement EM are intractable.
+
+A limitation of the above comparisons is that all use iid sampling. The concerns raised by \citet{Boo01} and \citet{Jan03} about choosing an efficient proposal distribution for MCML also apply to MCEM unless it is possible to sample directly from the missing data distribution. Indeed, see \citet{Rut23} for an analysis in which great care is taken to select an appropriate proposal distribution for MCEM.
+
 
 
 \section{Simulation}
 \label{sec:simulation}
 
-An obstacle to implementing the MCEM algorithm which was not addressed in Section \ref{sec:MCEM}, and which is also relevant to many of the methods described in Section \ref{sec:alternatives}, is how to generate the necessary Monte Carlo samples. It is in general a hard problem to simulate from arbitrary conditional distributions. In this section, we discuss several methods for simulating the required observations at each step of the MCEM algorithm. All the topics that we cover here have their own vast literature, which we cannot hope to cover in their entirety. We instead give only a brief overview, focusing on aspects which are particularly relevant to use with the MCEM algorithm, and direct the reader to other, more focused, reviews.
+An obstacle to implementing the MCEM algorithm which was not addressed in Section \ref{sec:MCEM}, and which is also relevant to many of the methods described in Section \ref{sec:alternatives}, is how to generate the necessary Monte Carlo samples. It is in general a hard problem to simulate from arbitrary conditional distributions. In this section, we discuss a few methods for simulating the required observations at each step of the MCEM algorithm. All the topics that we cover here have their own vast bodies of literature, which we cannot hope to cover in their entirety. We instead give only a brief overview, focusing on aspects which are particularly relevant to use with the MCEM algorithm, and direct the reader to other, more focused, reviews.
+
+We start by discussing importance sampling, which is a method for using a sample from one distribution to compute moments under another distribution. Next, we cover Markov chain Monte Carlo sampling, which consists of constructing and sampling from a Markov chain whose stationary distribution matches the distribution from which we want to simulate. Finally, we briefly touch on rejection sampling, a way to simulate exactly from a target distribution at the expense of increased computation time, and sequential Monte Carlo, which generates a sequence of samples such that they converge to the target distribution.
 
 \subsection{Importance Sampling}
+\label{sec:imp_samp}
 
-Broadly speaking, importance sampling is a framework for approximating intractable expectations. A typical use case is when we want to evaluate the expected value of some function, $\bF h$, and this expectation is not just analytically intractable, but the distribution $bF$ is impossible (or impractical) to sample from. The latter restriction prevents us from using ordinary Monte Carlo integration. Instead, we re-write $\bF h$ as $\bG [h \cdot (f/g)]$ for some new distribution, $\bG$, where $f$ and $g$ are the densities of $\bF$ and $\bG$ respectively. Provided that $\bG$ is easy to sample from, we can estimate this alternative expression for our target expectation via Monte Carlo integration with samples drawn from $\bG$. We call $\bF$ the target distribution and $\bG$ the proposal distribution.  
+Broadly speaking, importance sampling is a framework for approximating intractable expectations. A typical use case is when we want to evaluate the expected value of some function, $\bF h$, and this expectation is not just analytically intractable, but the distribution $\bF$ is impossible (or impractical) to sample from. The latter restriction prevents us from using ordinary Monte Carlo integration. Instead, we re-write $\bF h$ as $\bG [h \cdot (f/g)]$ for some new distribution, $\bG$, where $f$ and $g$ are the densities of $\bF$ and $\bG$ respectively. Provided that $\bG$ is easy to sample from, we can estimate this alternative expression for our target expectation via Monte Carlo integration with samples drawn from $\bG$. We call $\bF$ the target distribution and $\bG$ the proposal distribution.  
 
 A classic reference on importance sampling and other Monte Carlo methods is the book by \citet{Rob04}; particularly Chapters 3 and 4. Chapter 8 of the book by \citet{Cho20} gives a more current overview of importance sampling, with a focus on its application to Sequential Monte Carlo. \citet{Elv22} give a survey of modern methods for extending the importance sampling framework, with an emphasis on two main approaches: multiple importance sampling and adaptive importance sampling. See \citet{Elv19} for a review of multiple importance sampling methods, and \citet{Bug17} for more on adaptive importance sampling. \citet{Aga17} give a survey paper level treatment of some more theoretical considerations for importance sampling.
 
 In the rest of this section, we describe a few simple modifications which can ease implementation and improve performance when using importance sampling with the MCEM algorithm.
 
-When using importance sampling with the MCEM algorithm, our target distribution is the missing data distribution. In some settings, this distribution may be difficult to describe exactly. However, the integrand is the (log-)likelihood for the complete data distribution, so it is reasonable to expect that we can evaluate this complete data density. From the definition of conditional probability, the missing data density is proportional to the complete data density, provided that we treat the latter as a function of the missing data and hold the observed data fixed. The proportionality constant here is the observed data density, so it is unlikely that we will be able to normalize the missing data density exactly (otherwise, we could just work directly with the observed data likelihood). 
+When using importance sampling with the MCEM algorithm, our target distribution is the missing data distribution (i.e.\ the conditional distribution of the missing data given the observed data). In some settings, this distribution may be difficult to describe exactly. However, the integrand is the (log-)likelihood for the complete data distribution, so it is reasonable to expect that we can evaluate this complete data density. From the definition of conditional probability, the missing data density is proportional to the complete data density, provided that we treat the latter as a function of the missing data and hold the observed data fixed. The proportionality constant here is the observed data density, so it is unlikely that we will be able to normalize the missing data density exactly (otherwise, we could just work directly with the observed data likelihood). 
 
-A simple modification of importance sampling, which circumvents the need for normalized densities, is to compute the importance weights as normal, then normalize them to sum to one. This is referred to as ``auto-normalized'', or ``self-normalized'', importance sampling \citep[see, e.g.,][]{Elv22}. The reason self-normalized importance sampling works is that the unknown normalizing constant cancels in the numerator and denominator of our normalized weights. In fact, our proposal distribution can also be un-normalized, and the ratio of the two normalizing constants cancels when we normalize our weights.
+A simple modification of importance sampling, which circumvents the need for normalized densities, is to compute the importance weights as usual, then normalize them to sum to one. This is referred to as ``auto-normalized'', or ``self-normalized'', importance sampling \citep[see, e.g.,][]{Elv22}. The reason self-normalized importance sampling works is that the unknown normalizing constant cancels in the numerator and denominator of our normalized weights. In fact, our proposal distribution can also be un-normalized, and the ratio of the two normalizing constants cancels when we normalize our weights.
 
 There are, however, disadvantages of self-normalized importance sampling compared to the exact importance sampling which we can do when both target and proposal densities are known exactly. One important limitation is that our estimator of $\bF h$ is no longer unbiased, and is instead only asymptotically unbiased. In fact, as a ratio estimator, the standard error of a self-normalized importance sampling estimator can only be determined asymptotically. This is fine in problems where it is easy to sample from our proposal distribution, $\bG$, but in high dimensional problems for example, even simulating from $\bG$ may be costly, and more care must be taken with the discrepancy between asymptotic results and finite-sample behaviour.
 
@@ -647,29 +676,31 @@ It is well-known that the performance of an importance sampling estimator depend
 
 \citet{Veh22} propose an alternative method for handling large importance weights, called Pareto Smoothed Importance Sampling (PSIS). The idea of this method is to fit a Generalized Pareto Distribution to the largest importance weights, then replace those large weights with quantiles of the fitted distribution. One of the parameter's fitted values also serves as a useful diagnostic for how closely our proposal distribution matches the target. An advantage of PSIS over the truncated importance sampling method of \citet{Ion08} is that the bias here is smaller, although it is not clear in general which method has better mean-squared error \citep[see][for extensive numerical comparisons]{Veh22}.  
 
-\hl{Further discuss application to MCEM? Illustrate application to MCEM?}
 
-An approach proposed by \citet{Lev01} seeks to use importance sampling to save computing time when running the MCEM algorithm. This computational efficiency is especially important in their context where Markov Chain Monte Carlo sampling is used (see \ref{sec:MCMC}), so generating a single sample takes quite some time. Their idea is to generate a single sample from the missing data distribution with some reference value for $\theta$, $\theta_{ref}$. This sample is then re-used at every MCEM iteration, with conditional expectations under the current parameter value computed by taking importance ratios with respect to $\theta_{ref}$. This raises the question of whether a single proposal distribution can be adequate for every target distribution along the MCEM trajectory. To address this concern, \citeauthor{Lev01} suggest running MCEM for a few iterations with fresh importance samples and only drawing the sample which will be used for their method after a sufficiently long ``burn-in'' period (they suggest running for one minute). 
+An approach proposed by \citet{Lev01} seeks to use importance sampling to save computing time when running the MCEM algorithm. This computational efficiency is especially important in their context where Markov chain Monte Carlo sampling is used (see \ref{sec:MCMC}), so generating a single sample takes quite some time. Their idea is to generate a single sample from the missing data distribution with some reference value for $\theta$, $\theta_{ref}$. This sample is then re-used at every MCEM iteration, with conditional expectations under the current parameter value computed by taking importance ratios with respect to $\theta_{ref}$. This raises the question of whether a single proposal distribution can be adequate for every target distribution along the MCEM trajectory. To address this concern, \citeauthor{Lev01} suggest running MCEM for a few iterations with fresh importance samples and only drawing the sample which will be used for their method after a sufficiently long ``burn-in'' period (they suggest running for one minute). 
 
-\subsection{Particle-Based Methods}
-
-It might be worth cutting this section. I can describe SMC, but I can't say much about how it relates to MCEM besides being another Monte Carlo algorithm. That being said, the work of \citet{Gol16} is worth mentioning in the context of MCEM. Also, the work of \citet{Mof14}, which is cited by \citeauthor{Gol16}. I will need to re-read both of these and look into who they are cited by.
 
 \subsection{Markov Chain Monte Carlo}
 \label{sec:MCMC}
 
-The core idea of Markov Chain Monte Carlo (MCMC) sampling is to construct a Markov Chain from which we can simulate, and which has stationary distribution equal to the target distribution. Popular methods to construct such a Markov Chain are Gibbs sampling and the Metropolis-Hastings algorithm. See \citet{Gel13} or \citet{Rob04} for excellent textbook-length overviews. A popular implementation of MCMC sampling is the \texttt{Stan} programming language \citep{Sta22}, and its \texttt{R} interface, \texttt{RStan} \citep{Sta23}.
+The core idea of Markov chain Monte Carlo (MCMC) sampling is to construct a Markov chain from which we can simulate, and which has stationary distribution equal to the target distribution. Popular methods to construct such a Markov chain are Gibbs sampling and the Metropolis-Hastings algorithm. See \citet{Gel13} or \citet{Rob04} for excellent textbook-length overviews. A popular implementation of MCMC sampling is the \texttt{Stan} programming language \citep{Sta22}, and its \texttt{R} interface, \texttt{RStan} \citep{Sta23}.
 
 Both Gibbs sampling and \mh start with a random variable, $X = (X_1, \ldots, X_d)$, which we wish to simulate. Let $f$ be the density of $X$. These methods proceed by iteratively simulating draws of the vector $X$ from some distribution based on the draw from the previous iteration. 
 
-Gibbs sampling\index{Gibbs Sampling} is based on successively sampling each component of $X$ conditional on all the other components. The order in which this conditioning is performed is a bit subtle, however. When generating $X_i$, we condition on the values of $X_1,\ldots, X_{i-1}$ from the current iteration and the values of $X_{i+1}, \ldots, X_d$ from the previous iteration. Once we reach the end of $X$, we start a new iteration.  More generally, we can group the components of $X$, and simulate an entire group conditional on the others, provided that we follow the structure outlined above \hl{(awk)}.
+Gibbs sampling\index{Gibbs Sampling} is based on successively sampling each component of $X$ conditional on all the other components. The order in which this conditioning is performed is a bit subtle, however. When generating $X_i$, we condition on the values of $X_1,\ldots, X_{i-1}$ from the current iteration and the values of $X_{i+1}, \ldots, X_d$ from the previous iteration. Once we reach the end of $X$, we start a new iteration.  More generally, we can group the components of $X$, and simulate an entire group conditional on the others.
 
 The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely resembles rejection sampling. We start each iteration by generating a candidate value of $X$ from some proposal distribution (this distribution may depend on the previous iteration's value of $X$). Write $J(x | x_0)$ for the proposal density, where $x_0$ is the value of $X$ from the previous iteration. Next, we define an acceptance probability, $r := f(x) J(x_0 | x) / f(x_0) J(x | x_0)$, and accept the proposed value of $X$ with probability $r \wedge 1$. With probability $(1-r) \vee 0$, we reject the proposed $x$ and instead set the current iteration's value to $x_0$. We then proceed to the next iteration. Note that rejecting still adds an observation to our Monte Carlo sample, this value just happens to be identical to the one proceeding it.
 
-\hl{I'm not super comfortable with this material. I want to acknowledge it and use it to motivate the more complicated adjustments to make MCEM work with MCMC, but I also don't want to say anything silly. I'm also going to need references.} Limit theory for estimators based on MCMC sampling are more complicated than the similar theory for estimators based on iid or importance sampling (\hl{SMC?}). This additional complexity stems from the dependence between draws from an MCMC sampler. While convergence for iid and importance sampling can be established using the Law of Large Numbers and the classical Central Limit Theorem, similar results for MCMC sampling make use of the Ergodic Theorem and Markov Chain Central Limit Theorem. A challenge in implementing the Markov Chain Central Limit Theorem is that the asymptotic variance depends on pairwise covariances between points in the chain which are arbitrarily far apart. Estimation of this asymptotic variance is therefore challenging in practice. 
+Limit theory for estimators based on MCMC sampling are more complicated than the similar theory for estimators based on iid or importance sampling \citep{Gey91}. This additional complexity stems from the dependence between draws from an MCMC sampler. While convergence for iid and importance sampling can be established using the Law of Large Numbers and the classical Central Limit Theorem, similar results for MCMC sampling make use of the Ergodic Theorem and Markov chain Central Limit Theorem. A challenge in implementing the Markov chain Central Limit Theorem is that the asymptotic variance depends on pairwise covariances between points in the chain with arbitrarily large lags. Estimation of this asymptotic variance is therefore challenging in practice. See, e.g., Chapters 6 and 7 of \citet{Rob04}.
 
-\citet{Lev01} propose a method to simplify the analysis of estimates based on MCMC sampling. Their approach consists of subsampling the original chain using Poisson spacings with increasing mean. The result is that a target function averaged over the subsampled chain satisfies a classical Central Limit Theorem (i.e. one with no covariance terms in the asymptotic variance). We can estimate the mean and standard error of our subsample estimator using the entire chain and construct confidence intervals for the mean of the target function. \citeauthor{Lev01} apply this strategy for constructing confidence intervals along the same lines as \citet{Boo99}. Here, we construct a confidence interval for the gradient in the EM objective function, and increase the Monte Carlo size if the confidence interval for the current iteration contains the subsample estimate from the previous iteration. \hl{There's still something here I don't understand. What parameter is this CI for? In the paper, the CI is given by Equation 2.8 and justified by Theorem 1. A problem I'm having is that the thing which Theorem 1 asserts is asymptotically normal does not contain any parameters.} This work is further extended to provide uncertainty quantification for the MCEM update based on MCMC sampling by \citet{Lev04}. Furthermore, \citeauthor{Lev04} give a principled argument for how much to increase the Monte Carlo sample size when doing so is deemed necessary \hl{something about two MCEM updates. I didn't follow closely, but I'm not sure that it's critical to do so}.
+\citet{Lev01} propose a method to simplify the analysis of estimates based on MCMC sampling. Their approach consists of subsampling the original chain using Poisson spacings with increasing mean. The result is that a target function averaged over the subsampled chain satisfies a classical Central Limit Theorem (i.e. one with no covariance terms in the asymptotic variance). We can estimate the mean and standard error of our subsample estimator using the entire chain and construct confidence intervals for the mean of the target function. \citeauthor{Lev01} apply this strategy for constructing confidence intervals along the same lines as \citet{Boo99}. Here, we construct a confidence interval for the gradient in the EM objective function, and increase the Monte Carlo size if the confidence interval for the current iteration contains the subsample estimate from the previous iteration. This work is modified to provide uncertainty quantification for the MCEM update instead of the EM score, and also to incorporate MCMC sampling, by \citet{Lev04}. Furthermore, \citeauthor{Lev04} give a principled argument for how much to increase the Monte Carlo sample size by when doing so is deemed necessary.
 
+
+\subsection{Other Sampling Methods}
+
+While importance sampling and MCMC are the most discussed sampling schemes in the context of the MCEM algorithm, some others do exist. Rejection sampling and sequential Monte Carlo are two such alternatives. Rejection sampling closely resembles importance sampling, except instead of weighting each proposal by the likelihood ratio, we either accept or reject the proposed observation with probability proportional to the likelihood ratio \citep{Cho20}. Typically, rejection sampling is continued until the number of accepted proposals reaches a desired sample size. These accepted points are then treated as an iid sample from the target distribution. Although the output of rejection sampling sounds ideal (much of the difficulty with importance sampling comes from having to account for simulated points not having been drawn from the target distribution), the cost comes in computation time. The number of draws from the proposal required to get a fixed number of accepted draws is random, and can be quite high if the proposal distribution does not closely match the target. Indeed, if we instead fix the number of draws from the proposal distribution, importance sampling can be shown to have lower variance than the associated rejection sampling scheme \citep[see Section 8.8 of][]{Cho20}. 
+
+Sequential Monte Carlo (SMC), is a form of adaptive sampling in which a sequence of samples is generated such that the distribution of these samples converges to some target. The update from one sample to the next seeks to balance preserving the effective sample size with maintaining computational efficiency. See \citet{Del06} for a survey paper, or \citet{Cho20} for a book-length overview of SMC. \citet{Mof14} use SMC in an MCEM analysis to sample from a truncated multivariate normal distribution with difficult truncation domain.
 
 
 \newpage
@@ -692,7 +723,7 @@ The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely r
     \end{align}
     where we use $\equiv$ to denote equality up to additive constants which do not depend on $\theta$.
 
-    Differentiating $\ell$ wrt $\theta$ gives the observed data score.
+    Differentiating $\ell$ wrt $\theta$ and recalling that $r = 1 - p - q$, so $\partial_p r = \partial_q r = -1$, we get the following expression for the observed data score, $S$.
     %
     \begin{align}
         S(\theta; y) &= \begin{pmatrix}
@@ -705,7 +736,7 @@ The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely r
     %
     Solving the score equation, $S(\theta) = 0$, thus reduces to solving a system of two polynomials in $p$ and $q$. Since $p$ and $q$ are proportions, we reject any roots outside the unit simplex.
 
-    Differentiating $\ell$ again and multiplying by $-1$ gives the observed data information matrix. To simplify notation, let $p_y = p^2 + 2pr$ and $q_y = q^2 + 2qr$.
+    Differentiating $\ell$ again and multiplying by $-1$ gives the observed data information matrix, $I$. To simplify notation, let $p_y = p^2 + 2pr$ and $q_y = q^2 + 2qr$.
     %
     \begin{align}
         I(\theta;y) &= - \begin{bmatrix}
@@ -743,7 +774,7 @@ The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely r
         \partial_p \ell_c(\theta; x) &= \frac{x_4 + 2 x_5 + x_6}{q} - \frac{2x_1 + x_2 + x_4}{r} = \frac{n_B}{q} - \frac{n_O}{r} \label{eq:comp_score2}
     \end{align}
     %
-    Notice that the score is linear in $x$. To make this relationship explicit, we write $S_c(\theta; x) = M(\theta) x$, where $M(\theta) \in \bR^{2 \times 6}$ consists of the coefficients on $x$ in (\ref{eq:comp_score1}) and (\ref{eq:comp_score2}). We will make use of this linearity later.
+    Notice that the score is linear in $x$. To make this relationship explicit, we write $S_c(\theta; x) = \mathscr{S}(\theta) x$, where $\mathscr{S}(\theta) \in \bR^{2 \times 6}$ consists of the coefficients on $x$ in (\ref{eq:comp_score1}) and (\ref{eq:comp_score2}). We will make use of this linearity later.
 
     Next, we give the information matrix for the complete data.
     %
@@ -762,9 +793,9 @@ The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely r
     \subsection{Missing Data Distribution}
     \label{app:blood_miss}
 
-    Many quantities which arise in the EM and MCEM algorithms depend on the missing data distribution (i.e.\ the conditional distribution of $X$ given $Y=y$). This distribution is best described componentwise in $X$. First, note that $X_1$ and $X_6$ occur in $Y$, so we have $X_1 = y_1$ and $X_6 = y_4$. Next, we have that $X_2 + X_3 = y_2$ and $X_4 + X_5 = y_3$. Thus, we can write $X_2 \sim \mathrm{Bin}(y_2, 2pr / (p^2 + 2pr))$ and $X_4 \sim \mathrm{Bin}(y_3, 2qr / (q^2 + 2qr))$. Finally, we recover $X_3$ and $X_5$ by subtracting $X_2$ from $y_2$ and $X_4$ from $y_3$ respectively.
+    Many quantities which arise in the EM and MCEM algorithms depend on the missing data distribution (i.e.\ the conditional distribution of $X$ given $Y=y$). This distribution is best described componentwise in $X$. First, note that $X_1 = y_1$ and $X_6 = y_4$. Next, we have that $X_2 + X_3 = y_2$ and $X_4 + X_5 = y_3$. Thus, we can write $X_2 |Y=y \sim \mathrm{Bin}(y_2, 2pr / (p^2 + 2pr))$ and $X_4 |Y=y \sim \mathrm{Bin}(y_3, 2qr / (q^2 + 2qr))$. Finally, we recover $X_3$ and $X_5$ by subtracting $X_2$ from $y_2$ and $X_4$ from $y_3$ respectively.
 
-    We make frequent require the first few conditional moments of $X$. We list them here for convenience. Let $\alpha_1 = 2pr / (p^2 + 2pr)$ be the probability parameter for the binomial distribution of $X_2$ given $Y$, and $\alpha_2 = 1 - \alpha_1$. Similarly, let $\beta_1 = 2qr / (q^2 + 2qr)$ correspond to $X_4$ and $\beta_2 = 1 - \beta_1$. \hl{Notation in this section is new. I'm not sure I will use it.}
+    We make frequent use of the first few conditional moments of $X$, so they are listed here for convenience. Let $\alpha_1 = 2pr / (p^2 + 2pr)$ be the probability parameter for the binomial distribution of $X_2$ given $Y$, and $\alpha_2 = 1 - \alpha_1$. Similarly, let $\beta_1 = 2qr / (q^2 + 2qr)$ correspond to $X_4$ and $\beta_2 = 1 - \beta_1$.
     %
     \begin{align}
         \bE(X | Y=y) &= \begin{pmatrix}
@@ -844,16 +875,16 @@ The Metropolis-Hastings algorithm\index{Metropolis-Hastings Algorithm} closely r
         \end{pmatrix}
     \end{align}
     %
-    where a superscript $k-1$ denotes that the quantity is computed by taking an expectation under $\theta_{k-1}$. Note that the equation for a stationary point of the EM algorithm, $M(\theta) = \theta$, has identical roots to the observed data score equation, $S(\theta) = 0$ \hl{(confirm this)}.
+    where a superscript $k-1$ denotes that the quantity is computed by taking an expectation under $\theta_{k-1}$. Note that the equation for a critical point of the EM algorithm, $M(\theta) = \theta$, has identical roots to the observed data score equation, $S(\theta) = 0$ \hl{(confirm this)}.
 
     \subsubsection{Asymptotic Standard Error}
 
     Recall that the EM algorithm computes the MLE, which has asymptotic covariance matrix equal to the inverse Fisher information matrix evaluated at the true parameter value. In practice, we estimate this covariance with the inverse of the observed information matrix evaluated at the MLE. Using Proposition \ref{thm:info_decomp}, we can calculate the observed information matrix using conditional expectations of quantities derived from the complete data likelihood. 
     
-    To this end, we need to evaluate the conditional expectations in expression (\ref{eq:info_at_MLE}) of Proposition \ref{thm:info_decomp}. It will be convenient for us to write $S_c(\theta) =: \mathscr{S}(\theta) X$. Then 
+    To this end, we need to evaluate the conditional expectations in expression (\ref{eq:info_at_MLE}) of Proposition \ref{thm:info_decomp}. It is convenient for us to write $S_c(\theta) =: \mathscr{S}(\theta) X$ (see Appendix \ref{app:blood_complete}). Then 
     %
     \begin{align}
-        \mathcal{I}_c(\hat{\theta}) &= \begin{bmatrix}
+        I_c(\hat{\theta}) &= \begin{bmatrix}
             \frac{\nu_A}{p^2} + \frac{\nu_O}{r^2} & \frac{\nu_O}{r^2}\\
             \frac{\nu_O}{r^2} & \frac{\nu_B}{q^2} + \frac{\nu_O}{r^2}
         \end{bmatrix} \mathrm{, and}\\
