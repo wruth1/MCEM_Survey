@@ -1,0 +1,1 @@
+{"rule":"MORFOLOGIK_RULE_EN_US","sentence":"^\\QThey found that their method converges more quickly to the observed data MLE than the method of \\E(?:Dummy|Ina|Jimmy-)[0-9]+\\Q does (the model here is sufficiently simple that the observed data MLE can be obtained directly).\\E$"}

@@ -372,11 +372,13 @@ function run_ascent_MCEM(theta_init, Y, M_init, ascent_MCEM_control; diagnostics
     iteration_count = 0
 
     all_theta_hats = []
+    all_Ms = []
 
     # Run MCEM
     while !ready_to_terminate
         theta_hat, M, ready_to_terminate, ucl, ASE = full_ascent_MCEM_iteration(theta_hat, Y, M, ascent_MCEM_control; diagnostics=true)
         push!(all_theta_hats, theta_hat)
+        push!(all_Ms, M)
         iteration_count += 1
 
         println("Outer Iteration: $iteration_count, MC size: $M, UCL = $(round(ucl, sigdigits=2)), ASE = $(round(ASE, sigdigits=2))")
@@ -390,7 +392,7 @@ function run_ascent_MCEM(theta_init, Y, M_init, ascent_MCEM_control; diagnostics
     # end
 
     if diagnostics
-        return theta_hat, all_theta_hats
+        return theta_hat, all_theta_hats, all_Ms
     else
         return theta_hat
     end

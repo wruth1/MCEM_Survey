@@ -21,3 +21,4 @@ spacings
 subsample
 subsampling
 subsampled
+adaptively
