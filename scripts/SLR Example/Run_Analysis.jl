@@ -212,7 +212,7 @@ CI_iterations = [pilot_iterations; final_iterations]
 CL_lik_rat_plot = plot(lik_rat_traj_CL, label = "Estimate", xlabel = "Iteration", ylabel = "Log-Likelihood Ratio", size=(800, 600), margin=10mm, legendfont=font(15), guidefont=font(20), xtickfont=font(15), ytickfont=font(15))
 vline!(CL_lik_rat_plot, [K_max], label = nothing, linewidth=1, linecolor=:black)
 # Add confidence band
-plot!(CL_lik_rat_plot, CI_iterations, ucls_CL, linecolor=:red, linestyle=:dash, label = "95% Confidence Band");
+plot!(CL_lik_rat_plot, CI_iterations, ucls_CL, linecolor=:red, linestyle=:dash, label = "95% Confidence Band")
 plot!(CL_lik_rat_plot, CI_iterations, lcls_CL, linecolor=:red, linestyle=:dash, label = nothing)
 savefig(CL_lik_rat_plot, plotsdir("Blood_Type", "Chan_Ledolter_lik_ratio_Traj.pdf"))
 
