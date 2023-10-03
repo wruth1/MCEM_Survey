@@ -442,10 +442,19 @@ Applying \citeauthor{Cha95}'s method to our blood type dataset, we get the param
 
 \begin{figure}
     \centering
-    \caption{MCEM estimates of $p$ and $q$ for the blood type example, based on the method of \citet{Cha95}. The vertical dashed line shows the end of the pilot study. The horizontal lines correspond to maximum likelihood estimates.}
-    \subfloat[Estimate trajectories]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/Chan_Ledolter_Traj.pdf} \label{fig2:blood_CL_MCEM_estimates}}
+    \caption{MCEM estimates of $p$ and $q$ for the blood type example, based on the method of \citet{Cha95}. The vertical line shows the end of the pilot study. The horizontal dashed lines correspond to maximum likelihood estimates.}
+    \includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/Chan_Ledolter_Traj.pdf} 
+    \label{fig2:blood_CL_MCEM_estimates}
+\end{figure}
 
-    \subfloat[Estimated log-likelihood ratio trajectory]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/Chan_Ledolter_lik_ratio_Traj.pdf} \label{fig2:blood_CL_MCEM_likelihoods}}   
+\begin{figure}
+    \centering
+    \caption{Estimated observed data log-likelihood ratio, based on the method of \citet{Cha95}. Red dashed lines give $95\%$ pointwise confidence bands, and the vertical line shows the end of the pilot study.}
+    \subfloat[Full trajectory]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/Chan_Ledolter_lik_ratio_Traj.pdf} \label{fig2:blood_CL_MCEM_likelihoods_full}}
+
+    \subfloat[Post-pilot study iterations only]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/Chan_Ledolter_lik_ratio_Traj_zoomed.pdf} \label{fig2:blood_CL_MCEM_likelihoods_zoomed}}   
+    
+    \label{fig2:blood_CL_MCEM_likelihoods}
 \end{figure}
 
 % \begin{figure}

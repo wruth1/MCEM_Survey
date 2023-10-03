@@ -203,6 +203,7 @@ lcls_final = deepcopy(lik_rat_traj_CL[K_max:end]) .- wald_mult .* SE_final
 ucls_CL = [ucls_pilot; ucls_final]
 lcls_CL = [lcls_pilot; lcls_final]
 
+
 pilot_iterations = collect(eachindex(ucls_pilot))
 final_iterations = collect(K_max:K_max+length(ucls_final)-1)
 CI_iterations = [pilot_iterations; final_iterations]
@@ -212,9 +213,15 @@ CI_iterations = [pilot_iterations; final_iterations]
 CL_lik_rat_plot = plot(lik_rat_traj_CL, label = "Estimate", xlabel = "Iteration", ylabel = "Log-Likelihood Ratio", size=(800, 600), margin=10mm, legendfont=font(15), guidefont=font(20), xtickfont=font(15), ytickfont=font(15))
 vline!(CL_lik_rat_plot, [K_max], label = nothing, linewidth=1, linecolor=:black)
 # Add confidence band
-plot!(CL_lik_rat_plot, CI_iterations, ucls_CL, linecolor=:red, linestyle=:dash, label = "95% Confidence Band")
-plot!(CL_lik_rat_plot, CI_iterations, lcls_CL, linecolor=:red, linestyle=:dash, label = nothing)
+plot!(CL_lik_rat_plot, final_iterations, ucls_final, linecolor=:red, linestyle=:dash, label = "95% Confidence Band")
+plot!(CL_lik_rat_plot, final_iterations, lcls_final, linecolor=:red, linestyle=:dash, label = nothing)
 savefig(CL_lik_rat_plot, plotsdir("Blood_Type", "Chan_Ledolter_lik_ratio_Traj.pdf"))
+
+CI_lik_rat_plot_zoomed = plot(final_iterations, lik_rat_traj_CL[K_max:end], label = "Estimate", xlabel = "Iteration", ylabel = "Log-Likelihood Ratio", size=(800, 600), margin=10mm, legendfont=font(15), guidefont=font(20), xtickfont=font(15), ytickfont=font(15))
+vline!(CI_lik_rat_plot_zoomed, [K_max], label = nothing, linewidth=1, linecolor=:black)
+plot!(CI_lik_rat_plot_zoomed, final_iterations, ucls_final, linecolor=:red, linestyle=:dash, label = "95% Confidence Band")
+plot!(CI_lik_rat_plot_zoomed, final_iterations, lcls_final, linecolor=:red, linestyle=:dash, label = nothing)
+savefig(CI_lik_rat_plot_zoomed, plotsdir("Blood_Type", "Chan_Ledolter_lik_ratio_Traj_zoomed.pdf"))
 
 
 # ---------------------------------------------------------------------------- #
