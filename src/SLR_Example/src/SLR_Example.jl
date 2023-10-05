@@ -18,6 +18,7 @@ include("MCEM_Functions.jl")
 include("Ascent_MCEM_Functions.jl")
 include("Booth_Hobert.jl")
 include("Chan_Ledolter.jl")
+include("SAEM_Functions.jl")
 
 
 

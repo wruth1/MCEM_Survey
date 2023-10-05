@@ -6,7 +6,7 @@ export MCEM_update_iid
 export conditional_complete_information_iid, conditional_complete_sq_score_iid, conditional_complete_score_cov_iid
 export obs_information_formula_iid, MCEM_cov_formula_iid
 
-export Q_MCEM_iid, Q_MCEM_increment_iid
+export Q_MCEM_iid, Q_MCEM_increment_iid, grad_MCEM_iid
 
 export run_MCEM_fixed_iteration_count
 
@@ -219,6 +219,21 @@ function Q_MCEM_increment_iid(theta_new, theta_old, Y, all_Xs)
     B = Q_MCEM_iid(theta_old, Y, all_Xs)
 
     return A - B
+end
+
+
+"""
+Evaluate the gradient of the MCEM objective function.
+"""
+function grad_MCEM_iid(theta, Y, all_Xs)
+    sum_score = zeros(2)
+
+    for X in all_Xs
+        this_score = complete_data_score(theta, Y, X)
+        sum_score += this_score
+    end
+
+    return sum_score / length(all_Xs)
 end
 
 

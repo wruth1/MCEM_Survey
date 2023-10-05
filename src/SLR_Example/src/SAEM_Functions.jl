@@ -26,20 +26,22 @@ function importance_sample_SAEM(theta, Y_vec, M)
 end
 
 
+
 # ---------------------------------------------------------------------------- #
-#                             SAEM with fixed alpha                            #
+#                      SAEM for correct objective function                     #
 # ---------------------------------------------------------------------------- #
+
 
 """
 Weight on the new sample at each iteration.
 """
-SA_step_size(k, alpha) = k^(-alpha)
+SA_step_size(k, rate) = k^(-rate)
 
 """
 Compute the weight on sample j at iteration k.
 """
-function get_zeta(j, k, alpha)
-    gamma = SA_step_size(k, alpha)
+function get_zeta(j, k, rate)
+    gamma = SA_step_size(k, rate)
     if j==1
         return (1-gamma)^(k-j)
     else
@@ -51,12 +53,12 @@ end
 """
 Compute the SAEM objective function at the given theta. Iteration number and MC size are inferred from the supplied MC sample.
 """
-function SAEM_objective(theta, Y_vec, all_Xs_list, all_normed_weights_list, alpha)
+function SAEM_objective(theta, Y, all_Xs_list, rate)
     k = length(all_Xs_list)
     M = length(all_Xs_list[1])
 
-    all_Q_MCEMs = [Q_MCEM(theta, Y_vec, all_Xs_list[i], all_normed_weights_list[i]) for i in 1:k]
-    all_zetas = [get_zeta(i, k, alpha) for i in 1:k]
+    all_Q_MCEMs = [Q_MCEM_iid(theta, Y, all_Xs_list[i]) for i in 1:k]
+    all_zetas = [get_zeta(i, k, rate) for i in 1:k]
 
     return dot(all_Q_MCEMs, all_zetas)
 end
@@ -64,12 +66,12 @@ end
 """
 Gradient of the SAEM objective function. Iteration number and MC size are inferred from the supplied MC sample.
 """
-function SAEM_gradient(theta, Y_vec, all_Xs_list, all_normed_weights_list, alpha)
+function SAEM_gradient(theta, Y, all_Xs_list, rate)
     k = length(all_Xs_list)
     M = length(all_Xs_list[1])
 
-    all_Q_MCEM_gradients = [score_MCEM(theta, Y_vec, all_Xs_list[i], all_normed_weights_list[i]) for i in 1:k]
-    all_zetas = [get_zeta(i, k, alpha) for i in 1:k]
+    all_Q_MCEM_gradients = [grad_MCEM_iid(theta, Y, all_Xs_list[i], ) for i in 1:k]
+    all_zetas = [get_zeta(i, k, rate) for i in 1:k]
 
     return sum(all_Q_MCEM_gradients .* all_zetas)
 end
@@ -79,17 +81,19 @@ end
 """
 Maximize the SAEM objective function.
 """
-function get_SAEM_estimate(Y_vec, all_Xs_list, all_normed_weights_list, alpha)
+function get_SAEM_estimate(Y_vec, all_Xs_list, rate)
 
     function objective(theta)
-        return - SAEM_objective(theta, Y_vec, all_Xs_list, all_normed_weights_list, alpha)
+        return - SAEM_objective(theta, Y_vec, all_Xs_list, rate)
     end
 
     function grad!(G, theta)
-        G[:] = - SAEM_gradient(theta, Y_vec, all_Xs_list, all_normed_weights_list, alpha)
+        G[:] = - SAEM_gradient(theta, Y_vec, all_Xs_list, rate)
     end
 
     # Newton alone, custom stopping criterion
+    par_lower = [0, 0]
+    par_upper = [1, 1]
     BFGS_iterate = optimize(objective, grad!, par_lower, par_upper, theta_init, Fminbox(BFGS()),
     Optim.Options(show_trace=false, x_tol = 0, f_tol = 0, g_tol = 1e-6, time_limit = 30))
     optim_iterate = BFGS_iterate
@@ -105,24 +109,23 @@ end
 
 
 
-function run_SAEM(theta_init, Y_vec, B, M, alpha)
+function run_SAEM_solve_score(theta_init, Y_vec, B, M, rate)
 
-    all_Xs_list = Vector{Any}(undef, B)
-    all_normed_weights_list = Vector{Any}(undef, B)
-    all_theta_hats = Vector{Any}(undef, B)
+    # all_Xs_list = Vector{Any}(undef, B)
+    # all_theta_hats = Vector{Any}(undef, B)
+    all_Xs_list = []
+    all_theta_hats = []
 
     theta_hat = theta_init
 
     @showprogress for i in 1:B
-        all_Xs, all_weights = importance_sample_SAEM(theta_hat, Y_vec, M)
-        all_Xs_list[i] = all_Xs
-        all_normed_weights_list[i] = all_weights
-        # push!(all_Xs_list, all_Xs)
-        # push!(all_normed_weights_list, all_weights)
+        all_Xs = sample_X_given_Y_iid(M_SAEM, theta_hat, Y)
+        # all_Xs_list[i] = all_Xs
+        push!(all_Xs_list, all_Xs)
 
-        theta_hat = get_SAEM_estimate(Y_vec, all_Xs_list[1:i], all_normed_weights_list[1:i], alpha)
-        all_theta_hats[i] = theta_hat
-        # push!(all_theta_hats, theta_hat)
+        theta_hat = get_SAEM_estimate(Y_vec, all_Xs_list[1:i], rate)
+        # all_theta_hats[i] = theta_hat
+        push!(all_theta_hats, theta_hat)
     end
 
     return all_theta_hats
@@ -135,7 +138,7 @@ end
 
 # B = 50
 # M = 10
-# alpha = 0.6
+# rate = 0.6
 
 # all_theta_hats = run_SAEM(theta_init, Y_vec, B, M, alpha)
 # # run_SAEM_JuMP(theta_init, Y_vec, B, M, alpha)
@@ -430,3 +433,21 @@ end
 # push!(all_estimates, all_theta_hats_adaptive[end])
 
 
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                            SAEM for EM fixed point                           #
+# ---------------------------------------------------------------------------- #
+
+
+
+
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                      SAEM for correct objective function                     #
+# ---------------------------------------------------------------------------- #
