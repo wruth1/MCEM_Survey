@@ -306,7 +306,7 @@ plot!(rhs, p_hat_traj_AMCEM,  label = "p", ylabel = "Estimate", legend=:left, le
 plot!(rhs, q_hat_traj_AMCEM, label = "q");
 plot!(rhs, [10000], color=:purple, xlims=xlims(rhs), ylims=ylims(rhs), label = "MC Size", legendfont=font(15));
 hline!(rhs, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
-savefig(BH_plot2, plotsdir("Blood_Type", "AMCEM_Traj.pdf"))
+savefig(AMCEM_plot, plotsdir("Blood_Type", "AMCEM_Traj.pdf"))
 
 
 
@@ -319,9 +319,36 @@ savefig(BH_plot2, plotsdir("Blood_Type", "AMCEM_Traj.pdf"))
 Random.seed!(5)
 
 # --------------- Set control parameters for ascent-based MCEM --------------- #
-eta = 1.0     # Power on 1/k for step size
-M_SAEM = 5      # MC size for each iteration of SAEM
-B_SAEM = 500         # Number of SAEM iterations
+M_SAEM = 10      # MC size for each iteration of SAEM
+SA_rate = 1.0     # Power on 1/k for step size
+B_SAEM = 50         # Number of SAEM iterations
 
 
-theta_SAEM = run_SAEM_adaptive(theta_init, Y, M_SAEM, B_SAEM, alpha)
+all_theta_hat_SAEMs = run_SAEM(theta_init, Y, M_SAEM, SA_rate, B_SAEM)
+
+
+
+p_hat_traj_SAEM = getindex.(all_theta_hat_SAEMs, 1)
+q_hat_traj_SAEM = getindex.(all_theta_hat_SAEMs, 2)
+
+
+
+# Plot trajectories
+SAEM_plot = plot(p_hat_traj_SAEM, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legend=:right, legendfont=font(15), guidefont=font(20), xtickfont=font(15), ytickfont=font(15));
+plot!(SAEM_plot, q_hat_traj_SAEM, label = "q");
+# Add horizontal line for MLEs
+hline!(SAEM_plot, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
+savefig(SAEM_plot, plotsdir("Blood_Type", "SAEM_Traj.pdf"))
+
+
+
+
+
+# MC size on left, estimate on right
+SAEM_plot2 = plot(M_SAEM .* (1:B_SAEM), label = nothing, color=:purple, linetype=:steppost, ylabel="MC Sample Size", guidefont=font(20), xlabel = "Iteration", margin=10mm, size=(800, 600), xtickfont=font(15), ytickfont=font(15));
+rhs = twinx()
+plot!(rhs, p_hat_traj_SAEM,  label = "p", ylabel = "Estimate", legend=:left, legendfont=font(15), guidefont=font(20), xtickfont=font(16), ytickfont=font(16));
+plot!(rhs, q_hat_traj_SAEM, label = "q");
+plot!(rhs, [10000], color=:purple, xlims=xlims(rhs), ylims=ylims(rhs), label = "MC Size", legendfont=font(15));
+hline!(rhs, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
+savefig(SAEM_plot2, plotsdir("Blood_Type", "SAEM_Traj_MC_size.pdf"))
