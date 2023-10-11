@@ -5,6 +5,8 @@ export MC_num_O_alleles, MC_num_A_alleles, MC_num_B_alleles
 export SAEM_p_hat, SAEM_q_hat, SAEM_theta_hat
 export one_MCEM_iteration, run_SAEM
 
+export run_SAEM_score
+
 
 
 
@@ -146,3 +148,83 @@ end
 
 
 
+
+
+
+# ---------------------------------------------------------------------------- #
+#                            SAEM for obs data score                           #
+# ---------------------------------------------------------------------------- #
+
+
+# -------------- Reparameterize problem using logits of p and q -------------- #
+# ------- Write p1 = logit(p), q1 = logit(q) and theta1 = logit.(theta) ------ #
+# ------- Note: logit() is built-in to Julia. Its inverse is logistic() ------ #
+
+"""
+Compute gradient of complete data log-likelihood with parameters on logit-scale.
+"""
+function complete_data_score_logit(theta1, Y, X)
+    theta = logistic.(theta1)
+    raw_score = complete_data_score(theta, Y, X)
+    jacobian = diagm(theta .* (1 .- theta))
+    return jacobian * raw_score
+end
+
+"""
+Perform an SA step on the logit-scale.
+Requires MC sampled Xs to be passed as an argument (i.e. they must already have been generated).
+"""
+function one_MCEM_iteration_score_logit(theta1_old, Y, all_Xs, k, SA_rate)
+    
+    all_scores = [complete_data_score_logit(theta1_old, Y, all_Xs[i]) for i in 1:M]
+    mean_score = mean(all_scores)
+
+    step_size = SA_step_size(k, SA_rate)
+    theta1_new = theta1_old + step_size * mean_score
+    return theta1_new
+end
+
+
+
+
+
+# --------------------------------- Run SAEM --------------------------------- #
+
+"""
+One iteration of SAEM. Convert theta to logit-scale for update, then convert back.
+theta_old: current estimate of theta
+Y: vector of observed phenotypes
+M: number of MC samples to draw
+SA_rate: rate of decay of SA weights
+"""
+function one_MCEM_iteration_score(theta_old, Y, M, k, SA_rate)
+    
+    all_Xs = sample_X_given_Y_iid(M, theta_old, Y)
+    
+    theta1_old = logit.(theta_old)
+    theta1_new = one_MCEM_iteration_score_logit(theta1_old, Y, all_Xs, k, SA_rate)
+    theta_new = logistic.(theta1_new)
+
+    return theta_new
+end
+
+
+"""
+Run SAEM for B iterations.
+    theta_init: initial estimate of theta
+    Y: vector of observed phenotypes
+    M: number of MC samples to draw at each iteration
+    SA_rate: rate of decay of SA weights
+    B: number of iterations to run
+"""
+function run_SAEM_score(theta_init, Y, M, SA_rate, B)
+    theta_hat_list = []
+    theta_hat = theta_init
+
+    for k in 1:B
+        theta_hat = one_MCEM_iteration_score(theta_hat, Y, M, k, SA_rate)
+        push!(theta_hat_list, theta_hat)
+    end
+
+    return theta_hat_list
+end

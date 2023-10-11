@@ -93,8 +93,6 @@ function complete_data_score(theta, Y, X)
 end
 
 
-# regular expression for a word ending in 1
-# \w*1\b
 
 
 # ---------------------------------------------------------------------------- #

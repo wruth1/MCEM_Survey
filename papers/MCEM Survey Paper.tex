@@ -585,15 +585,25 @@ A subtly different line of research on the SAEM method has been developed by a g
 
 An advantage of the SAEM algorithm over MCEM is that in SAEM we choose the Monte Carlo size once at the beginning and leave it fixed for every iteration. We can think of the method as automatically increasing the MC size since the estimate at each iteration is a weighted sum of all the estimates which came before it. A disadvantage of SAEM is that it requires us to select the sequence $\{ \alpha_k \}$, commonly referred to as the ``step size''. Choosing $\alpha_k$ too large will mean the algorithm takes a long time to stabilize, while choosing $\alpha_k$ too small causes the algorithm to stabilize before it reaches its limiting value (and will therefore take a long time to reach this limit). \citet{Jan06} gives some guidance on choosing this step size based on the goal of balancing bias with variance. \citeauthor{Jan06} also presents a convergence diagnostic based on the ideas of \citet{Caf05} which allows for a posteriori assessment of whether the step size was too small. 
 
-We illustrate the SAEM methods of \citet{Gu98I} and \citet{Jan06} on our blood type example. For the method of \citeauthor{Gu98I}, we use $\alpha_k = k^{-1}$ (a popular choice), a Monte Carlo sample size of 10 at each iteration, and 50 iterations. Our final parameter estimate is $\hat{p} = 0.301$ and $\hat{q} = 0.128$. This estimate is close to the MLE, but differs more than the MCEM methods. It is worth noting however that, while the number of Monte Carlo samples used to compute the final estimate under SAEM is 500, which is comparable to the final Monte Carlo sizes of MCEM methods, 500 is also the total number of Monte Carlo draws for SAEM. MCEM methods on the other hand, require hundreds of Monte Carlo samples at every iteration, and thus have a much higher computational cost. \hl{Compare total number of MC samples across methods.}
+We illustrate the SAEM methods of \citet{Gu98I} and \citet{Dey99} on our blood type example. For the method of \citeauthor{Gu98I}, we use $\alpha_k = k^{-1}$ (a popular choice), a Monte Carlo sample size of 10 at each iteration, and 50 iterations. Since our parameters are constrained to lie between 0 and 1, we apply the method of \citeauthor{Gu98I} to our parameters on logit-scale, then back-transform before plotting. See Figure \ref{fig:blood_SAEM_traj} for trajectories from both SAEM methods. The final estimate from the \citeauthor{Gu98I} method is $\hat{p} = 0.291$ and $\hat{q} = 0.127$, while the \citeauthor{Dey99} method gives $\hat{p} = 0.301$ and $\hat{q} = 0.128$. 
+
 
 
 \begin{figure}
     \centering
-    \caption{Trajectory of estimates for $p$ and $q$, from the SAEM method of \citeauthor{Gu98I}. Horizontal dashed lines give the maximum likelihood estimates.}
+    \caption{Trajectory of estimates for $p$ and $q$ from two versions of stochastic approximation EM. Horizontal dashed lines give the maximum likelihood estimates.}
+    \subfloat[\citet{Gu98I}]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/SAEM_Traj_score.pdf} \label{fig:blood_SAEM_traj_score}}
+
+    \subfloat[\citet{Dey99}]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/SAEM_Traj_obj_fun.pdf} \label{fig:blood_SAEM_traj_obj_fun}}   
+    
     \label{fig:blood_SAEM_traj}
-    \includegraphics[width=0.75\textwidth]{../plots/Blood_Type/SAEM_Traj.pdf}   
 \end{figure}
+
+
+Both SAEM estimates are close to the MLE, but differ more than the MCEM methods presented in Section \ref{sec2:MCEM}. It is worth noting that the number of Monte Carlo samples used to compute the final estimate under SAEM is comparable to that used by many MCEM methods. For SAEM however, this is the total number of Monte Carlo draws, whereas MCEM requires this many simulations at every iteration. Therefore, the total Monte Carlo cost of SAEM is much lower than for MCEM. \hl{Compare total number of MC samples across methods.}
+
+
+
 
 \subsection{Monte Carlo Maximum Likelihood}
 \label{sec2:MCML}
