@@ -16,6 +16,9 @@ using LogExpFunctions
 using Plots
 using Measures  # For plot margins
 
+
+
+
 # Define some functions to help navigate the project directory
 SLRdir(args...) = srcdir("SLR_Example", args...)
 SLRsrcdir(args...) = SLRdir("src", args...)
@@ -111,7 +114,6 @@ cov_EM = EM_COV_formula(theta_hat_EM, Y)
 cov_EM - cov_MLE
 
 
-
 # ---------------------------------------------------------------------------- #
 #                             Analysis: Naive MCEM                             #
 # ---------------------------------------------------------------------------- #
@@ -126,6 +128,8 @@ M = 100
 K = 50
 
 theta_hat_MCEM1, theta_hat_traj_MCEM1 = run_MCEM_fixed_iteration_count(theta_init, Y, M, K; return_trajectory=true)
+println("Number of MC draws for Naive MCEM:  $(COUNTERS["one_X_given_Y_iid"])")
+
 cov_MCEM1 = MCEM_cov_formula_iid(theta_hat_MCEM1, Y, M, false)
 
 # ----------------------------- Plot Trajectories ---------------------------- #
@@ -160,6 +164,8 @@ plt.savefig(naive_MCEM_plot2, plotsdir("Blood_Type", "naive_MCEM_traj2.pdf"), bb
 #                            Chan and Ledolter MCEM                            #
 # ---------------------------------------------------------------------------- #
 
+COUNTERS["one_X_given_Y_iid"] = 0
+
 Random.seed!(2)
 
 
@@ -174,6 +180,8 @@ B = 5           # Number of replicate updates to take at each kept estimate
 delta = 1e-3    # Allowable SE for estimate of observed data log lik rat
 
 theta_hat_traj_CL, lik_rat_traj_CL, SE_pilot, SE_final = run_MCEM_Chan_Ledolter(Y, theta_init, M_pilot, K_max, R_keep, B, delta; diagnostics=true)
+println("Number of MC draws for Chan and Ledolter MCEM:  $(COUNTERS["one_X_given_Y_iid"])")
+
 
 
 # ----------------------------- Plot Trajectories ---------------------------- #
@@ -228,6 +236,7 @@ savefig(CI_lik_rat_plot_zoomed, plotsdir("Blood_Type", "Chan_Ledolter_lik_ratio_
 #                             Booth and Hobert MCEM                            #
 # ---------------------------------------------------------------------------- #
 
+COUNTERS["one_X_given_Y_iid"] = 0
 Random.seed!(3)
 
 
@@ -240,6 +249,7 @@ Random.seed!(3)
 
 # Run algorithm
 theta_hat_traj_BH , n_iter_BH, M_traj_BH = run_MCEM_Booth_Hobert(theta_init, Y; return_trajectory=true, return_diagnostics=true)
+println("Number of MC draws for Booth and Hobert MCEM:  $(COUNTERS["one_X_given_Y_iid"])")
 
 # Extract final estimate
 theta_hat_BH = theta_hat_traj_BH[end]
@@ -274,6 +284,7 @@ savefig(BH_plot2, plotsdir("Blood_Type", "Booth_Hobert_Traj.pdf"))
 # ---------------------------------------------------------------------------- #
 
 
+COUNTERS["one_X_given_Y_iid"] = 0
 Random.seed!(4)
 
 # --------------- Set control parameters for ascent-based MCEM --------------- #
@@ -291,6 +302,7 @@ M_init = 10
 
 
 theta_AMCEM, all_theta_hat_AMCEMs, M_traj_AMCEM = run_ascent_MCEM([0.3, 0.3], Y, M_init, AMCEM_control; diagnostics=true)
+println("Number of MC draws for Caffo et al. MCEM:  $(COUNTERS["one_X_given_Y_iid"])")
 
 
 
@@ -317,6 +329,7 @@ savefig(AMCEM_plot, plotsdir("Blood_Type", "AMCEM_Traj.pdf"))
 # ---------------------------------------------------------------------------- #
 
 
+COUNTERS["one_X_given_Y_iid"] = 0
 Random.seed!(5)
 
 # --------------- Set control parameters for ascent-based MCEM --------------- #
@@ -326,6 +339,7 @@ B_SAEM = 50         # Number of SAEM iterations
 
 
 all_theta_hat_SAEMs = run_SAEM(theta_init, Y, M_SAEM, SA_rate, B_SAEM)
+println("Number of MC draws for Objective Function SAEM:  $(COUNTERS["one_X_given_Y_iid"])")
 
 
 
@@ -362,6 +376,7 @@ savefig(SAEM_plot2, plotsdir("Blood_Type", "SAEM_Traj_obj_fun_MC_size.pdf"))
 # ---------------------------------------------------------------------------- #
 
 
+COUNTERS["one_X_given_Y_iid"] = 0
 Random.seed!(6)
 
 # --------------- Set control parameters for ascent-based MCEM --------------- #
@@ -371,6 +386,7 @@ B_SAEM = 50         # Number of SAEM iterations
 
 
 all_theta_hat_SAEMs_score = run_SAEM_score(theta_init, Y, M_SAEM, SA_rate, B_SAEM)
+println("Number of MC draws for Score SAEM:  $(COUNTERS["one_X_given_Y_iid"])")
 
 
 
@@ -398,4 +414,27 @@ plot!(rhs, q_hat_traj_SAEM_score, label = "q");
 plot!(rhs, [10000], color=:purple, xlims=xlims(rhs), ylims=ylims(rhs), label = "MC Size", legendfont=font(15));
 hline!(rhs, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
 savefig(SAEM_plot2, plotsdir("Blood_Type", "SAEM_Traj_score_MC_size.pdf"))
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                        Monte Carlo Maximum Likelihood                        #
+# ---------------------------------------------------------------------------- #
+
+
+
+COUNTERS["one_X_given_Y_iid"] = 0
+Random.seed!(7)
+
+# ---------------------- Set control parameters for MCML --------------------- #
+M_MCML = 1000
+
+
+# --------------------------------- Run MCML --------------------------------- #
+theta_hat_MCML = run_MCML(theta_init, Y, M_MCML)
+println("Number of MC draws for MCML:  $(COUNTERS["one_X_given_Y_iid"])")
+theta_hat_MCML2 = run_MCML(theta_hat_MCML, Y, M_MCML)
+
+
 

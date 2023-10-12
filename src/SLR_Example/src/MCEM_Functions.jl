@@ -22,7 +22,7 @@ export run_MCEM_fixed_iteration_count
 """
 Genetate a single observation from the conditional distribution of X given Y.
 """
-function one_X_given_Y_iid(theta, Y)
+@counted function one_X_given_Y_iid(theta, Y)
     y1, y2, y3, y4 = Y
 
     alpha1 = get_alpha1(theta)  # P(X2|Y)

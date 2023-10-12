@@ -176,7 +176,7 @@ Requires MC sampled Xs to be passed as an argument (i.e. they must already have 
 """
 function one_MCEM_iteration_score_logit(theta1_old, Y, all_Xs, k, SA_rate)
     
-    all_scores = [complete_data_score_logit(theta1_old, Y, all_Xs[i]) for i in 1:M]
+    all_scores = [complete_data_score_logit(theta1_old, Y, X) for X in all_Xs]
     mean_score = mean(all_scores)
 
     step_size = SA_step_size(k, SA_rate)

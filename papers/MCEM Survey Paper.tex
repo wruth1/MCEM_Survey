@@ -625,13 +625,15 @@ where the $y_i$ are sampled iid from $f(y; \theta_*)$. The second term in line \
 An alternative formulation of the MCML method given by \citet{Gel93} is more relevant for use with missing data \citep[see also,][]{Gey94}. A similar derivation to the one given above shows that, in the presence of missing data, $X$,
 %
 \begin{align}
-    \log \frac{f(y; \theta)}{f(y; \theta_*)} &= \log \bE_{\theta_*} \left[ \left. \frac{h(y, X; \theta)}{h(y, X; \theta_*)} \right| Y=y \right] - \log \bE_{\theta_*} \left[\frac{h(Y, X; \theta)}{h(Y, X; \theta_*)}\right]\\
+    \log \frac{f(y; \theta)}{f(y; \theta_*)} &= \log \bE_{\theta_*} \left[ \left. \frac{h(y, X; \theta)}{h(y, X; \theta_*)} \right| Y=y \right] - \log \bE_{\theta_*} \left[\frac{h(Y, X; \theta)}{h(Y, X; \theta_*)}\right] \label{eq:MCML_miss_exact}\\
     & \approx \log \left[\frac{1}{M_1} \sum_{i=1}^{M_1} \frac{h(y, X'_i; \theta)}{h(y, X'_i; \theta_*)}\right] - \log \left[\frac{1}{M_2} \sum_{j = 1}^{M_2} \frac{h(Y_j, X_j; \theta)}{h(Y_j, X_j; \theta_*)}\right] \label{eq:MCML_miss}
 \end{align}
 %
-where the $X'_i$ are generated from the conditional distribution of $X|Y=y$, the $(Y_j, X_j)$ pairs are generated from the joint distribution of $Y$ and $X$, and $h(y, x; \theta)$ is proportional to this joint distribution. Note that two Monte Carlo samples are required to evaluate (\ref{eq:MCML_miss}).
+where the $X'_i$ are generated from the conditional distribution of $X|Y=y$, the $(Y_j, X_j)$ pairs are generated from the joint distribution of $Y$ and $X$, and $h(y, x; \theta)$ is proportional to this joint distribution. Note that two Monte Carlo samples are required to evaluate (\ref{eq:MCML_miss}). If the complete data likelihood is known exactly, then we can replace $h$ with $f$ in (\ref{eq:MCML_miss_exact}) and (\ref{eq:MCML_miss}), and drop the second term (i.e.\ the one being subtracted).
 
 The MCML procedure closely resembles importance sampling, with $f(y; \theta_*)$, $f_c(y, x; \theta_*)$ or $f_m(y, x; \theta_*)$ being the proposal distribution (see Section \ref{sec2:imp_samp} for a discussion of importance sampling). \citet{Jan03} take this idea further, and suggest directly estimating $f(y; \theta)$ from the complete data density, $f_c(y, x; \theta)$, using importance sampling. That is, they write $f(y; \theta) = \int f_c(y, x; \theta) dx = \int [ f_c(y, x; \theta) / g(x)] g(x) dx$, where $g$ is an arbitrary density function. The final integral is then approximated by an average of samples drawn iid from $g$. While the method of \citeauthor{Jan03} does present an interesting direction in which to generalize MCML, note that it is only applicable if $f_c$ is known exactly (or, rather, up to a proportionality constant which does not depend on $\theta$).
+
+We apply the MCML method of \citet{Gey94} on our blood type example. Using a Monte Carlo size of 1000 gives $\hat{p} = 0.298$ and $\hat{q} = 0.129$, which are both quite close to the MLE. Comparisons with other methods have found that MCML is very sensitive to its starting point; see Section \ref{sec2:comparison} or \citet{McC97}. We therefore repeat MCML, this time starting with the estimate obtained from its first application. Our second run gives $\hat{p} = 0.297$ and $\hat{q} = 0.128$, which is not appreciably closer to the MLE.
 
 \begin{comment}
 \subsection{Variational Methods}
