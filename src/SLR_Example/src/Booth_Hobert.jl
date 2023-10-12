@@ -107,6 +107,7 @@ function run_MCEM_Booth_Hobert(theta_init, Y; M_init = 10, alpha = 0.25, k = 3, 
     all_Ms = []
 
     theta_hat_old = theta_init 
+    theta_hat = theta_init  # Initialize theta_hat so it is accessible after the for loop
 
     stop_check_count = 0    # Number of consecutive iterations with sufficiently small updates
     iteration_count = 0

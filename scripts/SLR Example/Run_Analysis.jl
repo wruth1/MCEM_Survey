@@ -16,6 +16,8 @@ using LogExpFunctions
 using Plots
 using Measures  # For plot margins
 
+using BenchmarkTools
+
 
 
 
@@ -29,6 +31,9 @@ SLRtestdir(args...) = SLRdir("test", args...)
 
 # Run this to edit the packages used for testing
 # Pkg.activate(srcdir("SLR_Example", "test"))
+
+
+num_reps_time = 100 # Number of times to repeat each method to assess its runtime
 
 
 # ---------------------------------------------------------------------------- #
@@ -120,6 +125,8 @@ cov_EM - cov_MLE
 
 Random.seed!(1)
 
+COUNTERS["one_X_given_Y_iid"] = 0
+
 
 # Fixed MC size for each iteration
 M = 100
@@ -129,6 +136,7 @@ K = 50
 
 theta_hat_MCEM1, theta_hat_traj_MCEM1 = run_MCEM_fixed_iteration_count(theta_init, Y, M, K; return_trajectory=true)
 println("Number of MC draws for Naive MCEM:  $(COUNTERS["one_X_given_Y_iid"])")
+
 
 cov_MCEM1 = MCEM_cov_formula_iid(theta_hat_MCEM1, Y, M, false)
 
