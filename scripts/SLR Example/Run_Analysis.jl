@@ -342,7 +342,9 @@ Random.seed!(5)
 
 # --------------- Set control parameters for ascent-based MCEM --------------- #
 M_SAEM = 10      # MC size for each iteration of SAEM
-SA_rate = 1.0     # Power on 1/k for step size
+SA_rate = 0.7     # Power on 1/k for step size
+# SA_rate = 1.0     # Power on 1/k for step size
+# B_SAEM = 200         # Number of SAEM iterations
 B_SAEM = 50         # Number of SAEM iterations
 
 
@@ -389,7 +391,9 @@ Random.seed!(6)
 
 # --------------- Set control parameters for ascent-based MCEM --------------- #
 M_SAEM = 10      # MC size for each iteration of SAEM
-SA_rate = 1.0     # Power on 1/k for step size
+SA_rate = 0.7     # Power on 1/k for step size
+# SA_rate = 1.0     # Power on 1/k for step size
+# B_SAEM = 200         # Number of SAEM iterations
 B_SAEM = 50         # Number of SAEM iterations
 
 
@@ -422,6 +426,58 @@ plot!(rhs, q_hat_traj_SAEM_score, label = "q");
 plot!(rhs, [10000], color=:purple, xlims=xlims(rhs), ylims=ylims(rhs), label = "MC Size", legendfont=font(15));
 hline!(rhs, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
 savefig(SAEM_plot2, plotsdir("Blood_Type", "SAEM_Traj_score_MC_size.pdf"))
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                SAEM Averaging                                #
+# ---------------------------------------------------------------------------- #
+
+# ------------------------ Compute cumulative averages ----------------------- #
+p_cum_mean_SAEM_obj = [sum(p_hat_traj_SAEM[1:n]) / n for n in 1:length(p_hat_traj_SAEM)]
+q_cum_mean_SAEM_obj = [sum(q_hat_traj_SAEM[1:n]) / n for n in 1:length(q_hat_traj_SAEM)]
+
+p_cum_mean_SAEM_score = [sum(p_hat_traj_SAEM_score[1:n]) / n for n in 1:length(p_hat_traj_SAEM_score)]
+q_cum_mean_SAEM_score = [sum(q_hat_traj_SAEM_score[1:n]) / n for n in 1:length(q_hat_traj_SAEM_score)]
+
+
+# ------------------------- Plot cumulative averages ------------------------- #
+SAEM_obj_mean_plot = deepcopy(SAEM_plot);
+plot!(SAEM_obj_mean_plot, p_cum_mean_SAEM_obj, label = nothing, color=1, linestyle=:dash);
+plot!(SAEM_obj_mean_plot, q_cum_mean_SAEM_obj, label = nothing, color=:red, linestyle=:dash);
+hline!(SAEM_obj_mean_plot, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
+savefig(SAEM_obj_mean_plot, plotsdir("Blood_Type", "SAEM_Mean_Traj_obj.pdf"))
+
+
+
+SAEM_score_mean_plot = deepcopy(SAEM_score_plot);
+plot!(SAEM_score_mean_plot, p_cum_mean_SAEM_score, label = nothing, color=1, linestyle=:dash);
+plot!(SAEM_score_mean_plot, q_cum_mean_SAEM_score, label = nothing, color=:red, linestyle=:dash);
+hline!(SAEM_score_mean_plot, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
+savefig(SAEM_score_mean_plot, plotsdir("Blood_Type", "SAEM_Mean_Traj_score.pdf"))
+
+
+
+# -------------------------- Compute moving averages ------------------------- #
+window_size = Integer(ceil(sqrt(B_SAEM)))
+
+p_win_mean_SAEM_obj = [sum(p_hat_traj_SAEM[(i+1):(i+window_size)]) / window_size for i in 0:(length(p_hat_traj_SAEM)-window_size)]
+q_win_mean_SAEM_obj = [sum(q_hat_traj_SAEM[(i+1):(i+window_size)]) / window_size for i in 0:(length(q_hat_traj_SAEM)-window_size)]
+
+p_win_mean_SAEM_score = [sum(p_hat_traj_SAEM_score[(i+1):(i+window_size)]) / window_size for i in 0:(length(p_hat_traj_SAEM_score)-window_size)]
+q_win_mean_SAEM_score = [sum(q_hat_traj_SAEM_score[(i+1):(i+window_size)]) / window_size for i in 0:(length(q_hat_traj_SAEM_score)-window_size)]
+
+
+# --------------------------- Plot moving averages --------------------------- #
+SAEM_obj_window_mean_plot = deepcopy(SAEM_plot);
+plot!(SAEM_obj_window_mean_plot, (window_size):B_SAEM, p_win_mean_SAEM_obj, label = nothing, color=1, linestyle=:dash);
+plot!(SAEM_obj_window_mean_plot, (window_size):B_SAEM, q_win_mean_SAEM_obj, label = nothing, color=:red, linestyle=:dash);
+hline!(SAEM_obj_window_mean_plot, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
+
+SAEM_score_window_mean_plot = deepcopy(SAEM_plot);
+plot!(SAEM_score_window_mean_plot, (window_size):B_SAEM, p_win_mean_SAEM_score, label = nothing, color=1, linestyle=:dash);
+plot!(SAEM_score_window_mean_plot, (window_size):B_SAEM, q_win_mean_SAEM_score, label = nothing, color=:red, linestyle=:dash);
+hline!(SAEM_score_window_mean_plot, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
 
 
 
