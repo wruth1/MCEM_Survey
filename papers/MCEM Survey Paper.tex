@@ -578,8 +578,6 @@ In this section, we outline some alternatives to the MCEM algorithm for maximizi
 \subsection{Stochastic Approximation}
 \label{sec:SAEM}
 
-\hl{This section is probably too long.}
-
 Stochastic approximation (SA) is a method originally proposed by \citet{Rob51} for finding roots of functions which can only be evaluated with noise. This method was expanded upon rapidly by, for example, \citet{Kie52} into a method for derivative-free optimization, and by \citet{Dvo56} with a systematic theoretical framework. Since the mid-20th century, SA methods have grown into a thriving research area. See, e.g., \citet{Kus97} or \citet{Bor22} for textbook-length treatments, and \citet{Lai03} for a survey paper which focuses on applications to statistics.
 
 The basic version of SA iteratively updates our estimate of the root, $\theta_*$, of some unobservable function, $\phi$, based on the value of a noisy realization of that function at the current estimate. Specifically, if $\theta_k$ is our estimate at iteration $k$ and $\hat{\phi} \approx \phi$, then our estimate at iteration $k+1$ is $\theta_{k+1} = \theta_k + \alpha_k \hat{\phi}(\theta_k)$, where $\alpha_k$ is a sequence which goes to zero at a particular rate. Since our sequence of weights goes to zero with $k$, the update terms become negligible in the limit and our estimate of $\theta_*$ stabilizes. The precise requirement for these weights is that $\sum_{k=1}^\infty \alpha_k = \infty$ and $\sum_{k=1}^\infty \alpha_k^2 < \infty$. A common choice is $\alpha_k = k^{-1}$. Numerous authors have studied convergence of the SA method in probability, almost surely and in $\mathcal{L}^1$ under various regularity conditions. See \citet{Lai03} for an excellent review of the history of stochastic approximation convergence theory.
@@ -599,21 +597,20 @@ A subtly different line of research on the SAEM method has been developed by a g
 
 An advantage of the SAEM algorithm over MCEM is that in SAEM we choose the Monte Carlo size once at the beginning and leave it fixed for every iteration. We can think of the method as automatically increasing the MC size since the estimate at each iteration is a weighted sum of all the estimates which came before it. A disadvantage of SAEM is that it requires us to select the sequence $\{ \alpha_k \}$, commonly referred to as the ``step size''. Choosing $\alpha_k$ too large will mean the algorithm takes a long time to stabilize, while choosing $\alpha_k$ too small causes the algorithm to stabilize before it reaches its limiting value (and will therefore take a long time to reach this limit). \citet{Jan06} gives some guidance on choosing this step size based on the goal of balancing bias with variance. \citeauthor{Jan06} also presents a convergence diagnostic based on the ideas of \citet{Caf05} which allows for a posteriori assessment of whether the step size was too small. 
 
-We illustrate the SAEM methods of \citet{Gu98I} and \citet{Del99} on our blood type example. For both methods, we use $\alpha_k = k^{-0.7}$ (balancing step length with Monte Carlo variability), a Monte Carlo sample size of 10 at each iteration, and 50 iterations. Since our parameters are constrained to lie between 0 and 1, we apply the method of \citeauthor{Gu98I} on logit-scale, then back-transform before plotting\footnote{This logit transformation is not necessary for the method of \citet{Del99}, since there is always a maximizer of the estimated objective function which satisfies our parameter constraints.}. See Figure \ref{fig:blood_SAEM_traj} for trajectories from both SAEM methods. The solid curves are estimates obtained directly from SAEM, while the dashed curves are cumulative averages. The final estimate from the \citeauthor{Gu98I} method is $\hat{p} = 0.291$ and $\hat{q} = 0.127$, while the \citeauthor{Del99} method gives $\hat{p} = 0.301$ and $\hat{q} = 0.128$. Averaging gives $\hat{p} = 0.301$, $\hat{q} = 0.129$, and $\hat{p} = 0.287$, $\hat{q} = 0.104$ for \citeauthor{Gu98I} and \citeauthor{Del99} respectively.
+We illustrate the SAEM methods of \citet{Gu98I} and \citet{Del99} on our blood type example. For both methods, we use $\alpha_k = k^{-0.7}$ (balancing step length with Monte Carlo variability), a Monte Carlo sample size of 10 at each iteration, and 50 iterations. Since our parameters are constrained to lie between 0 and 1, we apply the method of \citeauthor{Gu98I} on logit-scale, then back-transform before plotting\footnote{This logit transformation is not necessary for the method of \citet{Del99}, since there is always a maximizer of the estimated objective function which satisfies our parameter constraints.}. See Figure \ref{fig:blood_SAEM_traj} for trajectories from both SAEM methods. The final estimate from the \citeauthor{Gu98I} method is $\hat{p} = 0.291$ and $\hat{q} = 0.127$, while the \citeauthor{Del99} method gives $\hat{p} = 0.301$ and $\hat{q} = 0.128$. 
 
 \begin{figure}
     \centering
-    \caption{Trajectory of estimates for $p$ and $q$ from two versions of stochastic approximation. Estimates are given by solid curves, while cumulative averages are given by dashed curves. Horizontal dashed lines give the maximum likelihood estimates.}
-    \subfloat[\citet{Gu98I}]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/SAEM_Mean_Traj_score.pdf} \label{fig:blood_SAEM_traj_score}}
+    \caption{Trajectory of estimates for $p$ and $q$ from two versions of stochastic approximation. Horizontal dashed lines give the maximum likelihood estimates.}
+    \subfloat[\citet{Gu98I}]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/SAEM_Traj_score.pdf} \label{fig:blood_SAEM_traj_score}}
 
-    \subfloat[\citet{Del99}]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/SAEM_Mean_Traj_obj.pdf} \label{fig:blood_SAEM_traj_obj_fun}}   
+    \subfloat[\citet{Del99}]{\includegraphics[width = 0.75\textwidth]{../plots/Blood_Type/SAEM_Traj_obj_fun.pdf} \label{fig:blood_SAEM_traj_obj_fun}}   
     
     \label{fig:blood_SAEM_traj}
 \end{figure}
 
-We see that, in this problem, averaging does not appear to accelerate convergence. In fact, quite the opposite. This is likely because our problem is relatively easy, so the raw estimates are able to converge quickly.
 
-Both SAEM estimates are close to the MLE, but differ more than the MCEM methods presented in Section \ref{sec:MCEM}. It is worth noting that the number of Monte Carlo samples used to compute the final estimate under SAEM is comparable to that used by many MCEM methods. For SAEM however, this is the total number of Monte Carlo draws, whereas MCEM requires this many simulations at every iteration. Therefore, the total Monte Carlo cost of SAEM is much lower than for MCEM. \hl{Compare total number of MC samples across methods.}
+Both SAEM estimates are close to the MLE, but differ more than the MCEM methods presented in Section \ref{sec:MCEM}. It is worth noting that the number of Monte Carlo samples used to compute the final estimate under SAEM is comparable to that used by many MCEM methods. For SAEM however, this is the total number of Monte Carlo draws, whereas MCEM requires this many simulations at every iteration. Therefore, the total Monte Carlo cost of SAEM is much lower than for MCEM.
 
 
 
@@ -781,10 +778,6 @@ Note that the comparisons made by \citeauthor{Boo99} use rejection sampling or i
 
 \citet{Bae16} compare the SAEM method of \citet{Del99} with a version of MCEM similar to that given in \citet{McC97} on a model for the growth of sugar beet plants. They use two different versions of MCMC sampling (Metropolis-Hastings and hybrid Gibbs), and two different proposals. Ultimately, they find little difference in the accuracy of their SAEM and MCEM implementations on either simulated or real data, but that SAEM requires much less computing time. They ultimately recommend SAEM, with the disclaimer that a more sophisticated implementation of MCEM \citep[e.g.,][]{Caf05,Boo99} might reduce the discrepancy between methods.
 
-\subsection{Computational Cost}
-In our blood type example, all methods perform reasonably well recovering the observed data MLE. However, the amount of computing required differs wildly between methods. In order to better facilitate choosing between methods in practice, we present a comparison between the methods introduced in Sections \ref{sec:MCEM} and \ref{sec:alternatives} on several quantities. First, we give the relative error for estimating the observed data MLE. Next, we measure computational cost, both by wall time and by number of Monte Carlo samples drawn. Since each method is stochastic, we repeat the analyses 100 times on the same dataset and average results for each performance metric. Note that the MCEM method of \citet{Wei90} and both SAEM methods require the analyst to use their judgement in assessing convergence. Since this is not practical in a benchmarking comparison, we instead select a moderately large number of iterations for each method. We see these as plausible values for first-pass analyses. See the discussion of each method in Sections \ref{sec:MCEM} and \ref{sec:alternatives} for specific choices of tuning parameters.
-
-Table  gives the results of our comparison.
 
 
 \subsection{Synthesis}
