@@ -84,9 +84,7 @@
 
 \title{A review of Monte Carlo-based versions of the EM algorithm}
 \author[1]{William Ruth}
-\author[2]{Richard Lockhart}
 \affil[1]{Corresponding Author - Department of Statistics and Actuarial Science \\ Simon Fraser University \\ Burnaby, BC  Canada \\ wruth@sfu.ca}
-\affil[2]{Department of Statistics and Actuarial Science \\ Simon Fraser University \\ Burnaby, BC  Canada}
 %\affil{Department of Statistics and Actuarial Science \\ Simon Fraser University \\ Burnaby, BC  Canada \\ lockhart@sfu.ca}
 %\date{\today}							% Activate to display a given date or no date
 \date{}
@@ -278,7 +276,7 @@ In this section, we describe an analysis which will be used as a running example
 
 Consider the problem of estimating allele frequencies based on observed phenotypes. Often, a single phenotype can be encoded by multiple genotypes with different configurations of dominant and recessive alleles. This is sometimes referred to as the problem of gene frequency estimation\index{Gene Frequency Estimation}. Our analysis closely follows Example 2.4 from \citet{McL08}\footnote{Although these authors do give data in their example, there is little context around this data, and we have been unable to locate more information from their references. We have opted instead to use a different dataset.}
 
-We investigate a simplified model for blood type which consists of only the ABO blood group. See Chapter 5 of \citet{Dea05}, for a detailed introduction to blood types\index{Blood Type}. There are three alleles for this gene: A, B and O. Allele O is recessive, while alleles A and B exhibit co-dominance. That is, genotypes AO and AA encode blood type A, genotypes BO and BB encode blood type B, genotype OO encodes blood type O, and genotype AB encodes blood type AB. Suppose that we seek to estimate the proportion of each allele within a population, based on a sample of individuals' phenotypes. \citet{Fuj78} report blood types of 4,464,349 people in Japan collected between 1964 and 1975. This sample is so large that any standard errors are practically zero. To retain a reasonable level of uncertainty for the purposes of illustration, we focus on a single administrative division, Oto, in Nara Prefecture. See Figure \ref{tab2:blood_type} for details.
+We investigate a simplified model for blood type which consists of only the ABO blood group. See Chapter 5 of \citet{Dea05}, for a detailed introduction to blood types\index{Blood Type}. There are three alleles for this gene: A, B and O. Allele O is recessive, while alleles A and B exhibit co-dominance. That is, genotypes AO and AA encode blood type A, genotypes BO and BB encode blood type B, genotype OO encodes blood type O, and genotype AB encodes blood type AB. Suppose that we seek to estimate the proportion of each allele within a population, based on a sample of individuals' phenotypes. \citet{Fuj78} report blood types of 4,464,349 people in Japan collected between 1964 and 1975. This sample is so large that any standard errors are practically zero. To retain a non-trivial level of uncertainty for the purposes of illustration, we focus on a single administrative division, Oto, in Nara Prefecture. See Figure \ref{tab2:blood_type} for details. We note here that, given the simplicity of our example, we use it to illustrate the various methods but caution readers against drawing any general conclusions for more challenging problems. In particular, we calibrate the amount of computing used by each method using general recommendations by the authors who proposed these methods (or by choosing simple numbers which might be selected for a first pass by an analyzer), rather than trying to standardize computational effort across methods.
 
 \begin{table}
     \centering
@@ -575,6 +573,8 @@ We now apply the method of \citeauthor{Caf05} to our blood type example. This me
 
 In this section, we outline some alternatives to the MCEM algorithm for maximizing the likelihood of an incomplete dataset. Examples include stochastic approximation \citep{Del99, Rob51, Lai03} and the Monte Carlo maximum likelihood method \citep{Gel93, Gey94}. 
 
+There are a few methods that are related to EM and MCEM, but have received little attention in the literature. One such method is the Monte Carlo Newton-Raphson algorithm \citep{Kuk97}, which closely resembles the ordinary Newton-Raphson algorithm, but with the gradient and Hessian replaced by Monte Carlo approximations. See our discussion of \citet{McC97} in Section \ref{sec:comparison} for a comparison with other related algorithms. Another related method is variational inference. While related to the EM algorithm, variational inference is sufficiently distinct that reviewing it is outside the scope of this work. See, e.g., \citet{Ble17} or \citet{Tsi08} for review papers.
+
 
 \subsection{Stochastic Approximation}
 \label{sec:SAEM}
@@ -611,7 +611,7 @@ We illustrate the SAEM methods of \citet{Gu98I} and \citet{Del99} on our blood t
 \end{figure}
 
 
-Both SAEM estimates are close to the MLE, but differ more than the MCEM methods presented in Section \ref{sec:MCEM}. It is worth noting that the number of Monte Carlo samples used to compute the final estimate under SAEM is comparable to that used by many MCEM methods. For SAEM however, this is the total number of Monte Carlo draws, whereas MCEM requires this many simulations at every iteration. Therefore, the total Monte Carlo cost of SAEM is much lower than for MCEM.
+Both SAEM estimates are close to the MLE, but differ more than the MCEM methods presented in Section \ref{sec:MCEM}. It is worth noting that the number of Monte Carlo samples used to compute the final estimate under SAEM is comparable to that used by many MCEM methods. For SAEM however, this is the total number of Monte Carlo draws, whereas MCEM requires this many simulations at every iteration. Therefore, the total number of Monte Carlo draws used by SAEM is much lower than for MCEM.
 
 
 
@@ -695,7 +695,7 @@ An obstacle to implementing the MCEM algorithm which was not addressed in Sectio
 
 We start by discussing importance sampling, which is a method for using a sample from one distribution to compute moments of another distribution. Next, we cover Markov chain Monte Carlo (MCMC) sampling, which consists of constructing and sampling from a Markov chain whose stationary distribution matches the distribution from which we want to simulate. Finally, we briefly touch on rejection sampling, sequential Monte Carlo (SMC) and quasi-Monte Carlo (QMC). We focus less on these last three methods because, to our knowledge, they have not been as widely used in the MCEM literature.
 
-\citet{Del99} give some brief guidance on selecting between importance sampling and MCMC. \citet{Jan06II} goes into more detail about the advantages and disadvantages of these samplers in the context of MCEM. 
+\citet{Del99} give some brief guidance on selecting between importance sampling and MCMC. \citet{Jan06II} goes into more detail about the advantages and disadvantages of these samplers in the context of MCEM. See also \citet{Rob04} for a textbook-length treatment of Monte Carlo methods.
 
 \subsection{Importance Sampling}
 \label{sec:imp_samp}
@@ -791,7 +791,7 @@ When selecting which implementation of the MCEM algorithm to use, unfortunately,
 \section{Conclusions}
 \label{sec:conc}
 
-The EM algorithm is a very useful tool for the analysis of missing data. The MCEM algorithm and related methods allow us to apply ideas from the EM algorithm in contexts where analytical calculations are intractable. In this paper, we present several implementations of the MCEM algorithm, as well as some alternative methods which can be applied to missing data problems. We also address the practical concern of how to generate the Monte Carlo samples required for our methods. Specifically, we discuss several methods for simulating from an arbitrary target distribution when direct sampling is not available. Finally, discuss numerous comparisons between the MCEM algorithm and related methods. This gives both practitioners and researchers a basis for selecting which method to use in an analysis or for further study.
+The EM algorithm is a very useful tool for the analysis of missing data. The MCEM algorithm and related methods allow us to apply ideas from the EM algorithm in contexts where analytical calculations are intractable. In this paper, we present several implementations of the MCEM algorithm, as well as some alternative methods which can be applied to missing data problems. We also address the practical concern of how to generate the Monte Carlo samples required for our methods. Specifically, we discuss several methods for simulating from an arbitrary target distribution when direct sampling is not available. Finally, we discuss numerous comparisons between the MCEM algorithm and related methods. This gives both practitioners and researchers a basis for selecting which method to use in an analysis or for further study.
 
 Over the course of writing this review, we have identified a number of gaps in the literature. Exploring these areas would be a significant contribution to the understanding and practice of the MCEM algorithm and related methods.
 
