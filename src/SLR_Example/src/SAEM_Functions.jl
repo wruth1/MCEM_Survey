@@ -2,6 +2,7 @@
 
 export SA_step_size, get_zeta, get_zeta_list
 export MC_num_O_alleles, MC_num_A_alleles, MC_num_B_alleles
+export complete_data_score_logit
 export SAEM_p_hat, SAEM_q_hat, SAEM_theta_hat
 export one_MCEM_iteration, run_SAEM
 

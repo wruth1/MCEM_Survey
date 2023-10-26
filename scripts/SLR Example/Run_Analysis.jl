@@ -502,3 +502,37 @@ theta_hat_MCML2 = run_MCML(theta_hat_MCML, Y, M_MCML)
 
 
 
+# ---------------------------------------------------------------------------- #
+#                          Monte Carlo Newton-Raphson                          #
+# ---------------------------------------------------------------------------- #
+
+#! I'm cutting this. My naive implementation doesn't respect the summation constraint for the probabilities and it's just not worth fixing.
+
+
+COUNTERS["one_X_given_Y_iid"] = 0
+Random.seed!(8)
+
+
+# ---------------------- Set control parameters for MCNR --------------------- #
+M_MCNR = 1000
+alpha_MCNR = 0.1
+
+
+# --------------------------------- Run MCNR --------------------------------- #
+all_theta_hat_MCNRs = run_MCNR(theta_init, Y, M_MCNR, alpha=alpha_MCNR, return_traj=true)
+println("Number of MC draws for Score SAEM:  $(COUNTERS["one_X_given_Y_iid"])")
+
+
+
+p_hat_traj_SAEM_score = getindex.(all_theta_hat_SAEMs_score, 1)
+q_hat_traj_SAEM_score = getindex.(all_theta_hat_SAEMs_score, 2)
+
+
+
+# Plot trajectories
+SAEM_score_plot = plot(p_hat_traj_SAEM_score, label = "p", xlabel = "Iteration", ylabel = "Estimate", size=(800, 600), margin=10mm, legendfont=font(15), guidefont=font(20), xtickfont=font(15), ytickfont=font(15));
+plot!(SAEM_score_plot, q_hat_traj_SAEM_score, label = "q");
+# Add horizontal line for MLEs
+hline!(SAEM_score_plot, [theta_MLE], label = nothing, linewidth=1, linecolor=:black, linestyle=:dash)
+savefig(SAEM_score_plot, plotsdir("Blood_Type", "SAEM_Traj_score.pdf"))
+
