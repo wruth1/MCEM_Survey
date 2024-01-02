@@ -1,0 +1,349 @@
+\documentclass[ss]{imsart}
+
+
+% \usepackage{geometry} 
+% \usepackage{color}               		% See geometry.pdf to learn the layout options. There are lots.
+% \geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or epsÂ§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+% \usepackage{amssymb}
+% \usepackage{setspace}
+
+% \usepackage[title]{appendix}   % Start an appendices environment, then treat each separate appendix as an ordinary section
+								% [title] changes labels to, e.g., "Appendix A...". Omit to label as "A...".
+
+% \usepackage{authblk}
+
+\usepackage{mathrsfs}	% For \mathcal{}, a script font in math mode
+
+% \usepackage[numbers]{natbib}
+% \usepackage[semicolon]{natbib}
+
+\usepackage{verbatim}
+% \usepackage{soul}	% Highlighting
+\usepackage{subcaption}
+% \usepackage{hyperref}
+% \def\UrlBreaks{\do\/\do-}
+
+
+\usepackage{multirow}
+
+\usepackage{esdiff} %Shorter syntax for derivatives. Use \diff{f}{x} or \diffp{f}{t}
+\usepackage{amsmath}
+\usepackage{amsthm}
+
+\usepackage{enumitem}   % For more customizable lists
+
+% \usepackage{etoolbox}   % Prerequisite for imakeidx
+% \usepackage{imakeidx}   % For making an index
+% \makeindex              % Initialize the index (this command must be included!)
+
+
+% \usepackage[ruled]{algorithm2e} % For writing algorithms
+
+\usepackage{algpseudocode}
+\usepackage{algorithm} % For writing algorithms
+
+
+\usepackage{caption}    % To remove space between figures and their captions
+\captionsetup[figure]{skip=0pt, position=bottom}
+
+
+
+
+
+
+
+
+% \title{A review of Monte Carlo-based versions of the EM algorithm}
+% \author[1]{William Ruth}
+% \affil[1]{Corresponding Author - Department of Statistics and Actuarial Science \\ Universit\'e de Montr\'eal \\ Montr\'eal, QC  Canada \\ william.ruth@umontreal.ca}
+% %\affil{Department of Statistics and Actuarial Science \\ Simon Fraser University \\ Burnaby, BC  Canada \\ lockhart@sfu.ca}
+% %\date{\today}							% Activate to display a given date or no date
+% \date{}
+
+%% Packages
+\RequirePackage{amsthm,amsmath,amsfonts,amssymb}
+% \RequirePackage[numbers]{natbib}
+\RequirePackage[authoryear]{natbib}%% uncomment this for author-year citations
+\RequirePackage[colorlinks,citecolor=blue,urlcolor=blue]{hyperref}
+\RequirePackage{graphicx}
+
+\arxiv{2010.00000}
+\startlocaldefs
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% Uncomment next line to change            %%
+%% the type of equation numbering           %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\numberwithin{equation}{section}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% For Axiom, Claim, Corollary, Hypothesis, %%
+%% Lemma, Theorem, Proposition              %%
+%% use \theoremstyle{plain}                 %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{axiom}{Axiom}
+\newtheorem{claim}[axiom]{Claim}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}{Proposition}[section]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% For Assumption, Definition, Example,     %%
+%% Notation, Property, Remark, Fact         %%
+%% use \theoremstyle{definition}            %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem*{example}{Example}
+\newtheorem*{fact}{Fact}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                          %%
+%% For Case use \theoremstyle{remark}       %%
+%%                                          %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{remark}
+\newtheorem{case}{Case}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Please put your definitions here:        %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\lt}{LTHC}
+\newcommand{\llt}{\ell(\theta)}
+
+
+\newcommand{\bF}{\mathbb{F}}
+\newcommand{\bG}{\mathbb{G}}
+\newcommand{\bP}{\mathbb{P}}
+\newcommand{\bQ}{\mathbb{Q}}
+\newcommand{\bV}{\mathbb{V}}
+\newcommand{\bE}{\mathbb{E}}
+\newcommand{\bR}{\mathbb{R}}
+
+\newcommand{\iid}{\overset{\mathrm{iid}}{\sim}}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+
+\newcommand{\cd}{f_c(y, x; \theta)}
+\newcommand{\od}{f(y; \theta)}
+
+\newcommand{\hq}{\hat{Q}}
+
+\newcommand{\wcirc}{\mathring{w}}
+
+\newcommand{\mh}{Metropolis-Hastings}
+
+\endlocaldefs
+
+\begin{document}
+\begin{frontmatter}
+\title{Supplement to: A review of Monte Carlo-based versions of the EM algorithm}
+%\title{A sample article title with some additional note\thanksref{t1}}
+\runtitle{Supplement to: Monte Carlo-based EM algorithms}
+%\thankstext{T1}{A sample additional note to the title.}
+
+\begin{aug}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Only one address is permitted per author. %%
+%% Only division, organization and e-mail is %%
+%% included in the address.                  %%
+%% Additional information can be included in %%
+%% the Acknowledgments section if necessary. %%
+%% ORCID can be inserted by command:         %%
+%% \orcid{0000-0000-0000-0000}               %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\author[A]{\fnms{William}~\snm{Ruth}\ead[label=e1]{wruth@sfu.ca}\orcid{0000-0002-4975-1572}},
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Addresses                                %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\address[A]{Department of Statistics and Actuarial Science,
+Simon Fraser University\printead[presep={,\ }]{e1}}
+
+\runauthor{W. Ruth}
+\end{aug}
+
+
+
+\end{frontmatter}
+% \doublespacing
+
+    In this supplement, we present details for the analysis of our example on estimating gene frequency. See Section 2.2 of the main text for formulation of the model and definition of notation.
+
+    \section{Observed Data Likelihood, Score and Information}
+    \label{supp:blood_obs}
+
+    Let $\pi_i$ be the probability of blood type $i$. The observed data log-likelihood for our model can be written as follows:
+    %
+    \begin{align}
+        \ell(\theta; y) &= \log \begin{pmatrix} n \\ y \end{pmatrix} + \sum y_i \log \pi_i(\theta)\\
+        & \equiv \sum y_i \log \pi_i\\
+        &\equiv 2 y_1 \log r + y_2 \log(p^2 + 2pr) + y_3 \log(q^2 + 2qr) + y_4 \log pq
+    \end{align}
+    where we use $\equiv$ to denote equality up to additive constants which do not depend on $\theta$.
+
+    Differentiating $\ell$ with respect to $\theta$ and recalling that $r = 1 - p - q$, so $\partial_p r = \partial_q r = -1$, we get the following expression for the observed data score, $S$.
+    %
+    \begin{align}
+        S(\theta; y) &= \begin{pmatrix}
+            \partial_p \ell(\theta; y)\\
+            \partial_q \ell(\theta; y) 
+        \end{pmatrix} \mathrm{, where}\\
+        \partial_p \ell(\theta; y) &= - \frac{2 y_1}{r}  + \frac{2r y_2}{p^2 + 2pr}  - \frac{2q y_3}{q^2 + 2qr}  + \frac{y_4}{p} \label{eq:gene_obs_score1}\\
+        \partial_q \ell(\theta; Y) &= - \frac{2 y_1}{r}  - \frac{2p y_2}{p^2 + 2pr}  + \frac{2r y_3}{q^2 + 2qr}  + \frac{y_4}{q} \label{eq:gene_obs_score2}
+    \end{align}
+    %
+    Solving the score equation, $S(\theta) = 0$, thus reduces to solving a system of two polynomials in $p$ and $q$. Since $p$ and $q$ are proportions, we reject any roots outside the unit simplex.
+
+    Differentiating $\ell$ again and multiplying by $-1$ gives the observed data information matrix, $I$. To simplify notation, let $p_y = p^2 + 2pr$ and $q_y = q^2 + 2qr$.
+    %
+    \begin{align}
+        I(\theta;y) &= - \begin{bmatrix}
+            \partial^2_p \ell(\theta; y) & \partial_{p,q} \ell(\theta; y)\\
+            \partial_{p,q} \ell(\theta; y) & \partial^2_q \ell(\theta; y)
+        \end{bmatrix} \mathrm{, where}\\
+        \partial^2_p \ell(\theta; y) &=  \frac{2y_1}{r^2} + \frac{2 y_2 (p_y + 2r^2)}{p_y^2} + \frac{4 y_3 q^2}{q_y^2} + \frac{y_4}{p^2}\\
+        \partial_{p,q} \ell(\theta; y) &=  \frac{2y_1}{r^2} + \frac{2 y_2 p^2}{p_y^2} + \frac{2 y_3 q^2}{q_y^2}\\
+        \partial^2_q \ell(\theta; y) &=  \frac{y_1}{r^2} + \frac{4 y_2 p^2}{p_y^2} + \frac{2 y_3 (q_y + 2r)}{q_y^2} + \frac{y_4}{q^2}
+    \end{align}
+    %
+    The asymptotic standard error of our MLE is $I^{-1}$, evaluated at the estimate.
+
+    \section{Complete Data Likelihood, Score and Information}
+    \label{supp:blood_complete}
+
+    The complete data distribution for our model can be written as follows. Write $\rho_i$ for the probability of genotype $i$. See Table 2 of the main text for the values of these probabilities.
+    %
+    \begin{align}
+        \ell_c(\theta; y,x) &= \log \begin{pmatrix} n \\ x \end{pmatrix} + \sum x_i \log \rho_i(\theta)\\
+        & \equiv \sum y_i \log \rho_i\\
+        &\equiv 2 x_1 \log r + x_2 \log pr + 2 x_3 \log p + x_4 \log qr + 2 x_5 \log q + x_6 \log pq\\
+        &= (2 x_1 + x_2 + x_4) \log r + (x_2 + 2 x_3 + x_6) \log p + (x_4 + 2 x_5 + x_6) \log q\\
+        &= n_O \log r + n_A \log p + n_B \log q
+    \end{align}
+    %
+    where $n_O$, $n_A$ and $n_B$ are the number of times allele O, A and B arise respectively in the sampled genotypes. Note that $\ell_c$ depends on $y$ only through $x$, so we suppress $y$ from our notation for complete data quantities. The complete data score function is
+    %
+    \begin{align}
+        S_c(\theta; x) &= \begin{pmatrix}
+            \partial_p \ell_c(\theta; x)\\
+            \partial_q \ell_c(\theta; x) 
+        \end{pmatrix} \mathrm{, where}\\
+        \partial_p \ell_c(\theta; x) &= \frac{x_2 + 2 x_3 + x_6}{p} - \frac{2x_1 + x_2 + x_4}{r} = \frac{n_A}{p} - \frac{n_O}{r} \label{eq:comp_score1}\\
+        \partial_p \ell_c(\theta; x) &= \frac{x_4 + 2 x_5 + x_6}{q} - \frac{2x_1 + x_2 + x_4}{r} = \frac{n_B}{q} - \frac{n_O}{r} \label{eq:comp_score2}
+    \end{align}
+    %
+    Notice that the score is linear in $x$. To make this relationship explicit, we write $S_c(\theta; x) = \mathscr{S}(\theta) x$, where $\mathscr{S}(\theta) \in \bR^{2 \times 6}$ is a matrix consisting of the coefficients on $x$ in (\ref{eq:comp_score1}) and (\ref{eq:comp_score2}). We will make use of this linearity in Section \ref{supp:ASE}.
+
+    Next, we give the information matrix for the complete data.
+    %
+    \begin{align}
+        I_c(\theta;x) &= - \begin{bmatrix}
+            \partial^2_p \ell_c(\theta; x) & \partial_{p,q} \ell_c(\theta; x)\\
+            \partial_{p,q} \ell_c(\theta; x) & \partial^2_q \ell_c(\theta; x)
+        \end{bmatrix} \mathrm{, where}\\
+        \partial^2_p \ell_c(\theta; x) &=  \frac{x_2 + 2 x_3 + x_6}{p^2} + \frac{2x_1 + x_2 + x_4}{r^2} = \frac{n_A}{p^2} + \frac{n_O}{r^2}\\
+        \partial_{p,q} \ell_c(\theta; x) &=   \frac{2x_1 + x_2 + x_4}{r^2} = \frac{n_O}{r^2}\\
+        \partial^2_q \ell_c(\theta; x) &=  \frac{x_4 + 2 x_5 + x_6}{q^2} + \frac{2x_1 + x_2 + x_4}{r^2} = \frac{n_B}{q^2} + \frac{n_O}{r^2}
+    \end{align}
+    %
+    
+
+    \section{Missing Data Distribution}
+    \label{supp:blood_miss}
+
+    Many quantities which arise in the EM and MCEM algorithms depend on the missing data distribution (i.e.\ the conditional distribution of $X$ given $Y=y$). This distribution is best described componentwise in $X$. First, note that $X_1 = y_1$ and $X_6 = y_4$. Next, we have that $X_2 + X_3 = y_2$ and $X_4 + X_5 = y_3$. Thus, we can write $X_2 |Y=y \sim \mathrm{Bin}(y_2, 2pr / (p^2 + 2pr))$ and $X_4 |Y=y \sim \mathrm{Bin}(y_3, 2qr / (q^2 + 2qr))$. Finally, we recover $X_3$ and $X_5$ by subtracting $X_2$ from $y_2$ and $X_4$ from $y_3$ respectively.
+
+    We make frequent use of the first few conditional moments of $X$, so they are listed here for convenience. Let $\alpha_1 = 2pr / (p^2 + 2pr)$ be the probability parameter for the binomial distribution of $X_2$ given $Y$, and $\alpha_2 = 1 - \alpha_1$. Similarly, let $\beta_1 = 2qr / (q^2 + 2qr)$ correspond to $X_4$ and $\beta_2 = 1 - \beta_1$.
+    %
+    \begin{align}
+        \bE(X | Y=y) &= \begin{pmatrix}
+            y_1,  y_2 \alpha_1,  y_2 \alpha_2,  y_3 \beta_1,  y_3 \beta_2,  y_4
+        \end{pmatrix}^T\\
+        &=: \mu_m\\
+        \bV(X | Y=y) &= \begin{pmatrix}
+            0 & 0 & 0 & 0 & 0 & 0\\
+            0 & y_2 \alpha_1 \alpha_2 & - y_2 \alpha_1 \alpha_2 & 0 & 0 & 0\\
+            0 & - y_2 \alpha_1 \alpha_2 & y_2 \alpha_1 \alpha_2 & 0 & 0 & 0\\
+            0 & 0 & 0 & y_3 \beta_1 \beta_2 & - y_3 \beta_1 \beta_2 & 0\\
+            0 & 0 & 0 & -y_3 \beta_1 \beta_2 & y_3 \beta_1 \beta_2 & 0\\
+            0 & 0 & 0 & 0 & 0 & 0
+        \end{pmatrix}\\
+        &=: \Sigma_m\\
+        \bE(XX^T | Y=y) &= \Sigma_m + \mu_m \mu_m^T
+    \end{align}
+    %
+    Conditional expectations of the number of alleles of each kind will be of particular interest.
+    %
+    \begin{align}
+        \nu_O & := \bE(n_O|y)\\
+         &= 2y_1 + \frac{y_2 pr}{p^2 + 2pr} + \frac{y_3 qr}{q^2 + 2qr}\\
+        &= 2y_1 + y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} \right) + y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} \right) &\left( = 2y_1 +  y_2 \left( \frac{\rho_2}{\pi_2} \right) + y_3 \left( \frac{\rho_4}{\pi_3} \right) \right)\\
+        \nonumber \\
+        \nu_A & := \bE(n_A|y)\\
+        &= \frac{2 y_2 pr}{p^2 + 2pr} + \frac{2y_2 p^2}{p^2 + 2pr} + y_4\\
+        &= y_2 \left( \frac{\rho_2}{\rho_2 + \rho_3} + \frac{2\rho_3}{\rho_2 + \rho_3} \right) + y_4 &\left(= y_2 \left( \frac{\rho_2}{\pi_2} + \frac{2\rho_3}{\pi_2} \right) + y_4 \right)\\
+        &= y_2 \left( 1 + \frac{p^2}{p^2 + 2pr} \right) + y_4\\
+        \nonumber \\
+        \nu_B &:= \bE(n_B|y)\\
+        &= \frac{2 y_3 qr}{q^2 + 2qr} + \frac{2y_3 q^2}{q^2 + 2qr} + y_4\\
+        &= y_3 \left( \frac{\rho_4}{\rho_4 + \rho_5} + \frac{2\rho_5}{\rho_4 + \rho_5} \right) + y_4 &\left(= y_3 \left( \frac{\rho_4}{\pi_3} + \frac{2\rho_5}{\pi_3} \right) + y_4 \right)\\
+        &= y_3 \left( 1 + \frac{q^2}{q^2 + 2qr} \right) + y_4
+    \end{align}
+
+
+    \section{EM Algorithm}
+    \label{supp:EM}
+
+    In order to apply the EM algorithm, we must construct and optimize the EM objective function. That is, we must compute $Q(\theta|\theta_0) = \bE_{\theta_0} \left[ \ell_c(\theta; y, X) | Y=y \right]$. The EM objective function can be written as
+    %
+    \begin{align}
+		Q(\theta | \theta_0) &:= \bE_{\theta_0} [\ell_c (\theta; X) | Y=y]\\
+		&\equiv \nu_O^{(0)} \log r + \nu_A^{(0)} \log p + \nu_B^{(0)} \log q
+	\end{align}
+    %
+    where a superscript zero denotes that the quantity is computed by taking an expectation under $\theta_0$. Differentiating $Q$ with respect to $p$ and $q$ and setting the result to zero, we get the following system of equations:
+    %
+    \begin{align}
+        \frac{\nu_A^{(0)}}{p} = \frac{\nu_O^{(0)}}{r} \label{eq:blood_update1}\\
+        \frac{\nu_B^{(0)}}{q} = \frac{\nu_O^{(0)}}{r} \label{eq:blood_update2}
+    \end{align}
+    %
+    This system of equations can be used to solve for a fixed point of the EM algorithm by evaluating $\nu_O$, $\nu_A$ and $\nu_B$ at $\theta$ instead of $\theta_0$. Note that the fixed point equations which result from this substitution exactly match the observed data score equations given by equations (\ref{eq:gene_obs_score1}) and (\ref{eq:gene_obs_score2}). Indeed, this relationship holds in general under mild conditions \citep{Wu83}.
+
+    \section{Asymptotic Standard Error}
+    \label{supp:ASE}
+
+    Recall that the EM algorithm computes the MLE, which has asymptotic covariance matrix equal to the inverse Fisher information matrix evaluated at the true parameter value. In practice, we estimate this covariance with the inverse of the observed information matrix evaluated at the MLE. Using Proposition 2.3 from the main text, we can calculate the observed information matrix using conditional expectations of quantities derived from the complete data likelihood. 
+    
+    To this end, we need to evaluate the conditional expectations in expression (7) of Proposition 2.3 in the main text. It is convenient for us to write $S_c(\theta) =: \mathscr{S}(\theta) X$ (see Section \ref{supp:blood_complete}). Then 
+    %
+    \begin{align}
+        I_c(\hat{\theta}) &= \begin{bmatrix}
+            \frac{\nu_A}{p^2} + \frac{\nu_O}{r^2} & \frac{\nu_O}{r^2}\\
+            \frac{\nu_O}{r^2} & \frac{\nu_B}{q^2} + \frac{\nu_O}{r^2}
+        \end{bmatrix} \mathrm{, and}\\
+        \bE_{\hat{\theta}} [ S_c(\hat{\theta}) S_c(\hat{\theta})^T | Y=y] &= \mathscr{S}(\hat{\theta}) \bE_{\hat{\theta}} \left[ X X^T | Y=y \right] \mathscr{S}(\hat{\theta}) \\
+        &= \mathscr{S}(\hat{\theta}) (\Sigma_m + \mu_M \mu_M^T) \mathscr{S}(\hat{\theta})\\
+    \end{align}
+    %
+    While it is possible to expand the above expressions, they quickly become too long to easily interpret. We instead leave these as computational formulas and use them as a guide for writing \texttt{R} or \texttt{Julia} code.
+
+\newpage
+
+
+\bibliographystyle{imsart-nameyear} % Style BST file (imsart-number.bst or imsart-nameyear.bst)
+\bibliography{../mybib}       % Bibliography file (usually '*.bib')
+% \bibliographystyle{plainnat}
+% \bibliography{mybib}
+
+\end{document}  
+
